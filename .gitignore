@@ -1,0 +1,28 @@
+# Dependency directories
+node_modules/
+
+# Build outputs
+dist/
+dist-ssr/
+*.local
+
+# Editor directories
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Security and Credentials
+.env
+.env.production
+.env.local
+
+# Local Zip bundles
+*.zip
+
+# OS Files
+.DS_Store
+Thumbs.db
