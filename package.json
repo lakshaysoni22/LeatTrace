@@ -1,30 +1,31 @@
 {
-  "name": "LeatTrace",
-  "version": "1.0.0",
-  "description": "Enterprise-grade Blockchain Payment Tracer & AML Compliance Suite",
-  "main": "backend/server.js",
+  "name": "leatrace-x",
+  "private": true,
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "node backend/server.js",
-    "server": "node backend/server.js",
-    "client": "vite --host",
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "build": "vite build",
+    "dev": "vite",
+    "build": "tsc && vite build",
     "preview": "vite preview"
   },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "helmet": "^7.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
   "devDependencies": {
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.2.25",
-    "@vitejs/plugin-react": "^4.3.0",
-    "concurrently": "^8.2.2",
-    "vite": "^5.2.11"
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/cytoscape": "^3.21.9",
+    "@types/uuid": "^10.0.0",
+    "tailwindcss": "^4.3.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.12"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.101.0",
+    "clsx": "^2.1.1",
+    "cytoscape": "^3.34.0",
+    "date-fns": "^4.4.0",
+    "lucide-react": "^1.21.0",
+    "react-router-dom": "^7.18.0",
+    "recharts": "^3.8.1",
+    "tailwind-merge": "^3.6.0",
+    "uuid": "^14.0.0",
+    "zustand": "^5.0.14"
   }
 }
