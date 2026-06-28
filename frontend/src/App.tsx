@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { useAuthStore, useNavStore } from './stores';
 import { LoginPage } from './pages/LoginPage';
 import { Sidebar } from './components/layout/Sidebar';
@@ -139,6 +140,7 @@ const App: React.FC = () => {
       {/* Dynamic Background Task Status Bar */}
       <StatusBar />
       <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
+      <SpeedInsights />
     </div>
   );
 };
