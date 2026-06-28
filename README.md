@@ -1,4 +1,4 @@
-# 🛡️ LEATrace-X — Advanced Blockchain AML & Forensic Intelligence Platform
+# 🛡️ LEAtTrace-X — Advanced Blockchain AML & Forensic Intelligence Platform
 
 > **NIST SP 800-53 Compliant & Court-Ready Evidence Custody System**
 > Designed for federal agencies (CBI, NIA, Cyber Crime Cells) to trace illicit cryptocurrency transactions, detect mixing clusters, verify chain of custody, and manage active threat response.
