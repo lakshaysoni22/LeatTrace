@@ -332,11 +332,30 @@ export const BlockchainPage: React.FC = () => {
     }
   }, [searchAddress]);
 
+  const isValidBlockchainAddress = (addr: string): boolean => {
+    if (!addr || addr.length < 10) return false;
+    // EVM hex address (0x...)
+    if (/^0x[a-fA-F0-9]{40}$/i.test(addr)) return true;
+    // BTC P2PKH (1...), P2SH (3...), Bech32 (bc1...)
+    if (/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(addr)) return true;
+    if (/^bc1[a-z0-9]{25,62}$/.test(addr)) return true;
+    // TRON (T...)
+    if (/^T[a-zA-Z0-9]{33}$/.test(addr)) return true;
+    // Solana base58
+    if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr)) return true;
+    return false;
+  };
+
   const handleAnalyze = async () => {
-    if (!address) return;
+    const cleanAddr = address.trim();
+    if (!cleanAddr) return;
+    if (!isValidBlockchainAddress(cleanAddr)) {
+      alert('Invalid wallet address format. Please enter a valid blockchain address (0x..., bc1..., T..., etc.)');
+      return;
+    }
     setIsAnalyzing(true);
     await new Promise((r) => setTimeout(r, 1000));
-    setSearchAddress(address);
+    setSearchAddress(cleanAddr);
     setIsAnalyzing(false);
   };
 
@@ -390,22 +409,25 @@ export const BlockchainPage: React.FC = () => {
             <p className="text-xs text-dark-400">Search on-chain wallets or hashes to analyze behavior patterns, wallet clusters, and mixer paths</p>
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <input
               type="text"
-              placeholder="Enter public wallet address (e.g. 0x742d...)"
+              placeholder="Enter wallet address (0x742d...)"
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="input-field py-2 text-xs"
+              onChange={(e) => setAddress(e.target.value.trim())}
+              onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
+              className="input-field py-2 text-xs w-full"
+              spellCheck={false}
+              autoComplete="off"
             />
           </div>
           <button 
             onClick={handleAnalyze}
             disabled={isAnalyzing}
-            className="btn-primary py-2 px-6 text-xs font-semibold flex items-center gap-2"
+            className="btn-primary py-2 px-6 text-xs font-semibold flex items-center justify-center gap-2 shrink-0"
           >
-            {isAnalyzing ? 'Analyzing Node...' : 'Analyze Address'}
+            {isAnalyzing ? 'Analyzing...' : 'Analyze'}
           </button>
         </div>
       </div>
@@ -521,51 +543,52 @@ export const BlockchainPage: React.FC = () => {
             )}
 
             {/* Overview Card */}
-            <div className="glass-card p-5 border-dark-700/50">
-              <div className="flex items-center justify-between border-b border-dark-800 pb-4 mb-4 flex-wrap gap-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500/20 to-cyber-teal/20 border border-primary-500/30 flex items-center justify-center text-primary-400">
+            <div className="glass-card p-4 sm:p-5 border-dark-700/50">
+              <div className="flex items-start sm:items-center justify-between border-b border-dark-800 pb-4 mb-4 flex-wrap gap-2">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500/20 to-cyber-teal/20 border border-primary-500/30 flex items-center justify-center text-primary-400 shrink-0">
                     <Wallet size={20} />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-xs font-bold text-white uppercase tracking-wider">{wallet.label}</h3>
-                      <span className="px-2 py-0.5 rounded bg-primary-500/10 border border-primary-500/20 text-[9px] font-bold text-primary-400 uppercase tracking-wide">
+                      <span className="px-2 py-0.5 rounded bg-primary-500/10 border border-primary-500/20 text-[9px] font-bold text-primary-400 uppercase tracking-wide shrink-0">
                         {detected.displayName}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <code className="text-[10px] sm:text-xs text-dark-300 font-mono select-all">
-                        <span className="sm:hidden">{formatAddress(wallet.address, 10)}</span>
-                        <span className="hidden sm:inline">{wallet.address}</span>
+                    <div className="flex items-center gap-1.5 mt-1 min-w-0">
+                      <code className="text-[10px] sm:text-xs text-dark-300 font-mono select-all truncate block max-w-[200px] sm:max-w-none">
+                        <span className="sm:hidden">{formatAddress(wallet.address, 8)}</span>
+                        <span className="hidden sm:inline lg:hidden">{formatAddress(wallet.address, 12)}</span>
+                        <span className="hidden lg:inline">{wallet.address}</span>
                       </code>
-                      <button onClick={copyAddr} className="text-dark-400 hover:text-white p-0.5" title="Copy Address">
+                      <button onClick={copyAddr} className="text-dark-400 hover:text-white p-0.5 shrink-0" title="Copy Address">
                         {copied ? <ShieldCheck size={13} className="text-accent-green" /> : <Copy size={13} />}
                       </button>
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-dark-400 block uppercase">Balance Portfolio</span>
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] text-dark-400 block uppercase">Balance</span>
                   <span className="text-base font-bold text-white">{formatCrypto(wallet.balance, detected.coin)}</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-3 bg-dark-900/50 border border-dark-800 rounded-lg">
-                  <span className="text-[10px] text-dark-500 uppercase block mb-1">Total Transactions</span>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+                <div className="p-2 sm:p-3 bg-dark-900/50 border border-dark-800 rounded-lg">
+                  <span className="text-[9px] sm:text-[10px] text-dark-500 uppercase block mb-1 truncate">Total Txns</span>
                   <span className="text-sm font-bold text-white font-mono">{wallet.totalTransactions}</span>
                 </div>
-                <div className="p-3 bg-dark-900/50 border border-dark-800 rounded-lg">
-                  <span className="text-[10px] text-dark-500 uppercase block mb-1">Inflow Tx Volume</span>
-                  <span className="text-sm font-bold text-accent-green font-mono">{formatCrypto(wallet.totalVolumeIn, detected.coin)}</span>
+                <div className="p-2 sm:p-3 bg-dark-900/50 border border-dark-800 rounded-lg">
+                  <span className="text-[9px] sm:text-[10px] text-dark-500 uppercase block mb-1 truncate">Inflow Vol</span>
+                  <span className="text-xs sm:text-sm font-bold text-accent-green font-mono">{formatCrypto(wallet.totalVolumeIn, detected.coin)}</span>
                 </div>
-                <div className="p-3 bg-dark-900/50 border border-dark-800 rounded-lg">
-                  <span className="text-[10px] text-dark-500 uppercase block mb-1">Outflow Tx Volume</span>
-                  <span className="text-sm font-bold text-accent-red font-mono">{formatCrypto(wallet.totalVolumeOut, detected.coin)}</span>
+                <div className="p-2 sm:p-3 bg-dark-900/50 border border-dark-800 rounded-lg">
+                  <span className="text-[9px] sm:text-[10px] text-dark-500 uppercase block mb-1 truncate">Outflow Vol</span>
+                  <span className="text-xs sm:text-sm font-bold text-accent-red font-mono">{formatCrypto(wallet.totalVolumeOut, detected.coin)}</span>
                 </div>
-                <div className="p-3 bg-dark-900/50 border border-dark-800 rounded-lg">
-                  <span className="text-[10px] text-dark-500 uppercase block mb-1">Decentralization Level</span>
+                <div className="p-2 sm:p-3 bg-dark-900/50 border border-dark-800 rounded-lg">
+                  <span className="text-[9px] sm:text-[10px] text-dark-500 uppercase block mb-1 truncate">Decentral.</span>
                   <span className="text-sm font-bold text-primary-400 font-mono">{wallet.decentralizationLevel || 89}%</span>
                 </div>
               </div>
@@ -602,18 +625,53 @@ export const BlockchainPage: React.FC = () => {
             </div>
 
             {/* Transaction Ledger Table */}
-            <div className="glass-card p-5 border-dark-700/50 space-y-4">
+            <div className="glass-card p-3 sm:p-5 border-dark-700/50 space-y-4">
               <div className="flex items-center justify-between border-b border-dark-800 pb-3">
-                <h3 className="text-xs font-bold text-dark-300 uppercase tracking-wider">Historical Transaction Ledger</h3>
-                <span className="text-[10px] text-dark-400">Showing {mockTransactions.length} events</span>
+                <h3 className="text-xs font-bold text-dark-300 uppercase tracking-wider">Transaction Ledger</h3>
+                <span className="text-[10px] text-dark-400">{mockTransactions.length} events</span>
               </div>
 
-              <div className="overflow-x-auto text-xs">
+              {/* Mobile Card View */}
+              <div className="sm:hidden space-y-2">
+                {mockTransactions.map((tx) => {
+                  const isOut = tx.from.toLowerCase() === wallet.address.toLowerCase();
+                  return (
+                    <div
+                      key={tx.hash}
+                      onClick={() => setSelectedTx(tx)}
+                      className="p-3 bg-dark-900/60 border border-dark-800 rounded-lg cursor-pointer hover:border-primary-500/30 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <code className="text-[10px] font-bold text-primary-400 font-mono">{formatAddress(tx.hash, 6)}</code>
+                        <span className={`flex items-center gap-1 text-[10px] font-bold ${isOut ? 'text-accent-red' : 'text-accent-green'}`}>
+                          {isOut ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                          {isOut ? 'OUT' : 'IN'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <code className="text-[10px] font-mono text-dark-400">
+                          {isOut ? `→ ${formatAddress(tx.to, 5)}` : `← ${formatAddress(tx.from, 5)}`}
+                        </code>
+                        <span className="text-xs font-semibold text-white">{formatETH(tx.value)}</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-[9px] text-dark-500">{timeAgo(tx.timestamp)}</span>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded ${tx.status === 'success' ? 'badge-green' : 'badge-red'}`}>
+                          {tx.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden sm:block overflow-x-auto text-xs">
                 <table className="data-table">
                   <thead>
                     <tr className="bg-dark-850">
                       <th>TX Hash</th>
-                      <th>Direction</th>
+                      <th>Dir</th>
                       <th>From / To</th>
                       <th>Value</th>
                       <th>Time</th>
@@ -747,36 +805,37 @@ export const BlockchainPage: React.FC = () => {
       )}
 
       {showProfile && activeSubTab === 'clustering' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Left panel: Clustered Addresses Directory & Mixer timeline */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6 min-w-0">
             {/* Clustered Directory Card */}
-            <div className="glass-card p-5 border-dark-700/50 space-y-4">
-              <div className="flex items-center justify-between border-b border-dark-800 pb-3">
+            <div className="glass-card p-3 sm:p-5 border-dark-700/50 space-y-4 overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-dark-800 pb-3 gap-2">
                 <div className="flex items-center gap-2">
-                  <Cpu size={16} className="text-primary-400" />
-                  <h3 className="text-sm font-bold text-white">Address Clustering Directory</h3>
+                  <Cpu size={16} className="text-primary-400 shrink-0" />
+                  <h3 className="text-sm font-bold text-white">Address Clustering</h3>
                 </div>
-                <span className="text-[10px] text-dark-500 uppercase tracking-wider font-mono">Algorithm: {clusterData.type}</span>
+                <span className="text-[9px] sm:text-[10px] text-dark-500 uppercase tracking-wider font-mono truncate max-w-full">{clusterData.type}</span>
               </div>
 
-              <div className="p-3.5 bg-primary-500/5 border border-primary-500/20 rounded-lg text-xs space-y-1.5 text-dark-300">
-                <p>Clustering groups associated wallets controlled by the same entity based on **co-spending transaction inputs** and **shared exchange deposit tags**.</p>
-                <div className="flex items-center gap-4 text-[10px] font-bold text-primary-400 uppercase pt-1">
-                  <span>Confidence Level: {clusterData.confidence}</span>
-                  <span>Total Group Mapped: {clusterData.size} Addresses</span>
+              <div className="p-3 bg-primary-500/5 border border-primary-500/20 rounded-lg text-xs space-y-1.5 text-dark-300">
+                <p className="leading-snug">Clustering groups associated wallets controlled by the same entity based on co-spending inputs and shared exchange deposit tags.</p>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-bold text-primary-400 uppercase pt-1">
+                  <span>Confidence: {clusterData.confidence}</span>
+                  <span>Group Size: {clusterData.size} Addresses</span>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <span className="text-[10px] font-bold text-dark-400 uppercase tracking-wider block">Grouped Cluster Address List</span>
+                <span className="text-[10px] font-bold text-dark-400 uppercase tracking-wider block">Cluster Members</span>
                 {clusterData.wallets.map((w: string, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between p-2.5 bg-dark-900/40 border border-dark-850 rounded hover:border-dark-750 text-xs flex-wrap gap-2">
-                    <code className="text-white font-mono select-all text-[10px] sm:text-xs">
+                  <div key={idx} className="flex items-center justify-between gap-2 p-2 sm:p-2.5 bg-dark-900/40 border border-dark-850 rounded hover:border-dark-750 text-xs overflow-hidden">
+                    <code className="text-white font-mono select-all truncate text-[10px] sm:text-xs min-w-0 flex-1">
                       <span className="sm:hidden">{formatAddress(w, 8)}</span>
-                      <span className="hidden sm:inline">{w}</span>
+                      <span className="hidden sm:inline lg:hidden">{formatAddress(w, 12)}</span>
+                      <span className="hidden lg:inline">{w}</span>
                     </code>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       {w.toLowerCase() === address.toLowerCase() && (
                         <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-primary-500/10 border border-primary-500/20 text-primary-400 uppercase">Target</span>
                       )}
@@ -796,63 +855,85 @@ export const BlockchainPage: React.FC = () => {
             </div>
 
             {/* Mixer interaction history */}
-            <div className="glass-card p-5 border-dark-700/50 space-y-4">
-              <div className="flex items-center justify-between border-b border-dark-800 pb-3">
-                <h3 className="text-xs font-bold text-dark-300 uppercase tracking-wider">Mixer Transaction logs (Tornado Cash)</h3>
+            <div className="glass-card p-3 sm:p-5 border-dark-700/50 space-y-4 overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-dark-800 pb-3 gap-1">
+                <h3 className="text-xs font-bold text-dark-300 uppercase tracking-wider">Mixer Logs (Tornado Cash)</h3>
                 <span className="text-[10px] text-accent-red font-bold font-mono">Involvement Detected</span>
               </div>
 
-              <div className="overflow-x-auto text-xs">
-                {mixerData.interactions.length > 0 ? (
-                  <table className="data-table">
-                    <thead>
-                      <tr className="bg-dark-850">
-                        <th>Event Hash</th>
-                        <th>Action</th>
-                        <th>Value</th>
-                        <th>Target Mixing Pool</th>
-                        <th>Time</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mixerData.interactions.map((mix: any, idx: number) => (
-                        <tr key={idx} className="hover:bg-dark-800/10">
-                          <td><code className="text-[11px] font-mono text-primary-400">{formatAddress(mix.hash, 10)}</code></td>
-                          <td>
-                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${mix.action === 'DEPOSIT' ? 'bg-accent-red/10 border border-accent-red/20 text-accent-red' : 'bg-accent-green/10 border border-accent-green/20 text-accent-green'}`}>
-                              {mix.action}
-                            </span>
-                          </td>
-                          <td className="font-bold text-white font-mono">{mix.amount} ETH</td>
-                          <td className="text-dark-300">{mix.pool}</td>
-                          <td className="text-dark-400">{formatDate(mix.time)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div className="p-8 text-center bg-dark-900/30 border border-dark-800 rounded-lg text-dark-400 space-y-1">
-                    <ShieldCheck size={24} className="text-accent-green mx-auto" />
-                    <p className="font-bold text-white text-xs">No Mixer Interactions Mapped</p>
-                    <p className="text-[11px]">No direct/1-hop transfers leading to Tornado Cash mixing contracts found.</p>
+              {mixerData.interactions.length > 0 ? (
+                <>
+                  {/* Mobile Card View */}
+                  <div className="sm:hidden space-y-2">
+                    {mixerData.interactions.map((mix: any, idx: number) => (
+                      <div key={idx} className="p-3 bg-dark-900/60 border border-dark-800 rounded-lg space-y-2">
+                        <div className="flex items-center justify-between">
+                          <code className="text-[10px] font-mono text-primary-400">{formatAddress(mix.hash, 6)}</code>
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${mix.action === 'DEPOSIT' ? 'bg-accent-red/10 border border-accent-red/20 text-accent-red' : 'bg-accent-green/10 border border-accent-green/20 text-accent-green'}`}>
+                            {mix.action}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-dark-400 truncate mr-2">{mix.pool}</span>
+                          <span className="font-bold text-white font-mono shrink-0">{mix.amount} ETH</span>
+                        </div>
+                        <div className="text-[9px] text-dark-500">{formatDate(mix.time)}</div>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
+
+                  {/* Desktop Table View */}
+                  <div className="hidden sm:block overflow-x-auto text-xs">
+                    <table className="data-table">
+                      <thead>
+                        <tr className="bg-dark-850">
+                          <th>Event Hash</th>
+                          <th>Action</th>
+                          <th>Value</th>
+                          <th>Pool</th>
+                          <th>Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {mixerData.interactions.map((mix: any, idx: number) => (
+                          <tr key={idx} className="hover:bg-dark-800/10">
+                            <td><code className="text-[11px] font-mono text-primary-400">{formatAddress(mix.hash, 10)}</code></td>
+                            <td>
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${mix.action === 'DEPOSIT' ? 'bg-accent-red/10 border border-accent-red/20 text-accent-red' : 'bg-accent-green/10 border border-accent-green/20 text-accent-green'}`}>
+                                {mix.action}
+                              </span>
+                            </td>
+                            <td className="font-bold text-white font-mono">{mix.amount} ETH</td>
+                            <td className="text-dark-300">{mix.pool}</td>
+                            <td className="text-dark-400">{formatDate(mix.time)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <div className="p-6 sm:p-8 text-center bg-dark-900/30 border border-dark-800 rounded-lg text-dark-400 space-y-1">
+                  <ShieldCheck size={24} className="text-accent-green mx-auto" />
+                  <p className="font-bold text-white text-xs">No Mixer Interactions Mapped</p>
+                  <p className="text-[11px]">No direct/1-hop transfers to Tornado Cash mixing contracts found.</p>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Right panel: Exposure assessment */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="glass-card p-5 border-dark-700/50 space-y-4">
+          <div className="lg:col-span-1 space-y-4 sm:space-y-6 min-w-0">
+            <div className="glass-card p-3 sm:p-5 border-dark-700/50 space-y-4">
               <div className="flex items-center justify-between border-b border-dark-800 pb-3">
-                <h3 className="text-xs font-bold text-dark-300 uppercase tracking-wider">Mixer Exposure Rating</h3>
+                <h3 className="text-xs font-bold text-dark-300 uppercase tracking-wider">Mixer Exposure</h3>
                 <span className="text-[9px] text-accent-red bg-accent-red/15 border border-accent-red/25 px-1.5 py-0.5 rounded font-extrabold uppercase font-mono">
                   {mixerData.rating}
                 </span>
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="text-4xl font-black text-accent-red font-mono">
+                <div className="text-3xl sm:text-4xl font-black text-accent-red font-mono">
                   {mixerData.exposurePercentage}%
                 </div>
                 <div>
@@ -863,11 +944,11 @@ export const BlockchainPage: React.FC = () => {
 
               <div className="p-3 bg-dark-900 border border-dark-800 rounded-lg space-y-2 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-dark-500">Mixed Volume In:</span>
+                  <span className="text-dark-500">Mixed Volume:</span>
                   <span className="font-bold text-white font-mono">{formatUSD(mixerData.volumeUSD)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-dark-500">Identified Pool Hits:</span>
+                  <span className="text-dark-500">Pool Hits:</span>
                   <span className="font-bold text-white">{mixerData.interactions.length} txs</span>
                 </div>
               </div>
@@ -875,20 +956,20 @@ export const BlockchainPage: React.FC = () => {
               <div className="space-y-2 text-xs border-t border-dark-850 pt-3">
                 <span className="text-[10px] font-bold text-dark-400 uppercase tracking-wider block">Involved Contracts</span>
                 {mixerData.involvedPools.map((pool: string, idx: number) => (
-                  <div key={idx} className="p-2 bg-dark-900 border border-dark-850 rounded flex items-center justify-between font-mono text-[10px] text-dark-300">
-                    <span>{pool}</span>
-                    <span className="text-[8px] text-accent-red font-bold uppercase tracking-wider bg-accent-red/10 px-1 rounded">Mixer Contract</span>
+                  <div key={idx} className="p-2 bg-dark-900 border border-dark-850 rounded flex items-center justify-between gap-2 text-[10px] text-dark-300 overflow-hidden">
+                    <span className="truncate min-w-0">{pool}</span>
+                    <span className="text-[8px] text-accent-red font-bold uppercase tracking-wider bg-accent-red/10 px-1 rounded shrink-0">Mixer</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="glass-card p-5 border-dark-700/50 space-y-3">
-              <h3 className="text-xs font-bold text-dark-300 uppercase tracking-wider">Exchange deposit linkages</h3>
+            <div className="glass-card p-3 sm:p-5 border-dark-700/50 space-y-3">
+              <h3 className="text-xs font-bold text-dark-300 uppercase tracking-wider">Exchange Deposit Links</h3>
               <div className="space-y-2 text-xs">
-                <p className="text-dark-400 leading-snug">The clustered grouping has deposited mixed funds to the following centralized exchange deposit tag wallets:</p>
+                <p className="text-dark-400 leading-snug">Mixed funds deposited to centralized exchange wallets:</p>
                 {clusterData.exchanges.map((ex: string, idx: number) => (
-                  <div key={idx} className="p-2 bg-dark-900 border border-dark-850 rounded text-xs font-bold text-white">
+                  <div key={idx} className="p-2 bg-dark-900 border border-dark-850 rounded text-xs font-bold text-white truncate">
                     {ex}
                   </div>
                 ))}
@@ -1093,11 +1174,11 @@ export const BlockchainPage: React.FC = () => {
                   </div>
                   <div className="space-y-1 col-span-2 border-t border-dark-800 pt-2">
                     <span className="text-dark-500 text-[10px] block uppercase">Sender Address (Decoded from Topic 1)</span>
-                    <span className="font-bold text-primary-400 select-all break-all">{decodedResult.from}</span>
+                    <span className="font-bold text-primary-400 select-all">{decodedResult.from}</span>
                   </div>
                   <div className="space-y-1 col-span-2 border-t border-dark-800 pt-2">
                     <span className="text-dark-500 text-[10px] block uppercase">Recipient Address (Decoded from Topic 2)</span>
-                    <span className="font-bold text-primary-400 select-all break-all">{decodedResult.to}</span>
+                    <span className="font-bold text-primary-400 select-all">{decodedResult.to}</span>
                   </div>
                   <div className="space-y-1 col-span-2 border-t border-dark-800 pt-2 flex justify-between items-center">
                     <div>
@@ -1321,7 +1402,7 @@ export const BlockchainPage: React.FC = () => {
               <div className="flex justify-between flex-wrap gap-1">
                 <span className="text-dark-400 print:text-black">Query Address:</span>
                 <code className="font-bold text-white print:text-black font-mono select-all break-all text-[10px] sm:text-xs">
-                  <span className="sm:hidden">{formatAddress(wallet.address, 10)}</span>
+                  <span className="sm:hidden">{formatAddress(wallet.address, 8)}</span>
                   <span className="hidden sm:inline">{wallet.address}</span>
                 </code>
               </div>

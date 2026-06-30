@@ -4,7 +4,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base, SessionLocal
 from . import models, security
-from .routers import auth, cases, wallets, graph, evidence, audit, ai, real_ecosystem, streaming, incident, siem, cluster_api, soc_api, forensics_api, security_api, iam_api, cti_api, siem_correlation_api, elasticsearch_api, ai_intelligence_api
+from .routers import auth, cases, wallets, graph, evidence, audit, ai, real_ecosystem, streaming, incident, siem, cluster_api, soc_api, forensics_api, security_api, iam_api, cti_api, siem_correlation_api, elasticsearch_api, ai_intelligence_api, blockchain_risk_api, device_api
 
 # Setup database tables on startup (no migrations needed for simple SQLite)
 Base.metadata.create_all(bind=engine)
@@ -50,6 +50,8 @@ app.include_router(cti_api.router)
 app.include_router(siem_correlation_api.router)
 app.include_router(elasticsearch_api.router)
 app.include_router(ai_intelligence_api.router)
+app.include_router(blockchain_risk_api.router)
+app.include_router(device_api.router)
 
 # Real blockchain node transaction listener background task
 async def real_blockchain_listener():

@@ -254,3 +254,296 @@ class EntityLabel(Base):
     confidence_score = Column(Float, default=1.0)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+
+# ===================================================================
+# IAM Platform Tables
+# ===================================================================
+
+class OAuthClient(Base):
+    __tablename__ = "oauth_clients"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    client_id = Column(String, unique=True, index=True, nullable=False)
+    client_secret_hash = Column(String, nullable=False)
+    client_name = Column(String, nullable=False)
+    redirect_uris = Column(Text, nullable=False)  # JSON array
+    grant_types = Column(Text, default='["authorization_code","refresh_token"]')  # JSON array
+    scopes = Column(String, default="openid profile email roles")
+    is_active = Column(Boolean, default=True)
+    is_confidential = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
+class TrustedDevice(Base):
+    __tablename__ = "trusted_devices"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    device_fingerprint = Column(String, index=True, nullable=False)
+    device_name = Column(String, default="Unknown Device")
+    os_name = Column(String, nullable=True)
+    browser_name = Column(String, nullable=True)
+    ip_address = Column(String, nullable=True)
+    last_used = Column(DateTime, default=datetime.datetime.utcnow)
+    is_trusted = Column(Boolean, default=True)
+    trust_expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class RecoveryCode(Base):
+    __tablename__ = "recovery_codes"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    code_hash = Column(String, nullable=False)
+    is_used = Column(Boolean, default=False)
+    used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class SecurityPolicy(Base):
+    __tablename__ = "security_policies"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    policy_name = Column(String, unique=True, nullable=False)
+    policy_type = Column(String, nullable=False)  # abac, password, session, network
+    policy_rules = Column(Text, nullable=False)  # JSON rules
+    is_active = Column(Boolean, default=True)
+    priority = Column(Integer, default=100)
+    created_by = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
+class PasswordHistory(Base):
+    __tablename__ = "password_history"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    password_hash = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class APIKey(Base):
+    __tablename__ = "api_keys"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    key_hash = Column(String, unique=True, nullable=False)
+    key_prefix = Column(String, nullable=False)  # First 8 chars for identification
+    name = Column(String, nullable=False)
+    scopes = Column(String, default="read")
+    is_active = Column(Boolean, default=True)
+    last_used = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+# ===================================================================
+# AI Platform Tables
+# ===================================================================
+
+class MLModel(Base):
+    __tablename__ = "ml_models"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    model_name = Column(String, index=True, nullable=False)
+    model_version = Column(String, nullable=False)
+    model_type = Column(String, nullable=False)  # classification, regression, clustering, anomaly
+    framework = Column(String, default="sklearn")  # sklearn, xgboost, lightgbm, pytorch
+    file_path = Column(String, nullable=True)
+    feature_dim = Column(Integer, default=0)
+    status = Column(String, default="trained")  # trained, deployed, champion, challenger, archived
+    accuracy = Column(Float, nullable=True)
+    precision_score = Column(Float, nullable=True)
+    recall_score = Column(Float, nullable=True)
+    f1_score = Column(Float, nullable=True)
+    training_samples = Column(Integer, nullable=True)
+    metadata_json = Column(Text, nullable=True)  # JSON blob for extra metrics
+    trained_by = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
+class VectorDocument(Base):
+    __tablename__ = "vector_documents"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    doc_type = Column(String, index=True, nullable=False)  # wallet, transaction, case, evidence, threat, alert
+    source_id = Column(String, index=True, nullable=False)
+    content = Column(Text, nullable=False)
+    embedding_model = Column(String, default="all-MiniLM-L6-v2")
+    embedding_version = Column(Integer, default=1)
+    metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
+class AIExperiment(Base):
+    __tablename__ = "ai_experiments"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    experiment_name = Column(String, index=True, nullable=False)
+    run_id = Column(String, unique=True, nullable=False)
+    run_name = Column(String, nullable=True)
+    status = Column(String, default="RUNNING")  # RUNNING, COMPLETED, FAILED
+    params_json = Column(Text, nullable=True)
+    metrics_json = Column(Text, nullable=True)
+    started_at = Column(DateTime, default=datetime.datetime.utcnow)
+    ended_at = Column(DateTime, nullable=True)
+
+
+class TrainingJob(Base):
+    __tablename__ = "training_jobs"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    model_name = Column(String, nullable=False)
+    job_type = Column(String, default="full")  # full, incremental, evaluation
+    status = Column(String, default="pending")  # pending, running, completed, failed
+    trigger = Column(String, default="manual")  # manual, scheduled, drift
+    samples_count = Column(Integer, nullable=True)
+    metrics_json = Column(Text, nullable=True)
+    error_message = Column(Text, nullable=True)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+# ===================================================================
+# Blockchain Intelligence Tables
+# ===================================================================
+
+class WalletProfile(Base):
+    __tablename__ = "wallet_profiles"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    address = Column(String, unique=True, index=True, nullable=False)
+    chain = Column(String, default="ethereum")
+    wallet_type = Column(String, default="eoa")  # eoa, contract, multisig, proxy
+    entity_name = Column(String, nullable=True)
+    entity_category = Column(String, nullable=True)  # exchange, defi, mixer, unknown
+    cluster_id = Column(String, nullable=True, index=True)
+    risk_score = Column(Integer, default=0)
+    trust_score = Column(Integer, default=50)
+    total_tx_count = Column(Integer, default=0)
+    total_volume_eth = Column(Float, default=0.0)
+    first_seen = Column(DateTime, nullable=True)
+    last_seen = Column(DateTime, nullable=True)
+    is_contract = Column(Boolean, default=False)
+    is_sanctioned = Column(Boolean, default=False)
+    mixer_exposure_pct = Column(Float, default=0.0)
+    tags = Column(Text, nullable=True)  # JSON array
+    metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
+class WalletCluster(Base):
+    __tablename__ = "wallet_clusters"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    cluster_id = Column(String, unique=True, index=True, nullable=False)
+    cluster_name = Column(String, nullable=True)
+    entity_name = Column(String, nullable=True)
+    heuristic_type = Column(String, default="co_spending")  # co_spending, behavioral, graph, exchange
+    confidence = Column(Float, default=0.5)
+    member_count = Column(Integer, default=0)
+    total_volume_eth = Column(Float, default=0.0)
+    risk_score = Column(Integer, default=0)
+    addresses_json = Column(Text, nullable=True)  # JSON array of addresses
+    metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
+class WalletRelationship(Base):
+    __tablename__ = "wallet_relationships"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    source_address = Column(String, index=True, nullable=False)
+    target_address = Column(String, index=True, nullable=False)
+    relationship_type = Column(String, default="transfer")  # transfer, co_spend, bridge, funding
+    tx_count = Column(Integer, default=1)
+    total_value_eth = Column(Float, default=0.0)
+    first_interaction = Column(DateTime, nullable=True)
+    last_interaction = Column(DateTime, nullable=True)
+    relationship_score = Column(Float, default=0.0)
+    chain = Column(String, default="ethereum")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class CrossChainEvent(Base):
+    __tablename__ = "cross_chain_events"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    source_chain = Column(String, nullable=False)
+    destination_chain = Column(String, nullable=False)
+    source_tx_hash = Column(String, index=True, nullable=True)
+    destination_tx_hash = Column(String, nullable=True)
+    bridge_protocol = Column(String, nullable=True)
+    sender_address = Column(String, index=True, nullable=False)
+    receiver_address = Column(String, nullable=True)
+    token_symbol = Column(String, default="ETH")
+    amount = Column(Float, default=0.0)
+    bridge_fee = Column(Float, default=0.0)
+    status = Column(String, default="detected")  # detected, confirmed, failed
+    risk_score = Column(Integer, default=0)
+    timestamp = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class BridgeEvent(Base):
+    __tablename__ = "bridge_events"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    bridge_name = Column(String, nullable=False)
+    bridge_address = Column(String, index=True, nullable=False)
+    source_chain = Column(String, nullable=False)
+    destination_chain = Column(String, nullable=False)
+    tx_hash = Column(String, index=True, nullable=False)
+    user_address = Column(String, index=True, nullable=False)
+    token_in = Column(String, default="ETH")
+    token_out = Column(String, default="WETH")
+    amount_in = Column(Float, default=0.0)
+    amount_out = Column(Float, default=0.0)
+    timestamp = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class DecodedContract(Base):
+    __tablename__ = "decoded_contracts"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    address = Column(String, index=True, nullable=False)
+    chain = Column(String, default="ethereum")
+    contract_name = Column(String, nullable=True)
+    contract_type = Column(String, default="unknown")  # erc20, erc721, erc1155, defi, bridge, proxy
+    is_proxy = Column(Boolean, default=False)
+    implementation_address = Column(String, nullable=True)
+    abi_json = Column(Text, nullable=True)
+    protocol_name = Column(String, nullable=True)
+    verified = Column(Boolean, default=False)
+    risk_level = Column(String, default="unknown")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class RiskScore(Base):
+    __tablename__ = "risk_scores"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    target_type = Column(String, nullable=False)  # wallet, transaction, token, bridge, contract, entity
+    target_id = Column(String, index=True, nullable=False)  # address or tx_hash
+    chain = Column(String, default="ethereum")
+    overall_score = Column(Integer, default=0)
+    mixer_score = Column(Integer, default=0)
+    sanctions_score = Column(Integer, default=0)
+    counterparty_score = Column(Integer, default=0)
+    behavioral_score = Column(Integer, default=0)
+    bridge_score = Column(Integer, default=0)
+    fraud_probability = Column(Float, default=0.0)
+    aml_risk = Column(Float, default=0.0)
+    confidence = Column(Float, default=0.5)
+    explanation = Column(Text, nullable=True)
+    evidence_json = Column(Text, nullable=True)  # JSON array of supporting evidence
+    scored_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class BlockchainTimeline(Base):
+    __tablename__ = "blockchain_timelines"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    investigation_id = Column(String, index=True, nullable=True)
+    address = Column(String, index=True, nullable=False)
+    event_type = Column(String, nullable=False)  # transfer, bridge, mixer, defi, contract_call
+    event_description = Column(String, nullable=True)
+    tx_hash = Column(String, nullable=True)
+    chain = Column(String, default="ethereum")
+    value_eth = Column(Float, default=0.0)
+    counterparty = Column(String, nullable=True)
+    risk_flag = Column(Boolean, default=False)
+    timestamp = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
