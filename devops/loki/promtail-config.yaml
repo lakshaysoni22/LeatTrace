@@ -9,10 +9,10 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
-  - job_name: leatrace-logs
+  - job_name: LEAtTrace-logs
     static_configs:
       - targets: [localhost]
         labels:
           job: fastapi
-          __path__: /var/log/leatrace/*.log
+          __path__: /var/log/LEAtTrace/*.log
           environment: production

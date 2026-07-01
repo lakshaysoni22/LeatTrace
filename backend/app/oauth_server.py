@@ -5,8 +5,8 @@ from typing import Dict, Any, Optional
 
 # Local dynamic registries to hold client info
 OAUTH_CLIENTS = {
-    "leatrace-frontend": {
-        "client_id": "leatrace-frontend",
+    "LEAtTrace-frontend": {
+        "client_id": "LEAtTrace-frontend",
         "client_secret": "secure-frontend-client-secret-key-100",
         "redirect_uris": ["http://localhost:3000/callback"],
         "grant_types": ["authorization_code", "refresh_token", "client_credentials"]

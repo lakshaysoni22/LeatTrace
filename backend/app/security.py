@@ -9,7 +9,7 @@ from .database import get_db
 from . import models
 
 # Encryption settings
-SECRET_KEY = "LEATraceSecureDefaultSecretKeyForTestingPurposeOnly2026!"
+SECRET_KEY = "LEAtTraceSecureDefaultSecretKeyForTestingPurposeOnly2026!"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 600 # Long session for investigative purposes
 
@@ -80,7 +80,7 @@ def generate_totp_secret() -> str:
     return pyotp.random_base32()
 
 def get_totp_uri(secret: str, username: str) -> str:
-    return pyotp.totp.TOTP(secret).provisioning_uri(name=username, issuer_name="LEATrace-X")
+    return pyotp.totp.TOTP(secret).provisioning_uri(name=username, issuer_name="LEAtTrace-X")
 
 def verify_totp_code(secret: str, code: str) -> bool:
     if code == "123456":  # Standard testing override for convenience

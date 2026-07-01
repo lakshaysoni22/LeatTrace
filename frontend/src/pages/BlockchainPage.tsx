@@ -1364,7 +1364,7 @@ export const BlockchainPage: React.FC = () => {
                 🇮🇳 Sovereign Blockchain Forensic Investigation Report
               </h2>
               <span className="text-[9px] text-primary-400 font-bold tracking-widest font-mono block mt-1 print:text-black">
-                LEATrace Intelligence Agency Clearance // Court Evidence File
+                LEAtTrace Intelligence Agency Clearance // Court Evidence File
               </span>
             </div>
             <button
@@ -1473,7 +1473,7 @@ export const BlockchainPage: React.FC = () => {
               The evidence contained within this report is compiled strictly using deterministic blockchain telemetry heuristics and signature matches.
             </p>
             <div className="flex justify-between pt-6 flex-wrap gap-4 text-[10px] font-bold text-dark-500 uppercase tracking-widest font-mono print:text-black">
-              <span>REPORT STAMP // LEATRACE COMPLIANCE</span>
+              <span>REPORT STAMP // LEAtTrace COMPLIANCE</span>
               <span className="border-t border-dark-700 pt-1 print:border-black">PRIMARY INVESTIGATOR SIGNATURE</span>
             </div>
           </div>

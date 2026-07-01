@@ -1,5 +1,5 @@
 """
-LEATrace IAM — Device Management API.
+LEAtTrace IAM — Device Management API.
 
 Enterprise device management endpoints: registration, trust,
 fingerprinting, risk scoring, and forced logout.

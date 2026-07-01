@@ -10,24 +10,24 @@ from app.abac_engine import abac_engine
 def test_oauth_pkce_validation():
     # Generate auth code
     code = oauth_server.generate_auth_code(
-        client_id="leatrace-frontend",
+        client_id="LEAtTrace-frontend",
         user_id="user_101",
         code_challenge="E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
         code_challenge_method="S256"
     )
     
     # Validation with incorrect verifier should fail
-    assert oauth_server.validate_auth_code("auth_code_invalid", "leatrace-frontend") is False
-    assert oauth_server.validate_auth_code(code, "leatrace-frontend", "wrong-verifier") is False
+    assert oauth_server.validate_auth_code("auth_code_invalid", "LEAtTrace-frontend") is False
+    assert oauth_server.validate_auth_code(code, "LEAtTrace-frontend", "wrong-verifier") is False
     
     # Regenerate code and test with correct verifier (dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk)
     code = oauth_server.generate_auth_code(
-        client_id="leatrace-frontend",
+        client_id="LEAtTrace-frontend",
         user_id="user_101",
         code_challenge="E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
         code_challenge_method="S256"
     )
-    assert oauth_server.validate_auth_code(code, "leatrace-frontend", "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk") is True
+    assert oauth_server.validate_auth_code(code, "LEAtTrace-frontend", "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk") is True
 
 def test_oidc_discovery_and_claims():
     doc = oidc_provider.get_discovery_document()

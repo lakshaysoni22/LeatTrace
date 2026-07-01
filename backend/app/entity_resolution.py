@@ -1,5 +1,5 @@
 """
-LEATrace Blockchain Intelligence — Entity Resolution Engine.
+LEAtTrace Blockchain Intelligence — Entity Resolution Engine.
 
 DB-backed entity resolution with address tagging, fuzzy search,
 relationship scoring, and confidence aggregation. Replaces the

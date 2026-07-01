@@ -1,5 +1,5 @@
 """
-LEATrace IAM — Permission Matrix.
+LEAtTrace IAM — Permission Matrix.
 
 Complete permission matrix with 12 enterprise roles and granular permissions
 covering all platform modules: cases, blockchain, evidence, AI, SIEM, admin.

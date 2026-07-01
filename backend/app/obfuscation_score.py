@@ -1,5 +1,5 @@
 """
-LEATrace Blockchain Intelligence — Obfuscation Score Calculator.
+LEAtTrace Blockchain Intelligence — Obfuscation Score Calculator.
 
 Multi-factor obfuscation scoring across mixer, peel chain, smurfing, circular,
 and rapid splitting patterns with confidence intervals.

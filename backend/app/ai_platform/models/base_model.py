@@ -1,5 +1,5 @@
 """
-LEATrace AI Platform — Base Model Interface.
+LEAtTrace AI Platform — Base Model Interface.
 
 Abstract base class for all ML models in the platform.
 Provides consistent train/evaluate/predict/export interface.
@@ -16,7 +16,7 @@ from ..config import ai_config
 
 
 class BaseModel(ABC):
-    """Abstract base class for all LEATrace ML models."""
+    """Abstract base class for all LEAtTrace ML models."""
 
     MODEL_NAME: str = "base_model"
     MODEL_VERSION: str = "1.0.0"

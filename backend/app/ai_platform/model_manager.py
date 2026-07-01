@@ -1,5 +1,5 @@
 """
-LEATrace AI Platform — Model Manager.
+LEAtTrace AI Platform — Model Manager.
 
 Centralized lifecycle manager for all ML models. Handles loading, unloading,
 health checking, and coordinating inference across the model fleet.

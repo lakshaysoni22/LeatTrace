@@ -1,5 +1,5 @@
 """
-LEATrace Blockchain Intelligence — Cross-Chain Investigation Engine.
+LEAtTrace Blockchain Intelligence — Cross-Chain Investigation Engine.
 
 Enterprise cross-chain tracing with multi-chain wallet tracking, bridge tx analysis,
 wrapped asset detection, timeline reconstruction, evidence collection, and graph building.

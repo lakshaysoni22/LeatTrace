@@ -1,5 +1,5 @@
 """
-LEATrace AI Platform — Alert Prioritizer Model.
+LEAtTrace AI Platform — Alert Prioritizer Model.
 
 Multi-class classifier for automatically triaging and prioritizing
 security alerts by severity: low (0), medium (1), high (2), critical (3).

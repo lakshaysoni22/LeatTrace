@@ -24,7 +24,7 @@ SANCTIONED_ADDRESSES = {
     "0x0987654321098765432109876543210987654321": {"entity": "Lazarus Group Hack Wallet", "list": "OFAC / UN", "risk": "Critical", "actor": "Lazarus Group"},
     "1LbcPeel5s9zARansom993vX78cDf": {"entity": "LockBit Ransomware Receiver v4", "list": "OFAC", "risk": "Critical", "actor": "LockBit Campaign"},
     "1FeexV6bAH2ysKocvCdU2y5G5yqKp26A8L": {"entity": "WannaCry Ransomware Collection Vault", "list": "EU Sanctions", "risk": "Critical", "actor": "WannaCry"},
-    "0x53d2b273e51111111a4cf13e8f8f8f8f8f8f8f8f": {"entity": "Uniswap Phishing Drainer", "list": "LEATrace Scam DB", "risk": "High", "actor": "Drainer-AS92"},
+    "0x53d2b273e51111111a4cf13e8f8f8f8f8f8f8f8f": {"entity": "Uniswap Phishing Drainer", "list": "LEAtTrace Scam DB", "risk": "High", "actor": "Drainer-AS92"},
 }
 
 EXCHANGE_HOT_WALLETS = {
