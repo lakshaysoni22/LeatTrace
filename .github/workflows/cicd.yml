@@ -44,4 +44,4 @@ jobs:
 
       - name: Build backend container image
         run: |
-          docker build -t LEAtTrace-backend:ci -f Dockerfile .
+          docker build -t leattrace-backend:ci -f Dockerfile .
