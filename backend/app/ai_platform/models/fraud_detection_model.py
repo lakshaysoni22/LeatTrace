@@ -1,5 +1,5 @@
 """
-LEATrace AI Platform — Transaction Fraud Detection Model.
+LEAtTrace AI Platform — Transaction Fraud Detection Model.
 
 Isolation Forest for unsupervised anomaly detection combined with
 gradient boosting classification for supervised fraud labeling.

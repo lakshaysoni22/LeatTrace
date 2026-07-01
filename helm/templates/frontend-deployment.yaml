@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "leatrace.fullname" . }}-frontend
+  name: {{ include "LEAtTrace.fullname" . }}-frontend
   labels:
-    app: {{ include "leatrace.name" . }}-frontend
+    app: {{ include "LEAtTrace.name" . }}-frontend
 spec:
   replicas: {{ .Values.frontend.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "leatrace.name" . }}-frontend
+      app: {{ include "LEAtTrace.name" . }}-frontend
   template:
     metadata:
       labels:
-        app: {{ include "leatrace.name" . }}-frontend
+        app: {{ include "LEAtTrace.name" . }}-frontend
     spec:
       containers:
         - name: frontend
@@ -27,7 +27,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "leatrace.fullname" . }}-frontend
+  name: {{ include "LEAtTrace.fullname" . }}-frontend
 spec:
   type: {{ .Values.frontend.service.type }}
   ports:
@@ -36,4 +36,4 @@ spec:
       protocol: TCP
       name: http
   selector:
-    app: {{ include "leatrace.name" . }}-frontend
+    app: {{ include "LEAtTrace.name" . }}-frontend

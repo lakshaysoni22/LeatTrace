@@ -1,13 +1,13 @@
-# LEATrace Windows Backup Manager
+# LEAtTrace Windows Backup Manager
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Continue"
 
 Write-Host "=========================================================" -ForegroundColor Cyan
-Write-Host "           LEATRACE LOCAL DATABASE BACKUP                " -ForegroundColor Cyan
+Write-Host "           LEAtTrace LOCAL DATABASE BACKUP                " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
 
-$backupDir = "C:\var\backups\leatrace"
+$backupDir = "C:\var\backups\LEAtTrace"
 if (-not (Test-Path $backupDir)) {
     New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
 }
@@ -15,9 +15,9 @@ if (-not (Test-Path $backupDir)) {
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 
 # 1. Back up SQLite Database
-$sqliteDb = Join-Path $PSScriptRoot "..\..\backend\leatrace.db"
+$sqliteDb = Join-Path $PSScriptRoot "..\..\backend\LEAtTrace.db"
 if (Test-Path $sqliteDb) {
-    $targetPath = Join-Path $backupDir "leatrace_db_$timestamp.db"
+    $targetPath = Join-Path $backupDir "LEAtTrace_db_$timestamp.db"
     Copy-Item -Path $sqliteDb -Destination $targetPath -Force
     Write-Host "  [+] Backed up SQLite database: $targetPath" -ForegroundColor Green
 } else {
@@ -33,7 +33,7 @@ if (Get-Command "docker" -ErrorAction SilentlyContinue) {
 
 # 3. compress backups
 Write-Host "`n[COMPRESS] Bundling backup archives..." -ForegroundColor Gray
-$zipFile = Join-Path $backupDir "leatrace_backup_$timestamp.zip"
+$zipFile = Join-Path $backupDir "LEAtTrace_backup_$timestamp.zip"
 Compress-Archive -Path "$backupDir\*$timestamp*" -DestinationPath $zipFile -Force
 Write-Host "  [+] Backup package created: $zipFile" -ForegroundColor Green
 

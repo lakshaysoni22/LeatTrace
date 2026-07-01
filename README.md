@@ -1,4 +1,4 @@
-# 🛡️ LEATrace — National Cybercrime Forensics & AML Tracing Portal
+# 🛡️ LEAtTrace — National Cybercrime Forensics & AML Tracing Portal
 
 > **💼 Joint Agency Forensics Platform: Custom-Engineered for I4C, CBI, NIA, CID, State Cyber Cells, and Police Departments.**  
 > Cryptographically Secure, NIST SP 800-53 Compliant, and Court-Ready Chain of Custody (CoC) Auditing Environment.

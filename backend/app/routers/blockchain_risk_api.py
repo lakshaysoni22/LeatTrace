@@ -1,5 +1,5 @@
 """
-LEATrace Blockchain Intelligence — Risk API Router.
+LEAtTrace Blockchain Intelligence — Risk API Router.
 
 Production API for blockchain risk scoring: wallet, transaction, entity,
 bridge, batch scoring, and risk pattern analysis.

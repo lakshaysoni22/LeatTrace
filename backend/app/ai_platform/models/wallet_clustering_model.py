@@ -1,5 +1,5 @@
 """
-LEATrace AI Platform — Wallet Clustering Model.
+LEAtTrace AI Platform — Wallet Clustering Model.
 
 DBSCAN/HDBSCAN-based behavioral clustering for grouping wallets by
 transaction patterns, timing, and counterparty relationships.

@@ -1,5 +1,5 @@
 """
-LEATrace IAM — Security Headers Middleware.
+LEAtTrace IAM — Security Headers Middleware.
 
 Adds HSTS, CSP, CORS hardening, X-Frame-Options, and other security headers
 to all HTTP responses. Integrates as FastAPI middleware.
@@ -58,7 +58,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Request-ID"] = request_id
 
         # Server identification (obscured)
-        response.headers["Server"] = "LEATrace-IAM/1.0"
+        response.headers["Server"] = "LEAtTrace-IAM/1.0"
 
         return response
 

@@ -1,3 +1,4 @@
+import os
 import uuid
 import datetime
 from fastapi import FastAPI, Depends
@@ -6,11 +7,14 @@ from .database import engine, Base, SessionLocal
 from . import models, security
 from .routers import auth, cases, wallets, graph, evidence, audit, ai, real_ecosystem, streaming, incident, siem, cluster_api, soc_api, forensics_api, security_api, iam_api, cti_api, siem_correlation_api, elasticsearch_api, ai_intelligence_api, blockchain_risk_api, device_api
 
+DEMO_DATA_ENABLED = os.getenv("LEAtTrace_DEMO_DATA", "false").lower() in {"1", "true", "yes", "on"}
+BACKGROUND_TASKS_ENABLED = os.getenv("LEAtTrace_BACKGROUND_TASKS", "false").lower() in {"1", "true", "yes", "on"}
+
 # Setup database tables on startup (no migrations needed for simple SQLite)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="LEATrace API",
+    title="LEAtTrace API",
     description="Law Enforcement Advanced Trace Intelligence Platform REST Backend",
     version="1.0.0"
 )
@@ -126,10 +130,14 @@ async def real_blockchain_listener():
 @app.on_event("startup")
 async def startup_sequence():
     import asyncio
-    seed_data()
-    asyncio.create_task(real_blockchain_listener())
-    from .indexer import run_multi_chain_indexer
-    asyncio.create_task(run_multi_chain_indexer())
+
+    if DEMO_DATA_ENABLED:
+        seed_data()
+
+    if BACKGROUND_TASKS_ENABLED:
+        asyncio.create_task(real_blockchain_listener())
+        from .indexer import run_multi_chain_indexer
+        asyncio.create_task(run_multi_chain_indexer())
 
 # Seed mock database values if empty
 def seed_data():
@@ -275,5 +283,7 @@ def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.datetime.utcnow().isoformat(),
-        "database": "sqlite/local"
+        "database": "sqlite/local",
+        "demo_data_enabled": DEMO_DATA_ENABLED,
+        "background_tasks_enabled": BACKGROUND_TASKS_ENABLED,
     }

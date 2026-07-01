@@ -1,5 +1,5 @@
 """
-LEATrace AI Platform — Wallet Risk Scoring Model.
+LEAtTrace AI Platform — Wallet Risk Scoring Model.
 
 XGBoost/LightGBM gradient boosting classifier for predicting wallet risk levels.
 Uses 14-dimensional feature vectors from the FeatureStore.

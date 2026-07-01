@@ -1,5 +1,5 @@
 """
-LEATrace AI Platform — Threat Classifier, Entity Resolution, Cross-Chain Fraud,
+LEAtTrace AI Platform — Threat Classifier, Entity Resolution, Cross-Chain Fraud,
 and Behavioral Analytics Models.
 
 Consolidated module containing lightweight specialized models.

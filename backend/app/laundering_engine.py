@@ -1,5 +1,5 @@
 """
-LEATrace Blockchain Intelligence — Laundering Detection Engine.
+LEAtTrace Blockchain Intelligence — Laundering Detection Engine.
 
 Production peel chain, smurfing, layering, round-amount structuring,
 and timeline reconstruction for anti-money laundering analysis.

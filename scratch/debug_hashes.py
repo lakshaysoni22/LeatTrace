@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 import hashlib
 
 # Connect directly to database
-engine = create_engine(f"sqlite:///{os.path.join(backend_path, 'leatrace.db')}")
+engine = create_engine(f"sqlite:///{os.path.join(backend_path, 'LEAtTrace.db')}")
 Session = sessionmaker(bind=engine)
 session = Session()
 

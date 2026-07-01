@@ -1,4 +1,4 @@
-# LEATrace Incident Response Playbooks
+# LEAtTrace Incident Response Playbooks
 
 Detailed steps to validate, contain, eradicate, and recover from security incidents.
 

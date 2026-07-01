@@ -1,17 +1,17 @@
-# LEATrace Destruction Cleanup Script
+# LEAtTrace Destruction Cleanup Script
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Continue"
 
 Write-Host "=========================================================" -ForegroundColor Red
-Write-Host "            LEATRACE ENVIRONMENT TEARDOWN                " -ForegroundColor Red
+Write-Host "            LEAtTrace ENVIRONMENT TEARDOWN                " -ForegroundColor Red
 Write-Host "=========================================================" -ForegroundColor Red
 
 # 1. Teardown local Kubernetes Helm release
 if (Get-Command "helm" -ErrorAction SilentlyContinue) {
     Write-Host "[TEARDOWN] Uninstalling Helm releases..." -ForegroundColor Gray
-    & helm uninstall leatrace-deployment -n leatrace-prod
-    & kubectl delete namespace leatrace-prod --ignore-not-found
+    & helm uninstall LEAtTrace-deployment -n LEAtTrace-prod
+    & kubectl delete namespace LEAtTrace-prod --ignore-not-found
     Write-Host "  [+] Helm deployment cleared." -ForegroundColor Green
 }
 

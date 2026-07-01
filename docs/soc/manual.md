@@ -1,4 +1,4 @@
-# LEATrace SOC Operations Manual
+# LEAtTrace SOC Operations Manual
 
 This document defines workflows for SOC Analysts, incident escalation metrics, and blockchain wallet investigations.
 

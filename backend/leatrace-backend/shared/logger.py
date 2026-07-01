@@ -2,7 +2,7 @@ import logging
 import sys
 
 # Configure standard console logger
-logger = logging.getLogger("leatrace")
+logger = logging.getLogger("LEAtTrace")
 logger.setLevel(logging.INFO)
 
 handler = logging.StreamHandler(sys.stdout)

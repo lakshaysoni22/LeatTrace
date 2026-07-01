@@ -1,5 +1,5 @@
 """
-LEATrace IAM — API Key Service.
+LEAtTrace IAM — API Key Service.
 
 Enterprise API key generation, validation, rotation, and revocation.
 Keys are SHA-256 hashed before storage; only the prefix is stored in cleartext.
