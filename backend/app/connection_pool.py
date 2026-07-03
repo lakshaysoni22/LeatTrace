@@ -6,7 +6,7 @@ class ConnectionPoolManager:
         # Local cache for holding persistent request headers
         self.headers = {
             "Content-Type": "application/json",
-            "User-Agent": "LEAtTrace-Forensics-Engine/1.0"
+            "User-Agent": "LEATrace-Forensics-Engine/1.0"
         }
 
     def get_request(self, url: str, payload_bytes: bytes) -> urllib.request.Request:

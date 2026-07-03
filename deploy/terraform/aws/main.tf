@@ -19,7 +19,7 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
   
   tags = {
-    Name = "LEAtTrace-prod-vpc"
+    Name = "leatrace-prod-vpc"
   }
 }
 
@@ -44,13 +44,13 @@ data "aws_availability_zones" "available" {
 
 # 2. RDS PostgreSQL Database Instance
 resource "aws_db_instance" "postgres" {
-  identifier           = "LEAtTrace-prod-db"
+  identifier           = "leatrace-prod-db"
   allocated_storage    = 20
-  db_name              = "LEAtTrace"
+  db_name              = "leatrace"
   engine               = "postgres"
   engine_version       = "16.1"
   instance_class       = "db.t4g.micro"
-  username             = "LEAtTrace_admin"
+  username             = "leatrace_admin"
   password             = var.db_password
   parameter_group_name = "default.postgres16"
   skip_final_snapshot  = true
@@ -60,13 +60,13 @@ resource "aws_db_instance" "postgres" {
 }
 
 resource "aws_db_subnet_group" "main" {
-  name       = "LEAtTrace-db-subnets"
+  name       = "leatrace-db-subnets"
   subnet_ids = aws_subnet.private[*].id
 }
 
 # 3. ElastiCache Redis Cluster
 resource "aws_elasticache_cluster" "redis" {
-  cluster_id           = "LEAtTrace-prod-redis"
+  cluster_id           = "leatrace-prod-redis"
   engine               = "redis"
   node_type            = "cache.t4g.micro"
   num_cache_nodes      = 1
@@ -77,13 +77,13 @@ resource "aws_elasticache_cluster" "redis" {
 }
 
 resource "aws_elasticache_subnet_group" "main" {
-  name       = "LEAtTrace-redis-subnets"
+  name       = "leatrace-redis-subnets"
   subnet_ids = aws_subnet.private[*].id
 }
 
 # 4. Amazon S3 Storage Bucket (Forensic Evidence Locker)
 resource "aws_s3_bucket" "evidence_vault" {
-  bucket        = "LEAtTrace-forensic-vault-aws-prod"
+  bucket        = "leatrace-forensic-vault-aws-prod"
   force_destroy = false
 }
 
@@ -96,11 +96,11 @@ resource "aws_s3_bucket_versioning" "vault_versioning" {
 
 # 5. ECS Fargate Cluster & Task Definition
 resource "aws_ecs_cluster" "ecs_cluster" {
-  name = "LEAtTrace-prod-cluster"
+  name = "leatrace-prod-cluster"
 }
 
 resource "aws_ecs_task_definition" "backend" {
-  family                   = "LEAtTrace-backend"
+  family                   = "leatrace-backend"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
@@ -108,14 +108,14 @@ resource "aws_ecs_task_definition" "backend" {
 
   container_definitions = jsonencode([{
     name      = "backend"
-    image     = "LEAtTrace-backend:latest"
+    image     = "leatrace-backend:latest"
     essential = true
     portMappings = [{
       containerPort = 8000
       hostPort      = 8000
     }]
     environment = [
-      { name = "DATABASE_URL", value = "postgresql://LEAtTrace_admin:${var.db_password}@${aws_db_instance.postgres.endpoint}/LEAtTrace" },
+      { name = "DATABASE_URL", value = "postgresql://leatrace_admin:${var.db_password}@${aws_db_instance.postgres.endpoint}/leatrace" },
       { name = "REDIS_HOST", value = aws_elasticache_cluster.redis.cache_nodes[0].address }
     ]
   }])
@@ -123,7 +123,7 @@ resource "aws_ecs_task_definition" "backend" {
 
 # Security Groups
 resource "aws_security_group" "db_sg" {
-  name   = "LEAtTrace-db-sg"
+  name   = "leatrace-db-sg"
   vpc_id = aws_vpc.main.id
   ingress {
     from_port   = 5432
@@ -134,7 +134,7 @@ resource "aws_security_group" "db_sg" {
 }
 
 resource "aws_security_group" "redis_sg" {
-  name   = "LEAtTrace-redis-sg"
+  name   = "leatrace-redis-sg"
   vpc_id = aws_vpc.main.id
   ingress {
     from_port   = 6379

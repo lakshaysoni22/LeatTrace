@@ -1,5 +1,5 @@
 """
-LEAtTrace Blockchain Intelligence — Relationship Engine.
+LEATrace Blockchain Intelligence — Relationship Engine.
 
 Transaction-based relationship scoring between wallets: frequency, value,
 timing, directionality, and entity correlation analysis.

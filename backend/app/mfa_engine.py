@@ -33,7 +33,7 @@ def generate_totp_secret() -> str:
     """Generate a cryptographically secure TOTP secret."""
     return pyotp.random_base32()
 
-def get_totp_provisioning_uri(secret: str, email: str, issuer: str = "LEAtTrace") -> str:
+def get_totp_provisioning_uri(secret: str, email: str, issuer: str = "LEATrace") -> str:
     """Generate provisioning URI for QR code."""
     totp = pyotp.TOTP(secret)
     return totp.provisioning_uri(name=email, issuer_name=issuer)
@@ -318,7 +318,7 @@ class MFAPolicyEngine:
         
         return False, None
 
-# ============= Default MFA Policies for LEAtTrace =============
+# ============= Default MFA Policies for LEATrace =============
 
 DEFAULT_MFA_POLICIES = [
     MFAPolicy(
@@ -362,7 +362,7 @@ DEFAULT_MFA_POLICIES = [
 # ============= MFA Engine Main Class =============
 
 class MFAEngine:
-    """Main MFA Engine for LEAtTrace."""
+    """Main MFA Engine for LEATrace."""
     
     @staticmethod
     def setup_mfa_for_user(

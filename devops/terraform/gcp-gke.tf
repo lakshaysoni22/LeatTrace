@@ -7,7 +7,7 @@ provider "google" {
 
 variable "gcp_project_id" {
   type    = string
-  default = "LEAtTrace-prod-gcp"
+  default = "leatrace-prod-gcp"
 }
 
 variable "gcp_region" {
@@ -17,12 +17,12 @@ variable "gcp_region" {
 
 # 1. VPC Network
 resource "google_compute_network" "vpc" {
-  name                    = "LEAtTrace-gcp-vpc"
+  name                    = "leatrace-gcp-vpc"
   auto_create_subnetworks = false
 }
 
 resource "google_compute_subnetwork" "subnet" {
-  name          = "LEAtTrace-gcp-subnet"
+  name          = "leatrace-gcp-subnet"
   ip_cidr_range = "10.1.0.0/24"
   region        = var.gcp_region
   network       = google_compute_network.vpc.id
@@ -30,7 +30,7 @@ resource "google_compute_subnetwork" "subnet" {
 
 # 2. Google Kubernetes Engine (GKE) Cluster
 resource "google_container_cluster" "gke" {
-  name                     = "LEAtTrace-gke-cluster"
+  name                     = "leatrace-gke-cluster"
   location                 = var.gcp_region
   remove_default_node_pool = true
   initial_node_count       = 1
@@ -39,7 +39,7 @@ resource "google_container_cluster" "gke" {
 }
 
 resource "google_container_node_pool" "gke_nodes" {
-  name       = "LEAtTrace-node-pool"
+  name       = "leatrace-node-pool"
   location   = var.gcp_region
   cluster    = google_container_cluster.gke.name
   node_count = 3
@@ -53,7 +53,7 @@ resource "google_container_node_pool" "gke_nodes" {
 
 # 3. Google Cloud SQL (PostgreSQL)
 resource "google_sql_database_instance" "postgres" {
-  name             = "LEAtTrace-cloud-sql"
+  name             = "leatrace-cloud-sql"
   database_version = "POSTGRES_15"
   region           = var.gcp_region
   settings {
@@ -63,7 +63,7 @@ resource "google_sql_database_instance" "postgres" {
 
 # 4. Google Cloud Memorystore (Redis)
 resource "google_redis_instance" "redis" {
-  name           = "LEAtTrace-redis"
+  name           = "leatrace-redis"
   tier           = "STANDARD_HA"
   memory_size_gb = 5
   region         = var.gcp_region
@@ -71,7 +71,7 @@ resource "google_redis_instance" "redis" {
 
 # 5. Cloud Storage Bucket (Evidence Vault)
 resource "google_storage_bucket" "vault" {
-  name          = "LEAtTrace-gcp-vault-storage"
+  name          = "leatrace-gcp-vault-storage"
   location      = var.gcp_region
   force_destroy = true
 }

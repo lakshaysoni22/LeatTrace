@@ -1,5 +1,5 @@
 """
-LEAtTrace AI Platform — Experiment Tracker.
+LEATrace AI Platform — Experiment Tracker.
 
 Local file-based experiment tracking system compatible with MLflow log format.
 Tracks training runs, hyperparameters, metrics, and model artifacts.

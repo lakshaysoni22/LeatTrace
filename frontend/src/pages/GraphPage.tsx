@@ -352,7 +352,7 @@ export const GraphPage: React.FC = () => {
     const pngUri = cyRef.current.png({ output: 'base64uri' });
     const a = document.createElement('a');
     a.href = pngUri;
-    a.download = `LEAtTrace-graph-${searchAddress || 'network'}.png`;
+    a.download = `leatrace-graph-${searchAddress || 'network'}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -365,7 +365,7 @@ export const GraphPage: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `LEAtTrace-graph-${searchAddress || 'network'}.json`;
+    a.download = `leatrace-graph-${searchAddress || 'network'}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

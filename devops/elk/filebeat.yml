@@ -1,9 +1,9 @@
 filebeat.inputs:
 - type: filestream
-  id: LEAtTrace-backend-logs
+  id: leatrace-backend-logs
   enabled: true
   paths:
-    - /var/log/LEAtTrace/*.log
+    - /var/log/leatrace/*.log
   fields:
     type: fastapi
 

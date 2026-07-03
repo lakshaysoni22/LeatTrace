@@ -17,7 +17,7 @@ JWK_KEY = {
             "kty": "RSA",
             "use": "sig",
             "alg": "RS256",
-            "kid": "LEAtTrace-key-v1",
+            "kid": "leatrace-key-v1",
             "n": "u1W1x_x_mock_modulus_key_value_100",
             "e": "AQAB"
         }

@@ -1,12 +1,12 @@
-# LEAtTrace Enterprise Deployment & Operations Manual
+# LEATrace Enterprise Deployment & Operations Manual
 
-This guide outlines deployment steps, disaster recovery plans, and monitoring operations for the LEAtTrace platform in a production cloud environment.
+This guide outlines deployment steps, disaster recovery plans, and monitoring operations for the LEATrace platform in a production cloud environment.
 
 ---
 
 ## 🏛️ Deployment Architecture Overview
 
-LEAtTrace uses a highly available microservices model:
+LEATrace uses a highly available microservices model:
 * **Frontend**: React + Vite SPA, served via NGINX with TLS 1.3.
 * **Backend**: FastAPI Web Gateway, running inside EKS/GKE.
 * **Graph Engine**: Neo4j Community (Bolt port 7687) with in-memory NetworkX fallback.
@@ -36,7 +36,7 @@ terraform apply tfplan.out
 2. Request wildcard SSL certificate:
    ```bash
    sudo certbot certonly --webroot -w /var/www/certbot \
-     -d LEAtTrace.cybercrime.gov.in \
+     -d leatrace.cybercrime.gov.in \
      --email admin@cybercrime.gov.in --agree-tos --no-eff-email
    ```
 3. NGINX will automatically read the certificates from `/etc/letsencrypt/live/`. To schedule automatic renewal twice daily, verify the systemd cron job:
@@ -55,15 +55,15 @@ When deploying a new version (e.g. updating image tag via CI/CD):
    ```
 2. Wait for liveness/readiness probes to pass:
    ```bash
-   kubectl rollout status deployment/LEAtTrace-backend-green -n LEAtTrace-prod
+   kubectl rollout status deployment/leatrace-backend-green -n leatrace-prod
    ```
 3. Once green pods are healthy, patch the Active Service Selector to switch traffic:
    ```bash
-   kubectl patch service LEAtTrace-backend-service -n LEAtTrace-prod -p '{"spec":{"selector":{"version":"green"}}}'
+   kubectl patch service leatrace-backend-service -n leatrace-prod -p '{"spec":{"selector":{"version":"green"}}}'
    ```
 4. If smoke tests fail, immediately rollback to blue:
    ```bash
-   kubectl patch service LEAtTrace-backend-service -n LEAtTrace-prod -p '{"spec":{"selector":{"version":"blue"}}}'
+   kubectl patch service leatrace-backend-service -n leatrace-prod -p '{"spec":{"selector":{"version":"blue"}}}'
    ```
 
 ---
@@ -85,15 +85,15 @@ chmod +x devops/backups/disaster_recovery.sh
 In case of server failure:
 1. Extract the backup archive:
    ```bash
-   tar -xzf LEAtTrace_backup_YYYYMMDD_HHMMSS.tar.gz
+   tar -xzf leatrace_backup_YYYYMMDD_HHMMSS.tar.gz
    ```
 2. Restore PostgreSQL schemas:
    ```bash
-   pg_restore -h localhost -U LEAtTrace_admin -d LEAtTrace -c postgres_YYYYMMDD_HHMMSS.dump
+   pg_restore -h localhost -U leatrace_admin -d leatrace -c postgres_YYYYMMDD_HHMMSS.dump
    ```
 3. Restore Neo4j Database:
    ```bash
-   docker exec -t LEAtTrace-neo4j neo4j-admin database load neo4j --from-path=./neo4j_YYYYMMDD_HHMMSS.dump --overwrite-destination=true
+   docker exec -t leatrace-neo4j neo4j-admin database load neo4j --from-path=./neo4j_YYYYMMDD_HHMMSS.dump --overwrite-destination=true
    ```
 4. Restore ClickHouse analytical indexes:
    ```bash

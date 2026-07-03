@@ -1,5 +1,5 @@
 """
-LEAtTrace AI Platform — Prediction & Training API Router.
+LEATrace AI Platform — Prediction & Training API Router.
 
 FastAPI endpoints for model inference, training, health monitoring,
 and experiment tracking. Integrates into the existing FastAPI app.

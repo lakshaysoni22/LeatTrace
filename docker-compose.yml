@@ -3,25 +3,25 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: LEAtTrace-postgres
+    container_name: leatrace-postgres
     restart: always
     environment:
-      POSTGRES_DB: LEAtTrace
-      POSTGRES_USER: LEAtTrace_admin
+      POSTGRES_DB: leatrace
+      POSTGRES_USER: leatrace_admin
       POSTGRES_PASSWORD: SecureDbPass@2026
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U LEAtTrace_admin -d LEAtTrace"]
+      test: ["CMD-SHELL", "pg_isready -U leatrace_admin -d leatrace"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: LEAtTrace-redis
+    container_name: leatrace-redis
     restart: always
     ports:
       - "6379:6379"
@@ -35,7 +35,7 @@ services:
 
   neo4j:
     image: neo4j:5-community
-    container_name: LEAtTrace-neo4j
+    container_name: leatrace-neo4j
     restart: always
     ports:
       - "7474:7474" # HTTP UI
@@ -53,7 +53,7 @@ services:
 
   clickhouse:
     image: clickhouse/clickhouse-server:23.8-alpine
-    container_name: LEAtTrace-clickhouse
+    container_name: leatrace-clickhouse
     restart: always
     ports:
       - "8123:8123" # HTTP REST API
@@ -72,7 +72,7 @@ services:
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
-    container_name: LEAtTrace-elasticsearch
+    container_name: leatrace-elasticsearch
     restart: always
     environment:
       - discovery.type=single-node
@@ -85,7 +85,7 @@ services:
 
   logstash:
     image: docker.elastic.co/logstash/logstash:8.10.2
-    container_name: LEAtTrace-logstash
+    container_name: leatrace-logstash
     restart: always
     volumes:
       - ./devops/elk/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
@@ -97,7 +97,7 @@ services:
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.10.2
-    container_name: LEAtTrace-kibana
+    container_name: leatrace-kibana
     restart: always
     ports:
       - "5601:5601"
@@ -108,7 +108,7 @@ services:
 
   loki:
     image: grafana/loki:2.9.1
-    container_name: LEAtTrace-loki
+    container_name: leatrace-loki
     restart: always
     volumes:
       - ./devops/loki/loki-config.yaml:/etc/loki/local-config.yaml
@@ -117,7 +117,7 @@ services:
 
   promtail:
     image: grafana/promtail:2.9.1
-    container_name: LEAtTrace-promtail
+    container_name: leatrace-promtail
     restart: always
     volumes:
       - ./devops/loki/promtail-config.yaml:/etc/promtail/config.yml
@@ -127,7 +127,7 @@ services:
 
   otel-collector:
     image: otel/opentelemetry-collector:0.85.0
-    container_name: LEAtTrace-otel-collector
+    container_name: leatrace-otel-collector
     restart: always
     volumes:
       - ./devops/otel/otel-collector.yaml:/etc/otel/config.yaml
@@ -140,7 +140,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: LEAtTrace-backend
+    container_name: leatrace-backend
     restart: always
     depends_on:
       postgres:
@@ -150,7 +150,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://LEAtTrace_admin:SecureDbPass@2026@postgres:5432/LEAtTrace
+      - DATABASE_URL=postgresql://leatrace_admin:SecureDbPass@2026@postgres:5432/leatrace
       - REDIS_URL=redis://redis:6379/0
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_PASSWORD=SecurePass@2026

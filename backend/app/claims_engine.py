@@ -1,5 +1,5 @@
 """
-LEAtTrace IAM — Claims Engine.
+LEATrace IAM — Claims Engine.
 
 Maps OpenID Connect scopes to user claims. Provides custom claims
 for role, department, permissions, and security clearance.
@@ -79,7 +79,7 @@ class ClaimsEngine:
 
         if "department" in requested_scopes:
             claims["department"] = department
-            claims["organization"] = "LEAtTrace Cyber Investigation"
+            claims["organization"] = "LEATrace Cyber Investigation"
             claims["designation"] = role.replace("_", " ").title()
 
         if "clearance" in requested_scopes:

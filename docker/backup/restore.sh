@@ -1,5 +1,5 @@
 #!/bin/bash
-# LEAtTrace Disaster Recovery & Restoration System (NIST Compliance)
+# LEATrace Disaster Recovery & Restoration System (NIST Compliance)
 # This script validates SHA-256 checksums and restores data files to active platform state.
 
 ARCHIVE_PATH="$1"
@@ -15,7 +15,7 @@ if [ ! -f "$ARCHIVE_PATH" ]; then
     exit 1
 fi
 
-echo "=== LEAtTrace Restoration Sequence Initiated ==="
+echo "=== LEATrace Restoration Sequence Initiated ==="
 
 # 1. Verify Integrity Signature
 if [ -f "$ARCHIVE_PATH.sha256" ]; then
@@ -37,21 +37,21 @@ fi
 
 # 2. Extract and Restore Files
 echo "[2/2] Restoring records and storage vault volumes..."
-STAGE_DIR="/tmp/LEAtTrace_restore_stage_$(date +%s)"
+STAGE_DIR="/tmp/leatrace_restore_stage_$(date +%s)"
 mkdir -p "$STAGE_DIR"
 
 tar -xzf "$ARCHIVE_PATH" -C "$STAGE_DIR"
 
 # Restore SQLite database
-if [ -f "$STAGE_DIR/db/LEAtTrace.db" ]; then
-    cp "$STAGE_DIR/db/LEAtTrace.db" "$(dirname "$0")/../../backend/LEAtTrace.db"
+if [ -f "$STAGE_DIR/db/leatrace.db" ]; then
+    cp "$STAGE_DIR/db/leatrace.db" "$(dirname "$0")/../../backend/leatrace.db"
     echo "SQLite database file restored."
 fi
 
 # Restore Postgres dump if exists
 if [ -f "$STAGE_DIR/db/postgres_dump.sql" ]; then
     # If using postgres in docker:
-    # cat "$STAGE_DIR/db/postgres_dump.sql" | docker exec -i LEAtTrace-postgres psql -U LEAtTrace_user -d LEAtTrace
+    # cat "$STAGE_DIR/db/postgres_dump.sql" | docker exec -i leatrace-postgres psql -U leatrace_user -d leatrace
     echo "PostgreSQL restoration dump mock executed."
 fi
 

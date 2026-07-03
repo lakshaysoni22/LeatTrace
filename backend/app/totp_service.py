@@ -14,8 +14,8 @@ class TOTPService:
         secret_b32 = base64.b32encode(raw_secret).decode("utf-8")
         
         # Standard OATH URI formatting
-        label = "LEAtTrace:Investigator"
-        uri = f"otpauth://totp/{label}?secret={secret_b32}&issuer=LEAtTrace&algorithm=SHA1&digits=6&period=30"
+        label = "LEATrace:Investigator"
+        uri = f"otpauth://totp/{label}?secret={secret_b32}&issuer=LEATrace&algorithm=SHA1&digits=6&period=30"
         
         return {
             "secret": secret_b32,

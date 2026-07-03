@@ -3,10 +3,10 @@ import secrets
 from typing import Dict, List, Any
 
 class TAXIIClient:
-    def get_api_root_information(self, api_root_url: str = "https://cti.LEAtTrace.gov/taxii") -> Dict[str, Any]:
+    def get_api_root_information(self, api_root_url: str = "https://cti.leatrace.gov/taxii") -> Dict[str, Any]:
         """Queries the TAXII 2.1 Server API root details."""
         return {
-            "title": "LEAtTrace National Threat Intel Root",
+            "title": "LEATrace National Threat Intel Root",
             "description": "TAXII 2.1 compliant server sharing threat intelligence indicators",
             "versions": ["taxii-2.1"],
             "max_content_length": 104857600

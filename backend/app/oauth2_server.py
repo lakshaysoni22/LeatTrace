@@ -1,6 +1,6 @@
 """
 OAuth2 Authorization Server & OpenID Connect (OIDC) Provider
-Implements full OAuth2 flows for LEAtTrace
+Implements full OAuth2 flows for LEATrace
 """
 import uuid
 import datetime

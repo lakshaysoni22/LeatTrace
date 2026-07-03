@@ -1,10 +1,10 @@
-# LEAtTrace AWS Cloud Bootstrap Wizard
+# LEATrace AWS Cloud Bootstrap Wizard
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "=========================================================" -ForegroundColor Cyan
-Write-Host "         LEAtTrace AWS PRODUCTION BOOTSTRAP               " -ForegroundColor Cyan
+Write-Host "         LEATRACE AWS PRODUCTION BOOTSTRAP               " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
 
 # 1. AWS Credentials Validation
@@ -38,7 +38,7 @@ try {
     Write-Host "`n[PLAN] Generating AWS infrastructure plan..." -ForegroundColor Gray
     & terraform plan -out=awsplan.binary
     
-    $confirm = Read-Host "Do you want to deploy the complete LEAtTrace AWS infrastructure? (y/n)"
+    $confirm = Read-Host "Do you want to deploy the complete LEATrace AWS infrastructure? (y/n)"
     if ($confirm -eq "y" -or $confirm -eq "yes") {
         Write-Host "`n[DEPLOY] Provisioning EKS, VPC, RDS and Security Groups..." -ForegroundColor Green
         & terraform apply -auto-approve awsplan.binary

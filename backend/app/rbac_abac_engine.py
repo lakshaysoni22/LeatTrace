@@ -1,6 +1,6 @@
 """
 Role-Based and Attribute-Based Access Control (RBAC/ABAC) Engine
-Enterprise-grade permission management for LEAtTrace
+Enterprise-grade permission management for LEATrace
 """
 import uuid
 import datetime
@@ -12,7 +12,7 @@ from functools import lru_cache
 # ============= Enums =============
 
 class Permission(str, Enum):
-    """All available permissions in LEAtTrace."""
+    """All available permissions in LEATrace."""
     
     # User Management
     USER_CREATE = "user:create"

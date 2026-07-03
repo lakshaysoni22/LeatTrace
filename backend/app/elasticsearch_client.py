@@ -8,7 +8,7 @@ class ElasticsearchClient:
     def get_cluster_health(self) -> Dict[str, Any]:
         """Queries Elasticsearch cluster status metrics."""
         return {
-            "cluster_name": "LEAtTrace-siem-cluster",
+            "cluster_name": "leatrace-siem-cluster",
             "status": "green",
             "timed_out": False,
             "number_of_nodes": 3,
@@ -30,7 +30,7 @@ class ElasticsearchClient:
                         "number_of_shards": 3,
                         "number_of_replicas": 1,
                         "lifecycle": {
-                            "name": "LEAtTrace-ilm-policy",
+                            "name": "leatrace-ilm-policy",
                             "rollover_alias": template_name
                         }
                     }

@@ -27,7 +27,7 @@ class LocalSecretProvider(SecretProvider):
 class EnvSecretProvider(SecretProvider):
     def __init__(self, name: str = "env", prefix: Optional[str] = None):
         super().__init__(name, provider_type="environment")
-        self.prefix = prefix or "LEAtTrace_"
+        self.prefix = prefix or "LEATRACE_"
 
     def get_secret(self, key: str) -> Optional[str]:
         env_key = f"{self.prefix}{key.replace('.', '_').upper()}"

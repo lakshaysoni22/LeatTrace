@@ -1,5 +1,5 @@
 apiVersion: v2
-name: LEAtTrace
+name: leatrace
 description: Law Enforcement Advanced Trace Intelligence Platform Enterprise Chart
 type: application
 version: 1.0.0
@@ -11,7 +11,7 @@ keywords:
   - threat-intelligence
 maintainers:
   - name: LeatTrace Platform Architects
-    email: architects@LEAtTrace.gov.in
+    email: architects@leatrace.gov.in
 dependencies:
   - name: postgresql
     version: 12.1.0

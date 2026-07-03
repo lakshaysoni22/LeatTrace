@@ -1,10 +1,10 @@
-# LEAtTrace Azure Cloud Bootstrap Wizard
+# LEATrace Azure Cloud Bootstrap Wizard
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "=========================================================" -ForegroundColor Cyan
-Write-Host "        LEAtTrace AZURE PRODUCTION BOOTSTRAP              " -ForegroundColor Cyan
+Write-Host "        LEATRACE AZURE PRODUCTION BOOTSTRAP              " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
 
 # 1. Azure Credentials Validation
@@ -38,7 +38,7 @@ try {
     Write-Host "`n[PLAN] Generating Azure infrastructure plan..." -ForegroundColor Gray
     & terraform plan -out=azureplan.binary
     
-    $confirm = Read-Host "Do you want to deploy the complete LEAtTrace Azure AKS infrastructure? (y/n)"
+    $confirm = Read-Host "Do you want to deploy the complete LEATrace Azure AKS infrastructure? (y/n)"
     if ($confirm -eq "y" -or $confirm -eq "yes") {
         Write-Host "`n[DEPLOY] Provisioning AKS cluster, PostgreSQL flexible server, and Resource Group..." -ForegroundColor Green
         & terraform apply -auto-approve azureplan.binary

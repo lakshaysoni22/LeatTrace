@@ -1,5 +1,5 @@
 """
-LEAtTrace Blockchain Intelligence — Wallet Reputation Scorer.
+LEATrace Blockchain Intelligence — Wallet Reputation Scorer.
 
 Production reputation engine with multi-factor scoring, historical trend,
 entity correlation, and tier classification.

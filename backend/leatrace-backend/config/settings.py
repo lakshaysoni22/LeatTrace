@@ -2,8 +2,8 @@ import os
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "LEAtTrace Backend Ecosystem"
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./LEAtTrace_micro.db")
+    PROJECT_NAME: str = "LEATrace Backend Ecosystem"
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./leatrace_micro.db")
     JWT_SECRET: str = os.getenv("JWT_SECRET", "super-secret-key-12345-cpos-singularity")
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60

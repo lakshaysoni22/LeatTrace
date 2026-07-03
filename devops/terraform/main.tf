@@ -11,35 +11,35 @@ variable "environment" {
 }
 
 # 1. VPC Configuration
-resource "aws_vpc" "LEAtTrace_vpc" {
+resource "aws_vpc" "leatrace_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
   tags = {
-    Name        = "LEAtTrace-vpc-${var.environment}"
+    Name        = "leatrace-vpc-${var.environment}"
     Environment = var.environment
   }
 }
 
 resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.LEAtTrace_vpc.id
+  vpc_id = aws_vpc.leatrace_vpc.id
 }
 
 resource "aws_subnet" "public_subnet_a" {
-  vpc_id            = aws_vpc.LEAtTrace_vpc.id
+  vpc_id            = aws_vpc.leatrace_vpc.id
   cidr_block        = "10.0.1.0/24"
   availability_zone = "ap-south-1a"
 }
 
 resource "aws_subnet" "private_subnet_a" {
-  vpc_id            = aws_vpc.LEAtTrace_vpc.id
+  vpc_id            = aws_vpc.leatrace_vpc.id
   cidr_block        = "10.0.2.0/24"
   availability_zone = "ap-south-1a"
 }
 
 # 2. IAM Roles for EKS
 resource "aws_iam_role" "eks_cluster_role" {
-  name = "LEAtTrace-eks-cluster-role"
+  name = "leatrace-eks-cluster-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -57,7 +57,7 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
 
 # 3. Amazon EKS Cluster
 resource "aws_eks_cluster" "eks" {
-  name     = "LEAtTrace-cluster"
+  name     = "leatrace-cluster"
   role_arn = aws_iam_role.eks_cluster_role.arn
 
   vpc_config {
@@ -76,8 +76,8 @@ resource "aws_db_instance" "rds_postgres" {
   engine                 = "postgres"
   engine_version         = "15.3"
   instance_class         = "db.r6g.large"
-  db_name                = "LEAtTrace"
-  username               = "LEAtTrace_admin"
+  db_name                = "leatrace"
+  username               = "leatrace_admin"
   password               = "SecureDbPass2026"
   parameter_group_name   = "default.postgres15"
   skip_final_snapshot    = true
@@ -89,7 +89,7 @@ resource "aws_db_instance" "rds_postgres" {
 
 # 5. Amazon ElastiCache Redis
 resource "aws_elasticache_replication_group" "redis" {
-  replication_group_id        = "LEAtTrace-redis-group"
+  replication_group_id        = "leatrace-redis-group"
   description                 = "LEAtTrace High Availability Cache Store"
   node_type                   = "cache.t4g.medium"
   num_cache_clusters          = 2
@@ -104,7 +104,7 @@ resource "aws_elasticache_replication_group" "redis" {
 
 # 6. S3 Bucket for Evidence/Audit Log Storage
 resource "aws_s3_bucket" "evidence_store" {
-  bucket = "LEAtTrace-evidence-vault-prod"
+  bucket = "leatrace-evidence-vault-prod"
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "s3_encrypt" {
@@ -118,9 +118,9 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "s3_encrypt" {
 
 # Security Groups
 resource "aws_security_group" "db_sg" {
-  name        = "LEAtTrace-db-sg"
+  name        = "leatrace-db-sg"
   description = "Allows backend connection to database"
-  vpc_id      = aws_vpc.LEAtTrace_vpc.id
+  vpc_id      = aws_vpc.leatrace_vpc.id
 
   ingress {
     from_port   = 5432
@@ -131,9 +131,9 @@ resource "aws_security_group" "db_sg" {
 }
 
 resource "aws_security_group" "redis_sg" {
-  name        = "LEAtTrace-redis-sg"
+  name        = "leatrace-redis-sg"
   description = "Allows backend connection to Redis cluster"
-  vpc_id      = aws_vpc.LEAtTrace_vpc.id
+  vpc_id      = aws_vpc.leatrace_vpc.id
 
   ingress {
     from_port   = 6379

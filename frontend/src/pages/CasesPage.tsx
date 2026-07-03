@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCaseStore, useNavStore, useBlockchainStore } from '../stores';
 import { FolderOpen, Plus, Folder, Search, ArrowRight, Shield, Clock, AlertTriangle, CheckCircle2, User, UserCheck, Activity, FileText, Sparkles, CheckSquare, PlusCircle } from 'lucide-react';
 import { getPriorityColor, getStatusColor, formatDate } from '../utils/helpers';
 import type { Case } from '../types';
 
 export const CasesPage: React.FC = () => {
-  const { cases, selectedCase, selectCase, addCase, updateCase } = useCaseStore();
+  const { cases, selectedCase, selectCase, addCase, updateCase, loadCases } = useCaseStore();
   const { setPage } = useNavStore();
   const { setSearchAddress } = useBlockchainStore();
 
@@ -15,6 +15,10 @@ export const CasesPage: React.FC = () => {
   const [newPriority, setNewPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
   const [newNotes, setNewNotes] = useState('');
   
+  useEffect(() => {
+    void loadCases();
+  }, [loadCases]);
+
   // Case details active tab state
   const [activeDetailsTab, setActiveDetailsTab] = useState<'summary' | 'victim' | 'suspects' | 'evidence' | 'timeline' | 'notes' | 'tasks' | 'ai'>('summary');
 
@@ -60,35 +64,55 @@ export const CasesPage: React.FC = () => {
     setOverrideJustification('');
   };
 
-  const handleCreateCase = (e: React.FormEvent) => {
+  const handleCreateCase = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    const currentYear = new Date().getFullYear();
-    const count = cases.length + 1001;
-    const caseNumber = `CC-${currentYear}-${count}`;
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/cases', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          title: newTitle,
+          description: newDesc,
+          priority: newPriority,
+          status: 'open',
+          notes: newNotes,
+        }),
+      });
 
-    const newCaseItem: Case = {
-      id: `case-${Math.random().toString(36).substr(2, 7)}`,
-      caseNumber: caseNumber,
-      title: newTitle,
-      description: newDesc,
-      priority: newPriority,
-      status: 'open',
-      investigatorId: 'usr-001',
-      investigatorName: 'Inspector Verma',
-      department: 'Cyber Crime Cell',
-      notes: newNotes,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      walletCount: 0,
-      evidenceCount: 0
-    };
+      if (response.ok) {
+        const createdCase = await response.json();
+        const mappedCase: Case = {
+          id: createdCase.id,
+          caseNumber: createdCase.case_number,
+          title: createdCase.title,
+          description: createdCase.description ?? '',
+          priority: createdCase.priority as Case['priority'],
+          status: createdCase.status as Case['status'],
+          investigatorId: createdCase.investigator_id,
+          investigatorName: createdCase.investigator_name ?? '',
+          department: createdCase.department ?? 'Cyber Crime Cell',
+          notes: createdCase.notes,
+          createdAt: createdCase.created_at,
+          updatedAt: createdCase.updated_at,
+          closedAt: createdCase.closed_at,
+          walletCount: createdCase.wallets?.length ?? 0,
+          evidenceCount: createdCase.evidence?.length ?? 0,
+        };
 
-    addCase(newCaseItem);
+        addCase(mappedCase);
+        selectCase(mappedCase);
+      }
+    } catch (err) {
+      console.error('Failed to create case:', err);
+    }
+
     setShowCreateModal(false);
-    
-    // Reset state
     setNewTitle('');
     setNewDesc('');
     setNewPriority('medium');
@@ -535,7 +559,7 @@ export const CasesPage: React.FC = () => {
                     {overrideMode && (
                       <form onSubmit={handleApplyOverride} className="bg-dark-900 border border-primary-500/20 p-4 rounded-lg space-y-3 animate-scale-in text-xs">
                         <div className="flex items-center justify-between border-b border-dark-800 pb-2">
-                          <span className="font-bold text-white flex items-center gap-1.5 text-primary-400">
+                          <span className="font-bold flex items-center gap-1.5 text-primary-400">
                             <Shield size={12} /> Supervisor Decisions Override
                           </span>
                           <span className="text-[9px] text-dark-400">Logged to Regulatory Audit</span>

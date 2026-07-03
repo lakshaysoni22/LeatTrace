@@ -1,5 +1,5 @@
 """
-Encryption Infrastructure for LEAtTrace
+Encryption Infrastructure for LEATrace
 Supports AES-256-GCM, envelope encryption, key rotation
 """
 import os

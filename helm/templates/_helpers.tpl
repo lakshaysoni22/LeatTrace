@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "LEAtTrace.name" -}}
+{{- define "leatrace.name" -}}
 {{- default .Chart.Name .Values.nameOverride | truncate 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -9,7 +9,7 @@ Expand the name of the chart.
 Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 */}}
-{{- define "LEAtTrace.fullname" -}}
+{{- define "leatrace.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | truncate 63 | trimSuffix "-" }}
 {{- else }}

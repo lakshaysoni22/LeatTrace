@@ -1,5 +1,5 @@
 """
-LEAtTrace Blockchain Intelligence — Bridge Detector.
+LEATrace Blockchain Intelligence — Bridge Detector.
 
 Enterprise bridge detection with 25+ known bridge contracts, bridge metadata,
 risk scoring, transaction volume analysis, and multi-chain coverage.

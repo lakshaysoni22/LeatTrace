@@ -30,7 +30,7 @@ try:
     import pymongo
     mongo_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
     mongo_client = pymongo.MongoClient(mongo_url, serverSelectionTimeoutMS=2000)
-    mongo_db = mongo_client[os.getenv("MONGO_DB_NAME", "LEAtTrace_nosql")]
+    mongo_db = mongo_client[os.getenv("MONGO_DB_NAME", "leatrace_nosql")]
 except ImportError:
     logger.warning("pymongo not installed. Fallback to mock MongoDB client.")
 except Exception as e:

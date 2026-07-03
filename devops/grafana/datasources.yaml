@@ -12,7 +12,7 @@ datasources:
     access: proxy
     url: http://elasticsearch:9200
     jsonData:
-      database: "LEAtTrace-logs-*"
+      database: "leatrace-logs-*"
       timeField: "@timestamp"
 
   - name: Loki

@@ -1,4 +1,4 @@
-# LEAtTrace Enterprise Automation Makefile
+# LEATrace Enterprise Automation Makefile
 # Targets run PowerShell commands natively on Windows platforms
 
 .PHONY: setup start deploy deploy-aws deploy-gcp deploy-azure update rollback backup restore destroy validate status prepare verify

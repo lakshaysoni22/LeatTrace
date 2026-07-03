@@ -7,7 +7,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://api.LEAtTrace.cybercrime.gov.in/api/$1"
+      "destination": "https://api.leatrace.cybercrime.gov.in/api/$1"
     },
     {
       "source": "/(.*)",

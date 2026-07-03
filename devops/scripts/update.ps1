@@ -1,10 +1,10 @@
-# LEAtTrace Rolling Updates Manager
+# LEATrace Rolling Updates Manager
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Continue"
 
 Write-Host "=========================================================" -ForegroundColor Cyan
-Write-Host "            LEAtTrace AUTOMATED SOFTWARE UPDATE           " -ForegroundColor Cyan
+Write-Host "            LEATRACE AUTOMATED SOFTWARE UPDATE           " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
 
 # 1. Fetch git changes

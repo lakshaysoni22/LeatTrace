@@ -1,30 +1,30 @@
 #!/bin/bash
-# LEAtTrace Automated Backup & Disaster Recovery System (NIST Guidelines)
+# LEATrace Automated Backup & Disaster Recovery System (NIST Guidelines)
 # This script archives SQL database records, MinIO object store buckets, and hashes the package.
 
 BACKUP_DIR="$(dirname "$0")/archives"
 mkdir -p "$BACKUP_DIR"
 
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-ARCHIVE_NAME="LEAtTrace_backup_$TIMESTAMP.tar.gz"
+ARCHIVE_NAME="leatrace_backup_$TIMESTAMP.tar.gz"
 ARCHIVE_PATH="$BACKUP_DIR/$ARCHIVE_NAME"
 
-echo "=== LEAtTrace Backup Sequence Initiated: $TIMESTAMP ==="
+echo "=== LEATrace Backup Sequence Initiated: $TIMESTAMP ==="
 
 # Temporary directories for staging
-STAGE_DIR="/tmp/LEAtTrace_stage_$TIMESTAMP"
+STAGE_DIR="/tmp/leatrace_stage_$TIMESTAMP"
 mkdir -p "$STAGE_DIR/db"
 mkdir -p "$STAGE_DIR/minio"
 mkdir -p "$STAGE_DIR/neo4j"
 
 # 1. Backing up SQL Database
-if [ -f "$(dirname "$0")/../../backend/LEAtTrace.db" ]; then
+if [ -f "$(dirname "$0")/../../backend/leatrace.db" ]; then
     echo "[1/3] Copying local SQLite database file..."
-    cp "$(dirname "$0")/../../backend/LEAtTrace.db" "$STAGE_DIR/db/LEAtTrace.db"
+    cp "$(dirname "$0")/../../backend/leatrace.db" "$STAGE_DIR/db/leatrace.db"
 else
     echo "[1/3] SQLite file not found. Exporting Dockerized PostgreSQL..."
     # If running PostgreSQL in Docker, we run pg_dump:
-    # docker exec LEAtTrace-postgres pg_dump -U LEAtTrace_user -d LEAtTrace > "$STAGE_DIR/db/postgres_dump.sql" 2>/dev/null
+    # docker exec leatrace-postgres pg_dump -U leatrace_user -d leatrace > "$STAGE_DIR/db/postgres_dump.sql" 2>/dev/null
     echo "PostgreSQL backup mock exported." > "$STAGE_DIR/db/postgres_dump.sql"
 fi
 

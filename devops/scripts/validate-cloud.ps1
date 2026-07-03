@@ -1,4 +1,4 @@
-# LEAtTrace Unified Cloud Credential Validator
+# LEATrace Unified Cloud Credential Validator
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Stop"

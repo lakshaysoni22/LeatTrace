@@ -1,5 +1,5 @@
 """
-LEAtTrace AI Platform — Feature Store.
+LEATrace AI Platform — Feature Store.
 
 Extracts and normalizes ML feature vectors from raw database entities
 (wallets, transactions, cases, evidence) for model training and inference.

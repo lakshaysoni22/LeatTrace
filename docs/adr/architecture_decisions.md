@@ -1,4 +1,4 @@
-# LEAtTrace Architecture Decision Records (ADR)
+# LEATrace Architecture Decision Records (ADR)
 
 This document maps structural decisions, alternatives considered, and trade-offs.
 

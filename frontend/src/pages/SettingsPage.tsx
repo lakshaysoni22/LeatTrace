@@ -365,7 +365,7 @@ export const SettingsPage: React.FC = () => {
                 <div className="p-3 bg-dark-900 border border-dark-850 rounded-xl flex items-center justify-between">
                   <div>
                     <span className="text-[10px] text-dark-500 block uppercase">SQLite Database</span>
-                    <span className="text-white font-mono">LEAtTrace.db</span>
+                    <span className="text-white font-mono">leatrace.db</span>
                   </div>
                   <span className="flex items-center gap-1 text-accent-green"><span className="w-1.5 h-1.5 rounded-full bg-accent-green" /> HEALTHY</span>
                 </div>

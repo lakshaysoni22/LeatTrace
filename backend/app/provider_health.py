@@ -1,5 +1,5 @@
 """
-LEAtTrace Blockchain Intelligence — Provider Health Monitor.
+LEATrace Blockchain Intelligence — Provider Health Monitor.
 
 Production health monitoring with history tracking, degradation alerting,
 sustained failure detection, and auto-disable for tripped providers.
@@ -46,7 +46,7 @@ class ProviderHealthMonitor:
             req = urllib.request.Request(
                 url,
                 data=payload,
-                headers={"Content-Type": "application/json", "User-Agent": "LEAtTrace/1.0"}
+                headers={"Content-Type": "application/json", "User-Agent": "LEATrace/1.0"}
             )
             with urllib.request.urlopen(req, timeout=3) as res:
                 response = json.loads(res.read().decode("utf-8"))

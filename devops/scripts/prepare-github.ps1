@@ -1,10 +1,10 @@
-# LEAtTrace Git Prep Manager
+# LEATrace Git Prep Manager
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "=========================================================" -ForegroundColor Cyan
-Write-Host "          PREPARING LEAtTrace FOR GITHUB                  " -ForegroundColor Cyan
+Write-Host "          PREPARING LEATRACE FOR GITHUB                  " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
 
 $workspaceRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")

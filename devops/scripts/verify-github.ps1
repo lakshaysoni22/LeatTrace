@@ -1,10 +1,10 @@
-# LEAtTrace Git Pre-Push Security Auditor
+# LEATrace Git Pre-Push Security Auditor
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Continue"
 
 Write-Host "=========================================================" -ForegroundColor Cyan
-Write-Host "         VERIFYING LEAtTrace FOR GITHUB PUSH              " -ForegroundColor Cyan
+Write-Host "         VERIFYING LEATRACE FOR GITHUB PUSH              " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
 
 $workspaceRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")

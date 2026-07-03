@@ -7,14 +7,14 @@ from .database import engine, Base, SessionLocal
 from . import models, security
 from .routers import auth, cases, wallets, graph, evidence, audit, ai, real_ecosystem, streaming, incident, siem, cluster_api, soc_api, forensics_api, security_api, iam_api, cti_api, siem_correlation_api, elasticsearch_api, ai_intelligence_api, blockchain_risk_api, device_api
 
-DEMO_DATA_ENABLED = os.getenv("LEAtTrace_DEMO_DATA", "false").lower() in {"1", "true", "yes", "on"}
-BACKGROUND_TASKS_ENABLED = os.getenv("LEAtTrace_BACKGROUND_TASKS", "false").lower() in {"1", "true", "yes", "on"}
+DEMO_DATA_ENABLED = os.getenv("LEATRACE_DEMO_DATA", "false").lower() in {"1", "true", "yes", "on"}
+BACKGROUND_TASKS_ENABLED = os.getenv("LEATRACE_BACKGROUND_TASKS", "false").lower() in {"1", "true", "yes", "on"}
 
 # Setup database tables on startup (no migrations needed for simple SQLite)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="LEAtTrace API",
+    title="LEATrace API",
     description="Law Enforcement Advanced Trace Intelligence Platform REST Backend",
     version="1.0.0"
 )

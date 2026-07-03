@@ -1,1 +1,1 @@
-"""ML Models package for LEAtTrace AI Platform."""
+"""ML Models package for LEATrace AI Platform."""

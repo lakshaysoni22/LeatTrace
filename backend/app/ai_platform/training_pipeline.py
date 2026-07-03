@@ -1,5 +1,5 @@
 """
-LEAtTrace AI Platform — Training Pipeline.
+LEATrace AI Platform — Training Pipeline.
 
 Orchestrates end-to-end training: dataset generation → feature extraction →
 model training → evaluation → experiment tracking → model persistence.

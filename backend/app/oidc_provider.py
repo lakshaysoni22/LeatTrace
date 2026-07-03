@@ -24,7 +24,7 @@ class OIDCProvider:
         return {
             "iss": "http://localhost:8000",
             "sub": user_id,
-            "aud": "LEAtTrace-frontend",
+            "aud": "leatrace-frontend",
             "exp": now + 3600, # 1 Hour
             "iat": now,
             "auth_time": now,

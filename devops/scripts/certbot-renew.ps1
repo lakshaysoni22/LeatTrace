@@ -1,4 +1,4 @@
-# LEAtTrace Production SSL Certbot Automator
+# LEATrace Production SSL Certbot Automator
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Continue"
@@ -7,7 +7,7 @@ Write-Host "=========================================================" -Foregrou
 Write-Host "         PRODUCTION SSL AUTOMATED RENEWER                " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
 
-$domain = $env:LEAtTrace_DOMAIN
+$domain = $env:LEATRACE_DOMAIN
 if (-not $domain -or $domain -eq "localhost" -or $domain -eq "127.0.0.1") {
     Write-Host "  [+] Localhost or loopback IP detected." -ForegroundColor Green
     Write-Host "  [+] Bypassing Certbot production renewal; maintaining local self-signed certificates." -ForegroundColor Green
@@ -23,7 +23,7 @@ try {
     
     # Reloading local Nginx proxy container if Docker Compose is running
     Write-Host "  [+] Reloading local Nginx reverse proxy configurations..." -ForegroundColor Gray
-    & docker exec LEAtTrace-proxy nginx -s reload 2>$null
+    & docker exec leatrace-proxy nginx -s reload 2>$null
     
     Write-Host "  [+] Certificate renewed successfully!" -ForegroundColor Green
 } catch {

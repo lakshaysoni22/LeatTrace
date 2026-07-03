@@ -1,5 +1,5 @@
 """
-LEAtTrace Blockchain Intelligence — Neo4j Graph Intelligence Service.
+LEATrace Blockchain Intelligence — Neo4j Graph Intelligence Service.
 
 Enterprise graph operations: centrality analysis, influence scoring,
 link prediction, multi-hop investigation, risk propagation,

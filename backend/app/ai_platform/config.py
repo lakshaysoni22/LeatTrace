@@ -1,5 +1,5 @@
 """
-LEAtTrace AI Platform — Centralized Configuration.
+LEATrace AI Platform — Centralized Configuration.
 
 All AI/ML settings are driven by environment variables with sensible defaults.
 No API keys are hardcoded. Provider selection is fully configurable.

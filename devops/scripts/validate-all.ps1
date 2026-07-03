@@ -1,10 +1,10 @@
-# LEAtTrace Operations Diagnostic Auditor
+# LEATrace Operations Diagnostic Auditor
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Continue"
 
 Write-Host "=========================================================" -ForegroundColor Cyan
-Write-Host "         LEAtTrace PREREQUISITE DIAGNOSTIC CHECK          " -ForegroundColor Cyan
+Write-Host "         LEATRACE PREREQUISITE DIAGNOSTIC CHECK          " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
 
 $missingPreReqs = 0

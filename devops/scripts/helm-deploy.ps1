@@ -1,4 +1,4 @@
-# LEAtTrace Helm Release Orchestrator
+# LEATrace Helm Release Orchestrator
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Stop"
@@ -36,7 +36,7 @@ try {
 # 3. Dry-Run Template Compilation
 Write-Host "[HELM] Executing dry-run template compiler..." -ForegroundColor Gray
 try {
-    $manifests = & helm template LEAtTrace helm 2>$null
+    $manifests = & helm template leatrace helm 2>$null
     if ($manifests) {
         Write-Host "  [+] Template validation: SUCCESS. Manifests compiled successfully." -ForegroundColor Green
     }
@@ -47,6 +47,6 @@ try {
 
 Write-Host "`n=========================================================" -ForegroundColor Cyan
 Write-Host "  [+] Helm Release is READY for Kubernetes deployment." -ForegroundColor Green
-Write-Host "      To deploy to managed cluster: helm upgrade --install LEAtTrace helm/" -ForegroundColor Green
+Write-Host "      To deploy to managed cluster: helm upgrade --install leatrace helm/" -ForegroundColor Green
 Write-Host "=========================================================" -ForegroundColor Cyan
 Set-Location $PSScriptRoot

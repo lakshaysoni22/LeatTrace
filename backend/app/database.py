@@ -4,7 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # Configurable database urls, fallback to local sqlite database file
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./LEAtTrace.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./leatrace.db")
 
 # Use special connect args for SQLite (enforcing thread safety exceptions)
 connect_args = {}
@@ -32,7 +32,7 @@ try:
     import pymongo
     mongo_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
     mongo_client = pymongo.MongoClient(mongo_url, serverSelectionTimeoutMS=2000)
-    mongo_db = mongo_client[os.getenv("MONGO_DB_NAME", "LEAtTrace_nosql")]
+    mongo_db = mongo_client[os.getenv("MONGO_DB_NAME", "leatrace_nosql")]
 except Exception:
     pass
 

@@ -5,8 +5,8 @@ from gateway.routes import router
 from shared.logger import logger
 
 app = FastAPI(
-    title="LEAtTrace API Gateway",
-    description="Secure entry point and request router for LEAtTrace microservices architecture",
+    title="LEATrace API Gateway",
+    description="Secure entry point and request router for LEATrace microservices architecture",
     version="1.0.0"
 )
 

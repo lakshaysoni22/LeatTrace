@@ -1,5 +1,5 @@
 """
-LEAtTrace AI Platform — Dataset Manager.
+LEATrace AI Platform — Dataset Manager.
 
 Generates training datasets from the existing SQLite/Postgres database
 and produces synthetic augmentation data for model training.

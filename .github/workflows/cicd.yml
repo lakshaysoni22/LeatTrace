@@ -34,7 +34,7 @@ jobs:
           python -m compileall app
           python - <<'PY'
           from app.main import app
-          assert app.title == 'LEAtTrace API'
+          assert app.title == 'LEATrace API'
           print('app import ok')
           PY
 
@@ -44,4 +44,4 @@ jobs:
 
       - name: Build backend container image
         run: |
-          docker build -t leattrace-backend:ci -f Dockerfile .
+          docker build -t leatrace-backend:ci -f Dockerfile .

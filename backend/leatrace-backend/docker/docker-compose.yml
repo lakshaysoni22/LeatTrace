@@ -18,7 +18,7 @@ services:
       dockerfile: docker/Dockerfile
     command: uvicorn gateway.main:app --host 0.0.0.0 --port 8000
     environment:
-      - DATABASE_URL=sqlite:///./LEAtTrace_micro.db
+      - DATABASE_URL=sqlite:///./leatrace_micro.db
       - AUTH_SERVICE_URL=http://auth_service:8001
       - CPOS_SERVICE_URL=http://cpos_service:8002
       - RIIL_SERVICE_URL=http://riil_service:8003
@@ -36,7 +36,7 @@ services:
       dockerfile: docker/Dockerfile
     command: uvicorn services.auth_service.main:app --host 0.0.0.0 --port 8001
     environment:
-      - DATABASE_URL=sqlite:///./LEAtTrace_micro.db
+      - DATABASE_URL=sqlite:///./leatrace_micro.db
 
   # CPOS Engine Service
   cpos_service:
@@ -45,7 +45,7 @@ services:
       dockerfile: docker/Dockerfile
     command: uvicorn services.cpos_service.main:app --host 0.0.0.0 --port 8002
     environment:
-      - DATABASE_URL=sqlite:///./LEAtTrace_micro.db
+      - DATABASE_URL=sqlite:///./leatrace_micro.db
       - NGEL_SERVICE_URL=http://ngel_service:8004
       - QCAL_SERVICE_URL=http://qcal_service:8005
 
@@ -84,6 +84,6 @@ services:
       dockerfile: docker/Dockerfile
     command: uvicorn services.investigation_service.main:app --host 0.0.0.0 --port 8008
     environment:
-      - DATABASE_URL=sqlite:///./LEAtTrace_micro.db
+      - DATABASE_URL=sqlite:///./leatrace_micro.db
       - CPOS_SERVICE_URL=http://cpos_service:8002
       - BLOCKCHAIN_SERVICE_URL=http://blockchain_service:8007

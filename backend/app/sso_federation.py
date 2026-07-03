@@ -18,7 +18,7 @@ class SSOProvider:
     def create_session_claims(self, username: str) -> Dict[str, Any]:
         return {
             "sub": username,
-            "iss": os.getenv("SSO_ISSUER", "https://local.LEAtTrace"),
+            "iss": os.getenv("SSO_ISSUER", "https://local.leatrace"),
             "provider": self.name,
             "provider_type": self.provider_type,
         }

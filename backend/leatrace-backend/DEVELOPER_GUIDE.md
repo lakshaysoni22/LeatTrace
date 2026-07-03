@@ -1,14 +1,14 @@
-# LEAtTrace Developer Ecosystem & SDK Onboarding Guide
+# LEATrace Developer Ecosystem & SDK Onboarding Guide
 
-Welcome to the **LEAtTrace Developer Ecosystem**. This document outlines the API endpoints, SDK usage guides (Python & JavaScript), onboarding instructions, and local environment setups.
+Welcome to the **LEATrace Developer Ecosystem**. This document outlines the API endpoints, SDK usage guides (Python & JavaScript), onboarding instructions, and local environment setups.
 
 ---
 
 ## 🌐 1. API Documentation (Swagger / OpenAPI)
 
-The LEAtTrace Microservices Cluster exposes a centralized OpenAPI Gateway.
+The LEATrace Microservices Cluster exposes a centralized OpenAPI Gateway.
 
-* **Base URL**: `https://api.LEAtTrace.io/v1/` (Production) or `http://localhost:8000/` (Local Development)
+* **Base URL**: `https://api.leatrace.io/v1/` (Production) or `http://localhost:8000/` (Local Development)
 * **Interactive Documentation (Swagger)**: `/docs` (e.g. `http://localhost:8000/docs`)
 * **Redoc Summary**: `/redoc`
 
@@ -28,15 +28,15 @@ The LEAtTrace Microservices Cluster exposes a centralized OpenAPI Gateway.
 
 Install the SDK via pip:
 ```bash
-pip install LEAtTrace-sdk
+pip install leatrace-sdk
 ```
 
 Initialize the client and run a transaction analysis:
 ```python
-from LEAtTrace import Client
+from leatrace import Client
 
 # Initialize client using your API key or JWT Token
-client = Client(api_key="YOUR_LEAtTrace_API_KEY")
+client = Client(api_key="YOUR_LEATRACE_API_KEY")
 
 # 1. Process Core Intelligence Decision (CPOS)
 cpos_response = client.cpos.analyze(
@@ -61,14 +61,14 @@ print("Resolved Wallet Risk:", trace.risk_score)
 
 Install the SDK via npm:
 ```bash
-npm install LEAtTrace-sdk
+npm install leatrace-sdk
 ```
 
 Integrate wallet behavioral analytics into your app:
 ```javascript
-import { LEAtTrace } from "LEAtTrace-sdk";
+import { LEATrace } from "leatrace-sdk";
 
-const client = new LEAtTrace("YOUR_LEAtTrace_API_KEY");
+const client = new LEATrace("YOUR_LEATRACE_API_KEY");
 
 async function runAudit() {
   // Check governance constraints prior to transaction execution
@@ -101,8 +101,8 @@ runAudit();
    ```
 3. **Download Code**: Clone the repository and boot using Docker:
    ```bash
-   git clone https://github.com/LEAtTrace/core.git
-   cd LEAtTrace-backend
+   git clone https://github.com/leatrace/core.git
+   cd leatrace-backend
    docker-compose up --build
    ```
 4. **Deploy Contracts**: Compile and deploy smart contracts on your testnet nodes.
@@ -124,7 +124,7 @@ python main.py
 
 ### Environment variables configuration (`.env`):
 ```text
-DATABASE_URL=sqlite:///./LEAtTrace_micro.db
+DATABASE_URL=sqlite:///./leatrace_micro.db
 JWT_SECRET=super-secret-key-12345-cpos-singularity
 MONGO_URL=mongodb://localhost:27017
 REDIS_HOST=localhost

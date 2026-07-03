@@ -1,5 +1,5 @@
 """
-LEAtTrace Blockchain Intelligence — Protocol Registry.
+LEATrace Blockchain Intelligence — Protocol Registry.
 
 40+ known DeFi protocol addresses with metadata: type, TVL tier, audit status,
 risk level, multi-chain support. Used by DeFi decoder for protocol identification.

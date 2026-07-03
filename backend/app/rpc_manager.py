@@ -1,5 +1,5 @@
 """
-LEAtTrace Blockchain Intelligence — Enterprise RPC Manager.
+LEATrace Blockchain Intelligence — Enterprise RPC Manager.
 
 Production-grade RPC management with 9-chain support, weighted load balancing,
 rate limiting, failover, connection pooling, WebSocket support, and metrics.
@@ -198,7 +198,7 @@ class RPCManager:
                 else:
                     return None
 
-                req = urllib.request.Request(api_url, headers={"User-Agent": "LEAtTrace/1.0"})
+                req = urllib.request.Request(api_url, headers={"User-Agent": "LEATrace/1.0"})
                 with urllib.request.urlopen(req, timeout=5) as res:
                     data = res.read().decode("utf-8")
                     try:
@@ -226,7 +226,7 @@ class RPCManager:
                 else:
                     return None
 
-                req = urllib.request.Request(api_url, headers={"User-Agent": "LEAtTrace/1.0"})
+                req = urllib.request.Request(api_url, headers={"User-Agent": "LEATrace/1.0"})
                 tron_key = os.getenv("TRON_API_KEY")
                 if tron_key:
                     req.add_header("TRON-PRO-API-KEY", tron_key)

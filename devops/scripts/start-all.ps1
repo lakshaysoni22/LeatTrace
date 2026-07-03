@@ -1,8 +1,8 @@
-# LEAtTrace Simultaneous Launcher
+# LEATrace Simultaneous Launcher
 # Target: Windows Powershell
 
 Write-Host "=========================================================" -ForegroundColor Cyan
-Write-Host "            LAUNCHING LEAtTrace DEVELOPMENT STACK         " -ForegroundColor Cyan
+Write-Host "            LAUNCHING LEATRACE DEVELOPMENT STACK         " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
 
 $workspaceRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")

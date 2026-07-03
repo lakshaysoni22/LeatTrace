@@ -91,7 +91,7 @@ def chat_with_assistant(
 > AI analysis serves to assist investigators and supervisors in detecting bottleneck gaps and timeline priorities. AI does not replace investigative authority."""
 
     else:
-        response_text = f"""### LEAtTrace AI Assistant
+        response_text = f"""### LEATrace AI Assistant
 
 Welcome, {current_user.username}. I am your Law Enforcement Forensic Copilot.
 

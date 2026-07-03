@@ -1,13 +1,13 @@
 import os
 import zipfile
 
-project_dir = "C:/Users/Acer/.gemini/antigravity-ide/scratch/LEAtTrace"
-zip_path = "C:/Users/Acer/.gemini/antigravity-ide/scratch/LEAtTrace.zip"
+project_dir = "C:/Users/Acer/.gemini/antigravity-ide/scratch/LEATrace"
+zip_path = "C:/Users/Acer/.gemini/antigravity-ide/scratch/LEATrace.zip"
 
 print(f"Creating clean zip archive at {zip_path}...")
 
 exclude_dirs = {"node_modules", "dist", ".git", "__pycache__", ".pytest_cache", ".venv", "venv"}
-exclude_files = {".DS_Store", "LEAtTrace.db"}
+exclude_files = {".DS_Store", "leatrace.db"}
 
 with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
     for root, dirs, files in os.walk(project_dir):

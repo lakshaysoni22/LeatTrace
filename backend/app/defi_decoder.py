@@ -1,5 +1,5 @@
 """
-LEAtTrace Blockchain Intelligence — DeFi Intelligence Decoder.
+LEATrace Blockchain Intelligence — DeFi Intelligence Decoder.
 
 Enterprise DeFi decoding: ERC-20/721/1155, liquidity pools, DEX swaps,
 flash loans, staking, lending, governance, yield farming, and vault interactions.

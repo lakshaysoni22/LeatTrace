@@ -1,5 +1,5 @@
 """
-LEAtTrace AI Platform — Money Laundering Detection Model.
+LEATrace AI Platform — Money Laundering Detection Model.
 
 Detects peel chains, layering patterns, and structuring behavior in
 transaction sequences using gradient boosting on sequence-derived features.
