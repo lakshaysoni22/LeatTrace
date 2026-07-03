@@ -1,5 +1,5 @@
 """
-LEATrace Blockchain Intelligence — Advanced Cluster & Investigation API.
+LEAtTrace Blockchain Intelligence — Advanced Cluster & Investigation API.
 
 Production API with live blockchain data: wallet clustering, cross-chain tracing,
 bridge detection, DeFi decoding, mixer analysis, entity resolution, risk scoring,

@@ -1,5 +1,5 @@
 """
-LEATrace Blockchain Intelligence — Enterprise Risk Engine.
+LEAtTrace Blockchain Intelligence — Enterprise Risk Engine.
 
 Production-grade risk scoring across 12 dimensions: wallet, transaction, token,
 bridge, contract, counterparty, entity, cross-chain, mixer, scam, fraud, AML.

@@ -1,10 +1,10 @@
-# LEATrace Cloud Provisioner (Terraform Automation)
+# LEAtTrace Cloud Provisioner (Terraform Automation)
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "=========================================================" -ForegroundColor Cyan
-Write-Host "          LEATRACE CLOUD INFRASTRUCTURE DEPLOY           " -ForegroundColor Cyan
+Write-Host "          LEAtTrace CLOUD INFRASTRUCTURE DEPLOY           " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
 
 # 1. Detect Cloud Provider Credentials

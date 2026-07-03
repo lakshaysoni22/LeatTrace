@@ -1,5 +1,5 @@
 """
-LEATrace Blockchain Intelligence — Risk Patterns Library.
+LEAtTrace Blockchain Intelligence — Risk Patterns Library.
 
 Enumeration of all known laundering/obfuscation patterns with pattern matching,
 confidence scoring, and combination analysis for forensic investigation.

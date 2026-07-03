@@ -16,12 +16,12 @@ provider "google" {
 
 # 1. VPC Network Setup
 resource "google_compute_network" "vpc" {
-  name                    = "leatrace-prod-vpc"
+  name                    = "LEAtTrace-prod-vpc"
   auto_create_subnetworks = false
 }
 
 resource "google_compute_subnetwork" "subnet" {
-  name          = "leatrace-prod-subnet"
+  name          = "LEAtTrace-prod-subnet"
   ip_cidr_range = "10.0.0.0/20"
   region        = var.region
   network       = google_compute_network.vpc.id
@@ -31,7 +31,7 @@ resource "google_compute_subnetwork" "subnet" {
 
 # 2. Cloud SQL Instance (PostgreSQL 16)
 resource "google_sql_database_instance" "postgres" {
-  name             = "leatrace-prod-postgres"
+  name             = "LEAtTrace-prod-postgres"
   database_version = "POSTGRES_16"
   region           = var.region
 
@@ -49,13 +49,13 @@ resource "google_sql_database_instance" "postgres" {
 }
 
 resource "google_sql_database" "database" {
-  name     = "leatrace"
+  name     = "LEAtTrace"
   instance = google_sql_database_instance.postgres.name
 }
 
 # 3. Memorystore Redis Instance
 resource "google_redis_instance" "redis" {
-  name               = "leatrace-prod-redis"
+  name               = "LEAtTrace-prod-redis"
   tier               = "BASIC"
   memory_size_gb     = 1
   region             = var.region
@@ -67,7 +67,7 @@ resource "google_redis_instance" "redis" {
 
 # 4. GCS Storage Bucket (MinIO Alternative for Forensic Evidence locker)
 resource "google_storage_bucket" "evidence_vault" {
-  name          = "leatrace-forensic-vault-${var.project_id}"
+  name          = "LEAtTrace-forensic-vault-${var.project_id}"
   location      = var.region
   storage_class = "STANDARD"
 
@@ -90,7 +90,7 @@ resource "google_storage_bucket" "evidence_vault" {
 
 # 5. GKE Cluster (Google Kubernetes Engine)
 resource "google_container_cluster" "gke" {
-  name     = "leatrace-prod-cluster"
+  name     = "LEAtTrace-prod-cluster"
   location = var.region
 
   network    = google_compute_network.vpc.name
@@ -126,7 +126,7 @@ resource "google_container_node_pool" "primary_nodes" {
 variable "project_id" {
   type        = string
   description = "GCP Project ID to provision resources inside"
-  default     = "leatrace-prod"
+  default     = "LEAtTrace-prod"
 }
 
 variable "region" {

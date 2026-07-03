@@ -1,5 +1,5 @@
 """
-LEATrace Blockchain Intelligence — Wallet Clustering Engine.
+LEAtTrace Blockchain Intelligence — Wallet Clustering Engine.
 
 Production clustering with 6 heuristics: co-spending, behavioral, graph,
 exchange detection, hot/cold detection, and custodial detection.

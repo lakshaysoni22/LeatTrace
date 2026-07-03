@@ -147,7 +147,7 @@ const App: React.FC = () => {
       if (e.ctrlKey && e.key === '/') {
         e.preventDefault();
         alert(
-          "LEATrace Keyboard Shortcuts:\n" +
+          "LEAtTrace Keyboard Shortcuts:\n" +
           "• Ctrl + K : Focus Search Bar\n" +
           "• Ctrl + N : Open Case Manager\n" +
           "• Ctrl + E : Open Evidence Locker\n" +

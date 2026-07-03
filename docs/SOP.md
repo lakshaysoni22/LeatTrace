@@ -20,5 +20,5 @@ This guide defines step-by-step procedures for routine administration tasks.
 2. **Challenge HTTP**: Certbot runs HTTP-01 challenge under `webroot`.
 3. **Nginx reload**: Automatically executes reload:
    ```bash
-   docker exec leatrace-proxy nginx -s reload
+   docker exec LEAtTrace-proxy nginx -s reload
    ```

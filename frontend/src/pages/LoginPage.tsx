@@ -65,7 +65,7 @@ export const LoginPage: React.FC = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary-500 to-cyber-teal flex items-center justify-center shadow-glow-cyan">
             <Hexagon size={32} className="text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">LEATrace</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">LEAtTrace</h1>
           <p className="text-sm text-dark-400 mt-1">National Cybercrime Investigation Platform (I4C & CBI)</p>
         </div>
 
@@ -264,7 +264,7 @@ export const LoginPage: React.FC = () => {
         {/* Footer */}
         <div className="text-center mt-6">
           <p className="text-[10px] text-dark-500">Government of India • Cyber Crime Investigation Cell</p>
-          <p className="text-[10px] text-dark-600 mt-1">© 2026 LEATrace Forensics Portal. Joint Agency System (I4C, CBI, NIA, Cyber Crime Cell).</p>
+          <p className="text-[10px] text-dark-600 mt-1">© 2026 LEAtTrace Forensics Portal. Joint Agency System (I4C, CBI, NIA, Cyber Crime Cell).</p>
         </div>
       </div>
     </div>

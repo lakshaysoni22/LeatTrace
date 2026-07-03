@@ -25,7 +25,7 @@ if __name__ == "__main__":
     ]
 
     processes = []
-    logger.info("Initializing LEATrace Microservices Cluster...")
+    logger.info("Initializing LEAtTrace Microservices Cluster...")
 
     for service_path, port in services:
         p = multiprocessing.Process(target=run_service, args=(service_path, port))

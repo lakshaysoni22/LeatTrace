@@ -1,4 +1,4 @@
-name: LEATrace Enterprise CI/CD Pipeline
+name: LEAtTrace Enterprise CI/CD Pipeline
 
 on:
   push:
@@ -129,8 +129,8 @@ jobs:
 
       - name: Deploy Helm Chart (Zero-Downtime Blue-Green Switchover)
         run: |
-          helm upgrade --install leatrace-deployment ./devops/kubernetes/helm-chart \
-            --namespace leatrace-prod --create-namespace \
+          helm upgrade --install LEAtTrace-deployment ./devops/kubernetes/helm-chart \
+            --namespace LEAtTrace-prod --create-namespace \
             --set backend.image.tag=${{ github.sha }} \
             --set frontend.image.tag=${{ github.sha }} \
             --atomic --timeout 10m

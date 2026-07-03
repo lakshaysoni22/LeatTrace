@@ -1,10 +1,10 @@
-# LEATrace Enterprise Setup & Environment Pre-requisite Checker
+# LEAtTrace Enterprise Setup & Environment Pre-requisite Checker
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "=========================================================" -ForegroundColor Cyan
-Write-Host "           LEATRACE SYSTEM SETUP & PROFILER             " -ForegroundColor Cyan
+Write-Host "           LEAtTrace SYSTEM SETUP & PROFILER             " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
 
 # 1. System Resource Detection
@@ -54,7 +54,7 @@ if (-not (Test-Path $sslDir)) {
 
 $certFile = Join-Path $sslDir "server.crt"
 $keyFile = Join-Path $sslDir "server.key"
-$domain = [System.Environment]::GetEnvironmentVariable("LEATRACE_DOMAIN")
+$domain = [System.Environment]::GetEnvironmentVariable("LEAtTrace_DOMAIN")
 
 if ([string]::IsNullOrEmpty($domain) -or $domain -eq "localhost" -or $domain -eq "127.0.0.1") {
     Write-Host "  -> Local domain detected. Generating self-signed TLS certificates..." -ForegroundColor Green
@@ -63,10 +63,10 @@ if ([string]::IsNullOrEmpty($domain) -or $domain -eq "localhost" -or $domain -eq
     if (Test-Command "openssl") {
         & openssl req -x509 -nodes -days 365 -newkey rsa:2048 `
             -keyout $keyFile -out $certFile `
-            -subj "/C=IN/ST=Delhi/L=Delhi/O=LEATrace/CN=localhost" `
+            -subj "/C=IN/ST=Delhi/L=Delhi/O=LEAtTrace/CN=localhost" `
             -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" -Force
     } else {
-        $cert = New-SelfSignedCertificate -DnsName "localhost", "127.0.0.1" -CertStoreLocation "cert:\LocalMachine\My" -FriendlyName "LEATrace Local Development"
+        $cert = New-SelfSignedCertificate -DnsName "localhost", "127.0.0.1" -CertStoreLocation "cert:\LocalMachine\My" -FriendlyName "LEAtTrace Local Development"
         $certBase64 = [System.Convert]::ToBase64String($cert.RawData)
         
         # Export keys to files (Mock writing for local NGINX proxy load)

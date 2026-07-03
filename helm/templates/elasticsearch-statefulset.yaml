@@ -2,19 +2,19 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ include "leatrace.fullname" . }}-elasticsearch
+  name: {{ include "LEAtTrace.fullname" . }}-elasticsearch
   labels:
-    app: {{ include "leatrace.name" . }}-elasticsearch
+    app: {{ include "LEAtTrace.name" . }}-elasticsearch
 spec:
-  serviceName: {{ include "leatrace.fullname" . }}-elasticsearch-hl
+  serviceName: {{ include "LEAtTrace.fullname" . }}-elasticsearch-hl
   replicas: {{ .Values.elasticsearch.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "leatrace.name" . }}-elasticsearch
+      app: {{ include "LEAtTrace.name" . }}-elasticsearch
   template:
     metadata:
       labels:
-        app: {{ include "leatrace.name" . }}-elasticsearch
+        app: {{ include "LEAtTrace.name" . }}-elasticsearch
     spec:
       containers:
         - name: elasticsearch
@@ -33,7 +33,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "leatrace.fullname" . }}-elasticsearch
+  name: {{ include "LEAtTrace.fullname" . }}-elasticsearch
 spec:
   type: ClusterIP
   ports:
@@ -41,5 +41,5 @@ spec:
       targetPort: http
       name: http
   selector:
-    app: {{ include "leatrace.name" . }}-elasticsearch
+    app: {{ include "LEAtTrace.name" . }}-elasticsearch
 {{- end }}

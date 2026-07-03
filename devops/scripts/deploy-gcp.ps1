@@ -1,10 +1,10 @@
-# LEATrace GCP Cloud Bootstrap Wizard
+# LEAtTrace GCP Cloud Bootstrap Wizard
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "=========================================================" -ForegroundColor Cyan
-Write-Host "         LEATRACE GCP PRODUCTION BOOTSTRAP               " -ForegroundColor Cyan
+Write-Host "         LEAtTrace GCP PRODUCTION BOOTSTRAP               " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
 
 # 1. GCP Credentials Validation
@@ -38,7 +38,7 @@ try {
     Write-Host "`n[PLAN] Generating GCP infrastructure plan..." -ForegroundColor Gray
     & terraform plan -var="gcp_project_id=$gcpProject" -out=gcpplan.binary
     
-    $confirm = Read-Host "Do you want to deploy the complete LEATrace GCP GKE infrastructure? (y/n)"
+    $confirm = Read-Host "Do you want to deploy the complete LEAtTrace GCP GKE infrastructure? (y/n)"
     if ($confirm -eq "y" -or $confirm -eq "yes") {
         Write-Host "`n[DEPLOY] Provisioning GKE, Cloud SQL, Memorystore and Subnets..." -ForegroundColor Green
         & terraform apply -auto-approve gcpplan.binary

@@ -1,4 +1,4 @@
-# LEATrace Operations Runbook & Operational Master Manual
+# LEAtTrace Operations Runbook & Operational Master Manual
 
 This runbook defines standard system maintenance procedures, disaster recovery commands, and high-availability configuration setups.
 
@@ -28,7 +28,7 @@ graph TD
 ### 🔧 2.1 Environmental variables
 | Variable Name | Description | Default Value |
 | :--- | :--- | :--- |
-| `LEATRACE_DOMAIN` | Host domain name | `localhost` |
+| `LEAtTrace_DOMAIN` | Host domain name | `localhost` |
 | `REDIS_URL` | Cache service endpoint | `redis://localhost:6379/0` |
 | `DATABASE_URL` | SQLite path | `sqlite:///./sql_app.db` |
 

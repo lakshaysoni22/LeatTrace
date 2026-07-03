@@ -2,7 +2,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: cpos-hpa
-  namespace: leatrace
+  namespace: LEAtTrace
 spec:
   scaleTargetRef:
     apiVersion: apps/v1

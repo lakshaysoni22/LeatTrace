@@ -1,5 +1,5 @@
 """
-LEATrace IAM — JWKS Service.
+LEAtTrace IAM — JWKS Service.
 
 RSA key pair generation, JWKS endpoint support, and RS256 JWT signing.
 Provides real cryptographic key material instead of mock JWKS keys.
@@ -23,7 +23,7 @@ class JWKSService:
         self.key_dir = key_dir
         self._private_key = None
         self._public_key = None
-        self._kid = "leatrace-rsa-v1"
+        self._kid = "LEAtTrace-rsa-v1"
         os.makedirs(self.key_dir, exist_ok=True)
         self._load_or_generate_keys()
 

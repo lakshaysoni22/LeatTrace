@@ -8,12 +8,12 @@ from sqlalchemy.orm import sessionmaker
 import hashlib
 
 # Connect directly to database
-engine = create_engine(f"sqlite:///{os.path.join(backend_path, 'leatrace.db')}")
+engine = create_engine(f"sqlite:///{os.path.join(backend_path, 'LEAtTrace.db')}")
 Session = sessionmaker(bind=engine)
 session = Session()
 
 # Import models
-from app import models
+from app import models # type: ignore
 
 logs = session.query(models.AuditLog).order_by(models.AuditLog.timestamp.asc()).all()
 

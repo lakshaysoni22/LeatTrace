@@ -1,5 +1,5 @@
 """
-LEATrace AI Platform — Anomaly Detection Model.
+LEAtTrace AI Platform — Anomaly Detection Model.
 
 Isolation Forest for unsupervised anomaly detection on wallet feature vectors.
 Identifies statistical outliers that deviate from normal wallet behavior patterns.

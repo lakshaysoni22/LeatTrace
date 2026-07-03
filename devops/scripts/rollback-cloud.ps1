@@ -1,16 +1,16 @@
-# LEATrace Cloud Rollback Utility
+# LEAtTrace Cloud Rollback Utility
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Continue"
 
 Write-Host "=========================================================" -ForegroundColor Red
-Write-Host "         LEATRACE INFRASTRUCTURE ROLLBACK                " -ForegroundColor Red
+Write-Host "         LEAtTrace INFRASTRUCTURE ROLLBACK                " -ForegroundColor Red
 Write-Host "=========================================================" -ForegroundColor Red
 
 # 1. Rollback Helm Chart Deployment
 if (Get-Command "helm" -ErrorAction SilentlyContinue) {
     Write-Host "[K8S] Rolling back Helm release..." -ForegroundColor Gray
-    & helm rollback leatrace-deployment -n leatrace-prod
+    & helm rollback LEAtTrace-deployment -n LEAtTrace-prod
     Write-Host "  [+] Helm release successfully rolled back." -ForegroundColor Green
 }
 

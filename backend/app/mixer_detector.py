@@ -1,5 +1,5 @@
 """
-LEATrace Blockchain Intelligence — Mixer Detection Engine.
+LEAtTrace Blockchain Intelligence — Mixer Detection Engine.
 
 Enterprise mixer and privacy pool detection with Tornado Cash, Railgun, Aztec,
 smurfing, circular transfers, timing correlation, and confidence scoring.
