@@ -13,7 +13,6 @@
 ![FastAPI Backend](https://img.shields.io/badge/Backend-FastAPI%20%2F%20Python-blue)
 ![Vite Frontend](https://img.shields.io/badge/Frontend-React%20%2F%20TypeScript-cyan)
 ![ELK Ingestion](https://img.shields.io/badge/SIEM-ELK%20Stack%20Correlated-orange)
-![Live Backend Integration](https://img.shields.io/badge/Integration-Live%20API%20Connected-success)
 
 ---
 
@@ -37,13 +36,6 @@
 ### 4. 📊 Centralized SIEM Monitoring Console
 *   **OTel & Elasticsearch Pipelines**: Ingests JSON log records directly to Logstash, indexes them in Elasticsearch, and provides real-time audit visualization via Kibana templates.
 *   **Z-Score Anomaly Engine**: Performs latency and rate benchmarking to identify anomalous behavior patterns in API queries.
-
-### 5. 🔐 Security Hardening & Production Readiness
-*   **Live Backend Integration**: The frontend now loads investigations, evidence, dashboard metrics, and AI workspace context from the running backend rather than static mock data.
-*   **Security Modules**: MFA, session management, secret handling, SIEM delivery, and compliance scanning modules were added and hardened for integration.
-*   **Safer Defaults**: Demo seeding and background tasks are disabled by default unless explicitly enabled for local testing.
-*   **Verified Build**: The frontend production build was verified successfully with Vite after the integration changes.
-*   **Full Documentation**: See [Phase 1 Enterprise Security Implementation](./PHASE1_SECURITY_IMPLEMENTATION.md) for the complete module reference, API docs, and integration guide.
 
 ---
 
