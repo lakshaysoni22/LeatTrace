@@ -13,7 +13,7 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 # Import models
-from app import models
+from app import models # type: ignore
 
 logs = session.query(models.AuditLog).order_by(models.AuditLog.timestamp.asc()).all()
 
