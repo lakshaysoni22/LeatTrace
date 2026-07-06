@@ -49,7 +49,7 @@ class MockMongoDB:
         return MockMongoCollection()
 
 def get_mongo_db():
-    if mongo_client is not None and mongo_db is not None:
+    if mongo_db is not None:
         try:
             # Check connection
             mongo_client.server_info()

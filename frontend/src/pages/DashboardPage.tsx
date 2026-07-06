@@ -4,6 +4,7 @@ import {
   ArrowUpRight, ArrowDownRight, AlertTriangle, Clock
 } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { mockDashboardStats, mockTimeline } from '../data/mockData';
 import { useNavStore, useAlertStore, useCaseStore, useWatchlistStore } from '../stores';
 import { timeAgo, getStatusColor, getPriorityColor } from '../utils/helpers';
 
@@ -50,14 +51,13 @@ const tlColor: Record<string, string> = {
 export const DashboardPage: React.FC = () => {
   const { setPage } = useNavStore();
   const { alerts } = useAlertStore();
-  const { cases, loadCases } = useCaseStore();
+  const { cases } = useCaseStore();
   const { entries } = useWatchlistStore();
+  const stats = mockDashboardStats;
 
   const activeCasesCount = cases.filter(c => c.status.toLowerCase() !== 'closed').length;
   const watchedCount = entries.length;
   const unreadAlertsCount = alerts.filter(a => !a.isRead).length;
-  const totalEvidenceCount = cases.reduce((sum, c) => sum + c.evidenceCount, 0);
-  const teamMemberCount = Math.max(1, new Set(cases.map((c) => c.investigatorName)).size);
 
   const [liveOffsets, setLiveOffsets] = React.useState({
     activeCases: 0,
@@ -69,44 +69,6 @@ export const DashboardPage: React.FC = () => {
 
   const [liveActivityData, setLiveActivityData] = React.useState(activityData);
   const [liveCaseStatusData, setLiveCaseStatusData] = React.useState(caseStatusData);
-  const [timelineEntries, setTimelineEntries] = React.useState<Array<{ id: string; type: string; title: string; description: string; timestamp: string; user: string; caseRef?: string }>>([]);
-
-  React.useEffect(() => {
-    void loadCases();
-  }, [loadCases]);
-
-  React.useEffect(() => {
-    const token = localStorage.getItem('token');
-    const controller = new AbortController();
-
-    const loadTimeline = async () => {
-      try {
-        const response = await fetch('http://127.0.0.1:8000/api/audit/logs', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          signal: controller.signal,
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setTimelineEntries((data || []).slice(0, 5).map((entry: any, index: number) => ({
-            id: entry.id || `audit-${index}`,
-            type: entry.status === 'failure' ? 'alert' : 'case',
-            title: entry.action || 'Audit event',
-            description: `Recorded by ${entry.username || 'system'} in the investigation ledger.`,
-            timestamp: entry.created_at || entry.timestamp || new Date().toISOString(),
-            user: entry.username || 'system',
-            caseRef: entry.case_ref || undefined,
-          })));
-        }
-      } catch (err) {
-        console.error('Timeline load failed:', err);
-      }
-    };
-
-    void loadTimeline();
-
-    return () => controller.abort();
-  }, []);
 
   React.useEffect(() => {
     const interval = setInterval(() => {
@@ -184,10 +146,10 @@ export const DashboardPage: React.FC = () => {
   const statCards = [
     { label: 'Active Cases', value: Math.max(0, activeCasesCount + liveOffsets.activeCases), icon: FolderOpen, color: 'from-primary-500/20 to-primary-500/5', iconColor: 'text-primary-400', change: liveOffsets.activeCases >= 0 ? `+${2 + liveOffsets.activeCases}` : `${2 + liveOffsets.activeCases}`, trend: 'up' },
     { label: 'Watched Wallets', value: Math.max(0, watchedCount + liveOffsets.watchedWallets), icon: Eye, color: 'from-accent-green/20 to-accent-green/5', iconColor: 'text-accent-green', change: liveOffsets.watchedWallets >= 0 ? `+${1 + liveOffsets.watchedWallets}` : `${1 + liveOffsets.watchedWallets}`, trend: 'up' },
-    { label: 'Evidence Items', value: totalEvidenceCount + liveOffsets.evidenceItems, icon: Shield, color: 'from-accent-purple/20 to-accent-purple/5', iconColor: 'text-accent-purple', change: `+${12 + liveOffsets.evidenceItems}`, trend: 'up' },
+    { label: 'Evidence Items', value: stats.totalEvidence + liveOffsets.evidenceItems, icon: Shield, color: 'from-accent-purple/20 to-accent-purple/5', iconColor: 'text-accent-purple', change: `+${12 + liveOffsets.evidenceItems}`, trend: 'up' },
     { label: 'Active Alerts', value: Math.max(0, unreadAlertsCount + liveOffsets.activeAlerts), icon: Bell, color: 'from-accent-red/20 to-accent-red/5', iconColor: 'text-accent-red', change: liveOffsets.activeAlerts >= 0 ? `+${3 + liveOffsets.activeAlerts}` : `${3 + liveOffsets.activeAlerts}`, trend: 'up' },
-    { label: 'Cases This Month', value: Math.max(0, Math.min(cases.length, 6) + liveOffsets.casesThisMonth), icon: TrendingUp, color: 'from-accent-gold/20 to-accent-gold/5', iconColor: 'text-accent-gold', change: `+${1 + liveOffsets.casesThisMonth}`, trend: 'up' },
-    { label: 'Team Members', value: teamMemberCount, icon: Users, color: 'from-cyber-teal/20 to-cyber-teal/5', iconColor: 'text-cyber-teal', change: '0', trend: 'neutral' },
+    { label: 'Cases This Month', value: Math.max(0, stats.casesThisMonth + liveOffsets.casesThisMonth), icon: TrendingUp, color: 'from-accent-gold/20 to-accent-gold/5', iconColor: 'text-accent-gold', change: `+${1 + liveOffsets.casesThisMonth}`, trend: 'up' },
+    { label: 'Team Members', value: stats.totalUsers, icon: Users, color: 'from-cyber-teal/20 to-cyber-teal/5', iconColor: 'text-cyber-teal', change: '0', trend: 'neutral' },
   ];
 
   return (
@@ -367,7 +329,7 @@ export const DashboardPage: React.FC = () => {
             <Clock size={14} className="text-dark-400" />
           </div>
           <div className="space-y-4">
-            {timelineEntries.slice(0, 5).map((entry) => (
+            {mockTimeline.slice(0, 5).map((entry) => (
               <div key={entry.id} className="flex items-start gap-3">
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${tlColor[entry.type] || 'text-dark-400 bg-dark-700/50'}`}>
                   {tlIcon[entry.type]}

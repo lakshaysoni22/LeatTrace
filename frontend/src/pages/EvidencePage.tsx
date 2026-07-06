@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useCaseStore } from '../stores';
+import { mockEvidence } from '../data/mockData';
 import { Shield, ShieldAlert, ShieldCheck, Upload, Trash2, FileText, CheckCircle2, AlertTriangle, FileUp, Key, FileCheck, ArrowRight, X } from 'lucide-react';
 import { formatDate } from '../utils/helpers';
 import type { Evidence } from '../types';
 
 export const EvidencePage: React.FC = () => {
-  const { cases, selectedCase, selectCase, loadCases } = useCaseStore();
-  const [evidenceList, setEvidenceList] = useState<Evidence[]>([]);
+  const { cases, selectedCase, selectCase } = useCaseStore();
+  const [evidenceList, setEvidenceList] = useState<Evidence[]>(mockEvidence);
   const [verifyStatus, setVerifyStatus] = useState<Record<string, 'checking' | 'verified' | 'tampered'>>({});
   
   // Custom mock custody chain & seals
@@ -52,115 +53,51 @@ export const EvidencePage: React.FC = () => {
   const [fileDesc, setFileDesc] = useState('');
   const [fileSize, setFileSize] = useState('42 KB');
 
-  useEffect(() => {
-    void loadCases();
-  }, [loadCases]);
-
-  useEffect(() => {
-    const targetCaseIds = selectedCase ? [selectedCase.id] : cases.map((c) => c.id);
-    if (!targetCaseIds.length) {
-      setEvidenceList([]);
-      return;
-    }
-
-    const controller = new AbortController();
-    const token = localStorage.getItem('token');
-
-    const loadEvidence = async () => {
-      try {
-        const results = await Promise.all(targetCaseIds.map(async (caseId) => {
-          const response = await fetch(`http://127.0.0.1:8000/api/evidence/case/${caseId}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-            signal: controller.signal,
-          });
-
-          if (!response.ok) return [];
-          const data = await response.json();
-          return (data || []).map((item: any) => ({
-            id: item.id,
-            caseId: item.case_id,
-            type: item.type,
-            title: item.filename,
-            filename: item.filename,
-            fileHash: item.file_hash,
-            fileSize: item.file_size ? `${item.file_size} bytes` : 'Unknown size',
-            uploadedBy: item.uploaded_by,
-            uploadTime: item.upload_time,
-            description: item.description,
-            downloadUrl: '#',
-          }));
-        }));
-
-        setEvidenceList(results.flat());
-      } catch (err) {
-        console.error('Failed to load evidence from backend:', err);
-      }
-    };
-
-    void loadEvidence();
-
-    return () => controller.abort();
-  }, [cases, selectedCase?.id]);
-
   // Filter evidence based on selected case
   const activeEvidence = selectedCase 
     ? evidenceList.filter((e) => e.caseId === selectedCase.id)
     : evidenceList;
 
-  const handleVerify = async (id: string) => {
+  const handleVerify = async (id: string, normalHash: boolean = true) => {
     setVerifyStatus((prev) => ({ ...prev, [id]: 'checking' }));
+    
+    // Simulate checksum verification delay
+    await new Promise((r) => setTimeout(r, 1200));
 
-    const token = localStorage.getItem('token');
-    try {
-      const response = await fetch(`http://127.0.0.1:8000/api/evidence/verify/${id}`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setVerifyStatus((prev) => ({ ...prev, [id]: data.status === 'VERIFIED' ? 'verified' : 'tampered' }));
-        return;
-      }
-    } catch (err) {
-      console.error('Verification request failed:', err);
-    }
-
-    setVerifyStatus((prev) => ({ ...prev, [id]: 'tampered' }));
+    setVerifyStatus((prev) => ({
+      ...prev,
+      [id]: normalHash ? 'verified' : 'tampered'
+    }));
   };
 
-  const handleSealEvidence = async (id: string) => {
-    const token = localStorage.getItem('token');
-    try {
-      const response = await fetch(`http://127.0.0.1:8000/api/evidence/seal/${id}`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSealedStatus((prev) => ({
-          ...prev,
-          [id]: {
-            sealed: true,
-            signer: 'Inspector Verma',
-            signature: data.signature || data.signature_b64,
-            keyPem: data.public_key || data.public_key_pem,
-          }
-        }));
-      }
-    } catch (err) {
-      console.error('Seal request failed:', err);
+  const handleSealEvidence = (id: string) => {
+    const characters = '0123456789abcdef';
+    let mockSig = '';
+    for (let i = 0; i < 64; i++) {
+      mockSig += characters.charAt(Math.floor(Math.random() * characters.length));
     }
+    
+    setSealedStatus((prev) => ({
+      ...prev,
+      [id]: {
+        sealed: true,
+        signer: 'Inspector Verma',
+        signature: mockSig,
+        keyPem: '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyYt92aB...\n-----END PUBLIC KEY-----'
+      }
+    }));
 
+    // Add to custody chain
+    const newCustodyEvent = {
+      action: 'SEALED',
+      performedBy: 'Inspector Verma',
+      timestamp: new Date().toISOString(),
+      notes: 'Signed and sealed with RSA digital signature for court admissibility.'
+    };
+    
     setCustodyLogs((prev) => ({
       ...prev,
-      [id]: [...(prev[id] || []), {
-        action: 'SEALED',
-        performedBy: 'Inspector Verma',
-        timestamp: new Date().toISOString(),
-        notes: 'Signed and sealed with RSA digital signature for court admissibility.'
-      }]
+      [id]: [...(prev[id] || []), newCustodyEvent]
     }));
 
     alert('Evidence item sealed successfully. Digital signature recorded in forensic ledger.');
@@ -183,44 +120,52 @@ export const EvidencePage: React.FC = () => {
     alert(`Custody transferred to ${recipient} successfully.`);
   };
 
-  const handleUpload = async (e: React.FormEvent) => {
+  const handleUpload = (e: React.FormEvent) => {
     e.preventDefault();
     if (!fileName.trim()) return;
 
-    const token = localStorage.getItem('token');
-    const formData = new FormData();
-    formData.append('file', new Blob([fileName], { type: 'application/octet-stream' }), fileName);
-    formData.append('description', fileDesc);
-
-    try {
-      const response = await fetch(`http://127.0.0.1:8000/api/evidence/upload/${targetCase}`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      });
-
-      if (response.ok) {
-        const uploaded = await response.json();
-        setEvidenceList((prev) => [{
-          id: uploaded.id,
-          caseId: uploaded.case_id,
-          filename: uploaded.filename,
-          fileHash: uploaded.file_hash,
-          fileSize: uploaded.file_size ? `${uploaded.file_size} bytes` : fileSize,
-          uploadedBy: uploaded.uploaded_by,
-          uploadTime: uploaded.upload_time,
-          description: uploaded.description,
-          downloadUrl: '#',
-        }, ...prev]);
-      }
-    } catch (err) {
-      console.error('Evidence upload failed:', err);
+    // Simulate simple hash creation
+    const characters = 'abcdef0123456789';
+    let mockHash = '';
+    for (let i = 0; i < 64; i++) {
+      mockHash += characters.charAt(Math.floor(Math.random() * characters.length));
     }
 
+    const newId = `evd-${Math.random().toString(36).substr(2, 7)}`;
+    const newEvidenceItem: Evidence = {
+      id: newId,
+      caseId: targetCase,
+      filename: fileName,
+      fileHash: mockHash,
+      fileSize: fileSize,
+      uploadedBy: 'Inspector Verma',
+      uploadTime: new Date().toISOString(),
+      description: fileDesc,
+      downloadUrl: '#',
+    };
+
+    setEvidenceList((prev) => [newEvidenceItem, ...prev]);
+    
+    // Initialize custody chain
+    setCustodyLogs((prev) => ({
+      ...prev,
+      [newId]: [
+        { action: 'UPLOADED', performedBy: 'Inspector Verma', timestamp: new Date().toISOString(), notes: 'Initial file ingestion into secure forensic vault.' }
+      ]
+    }));
+
     setShowUpload(false);
+    
+    // Reset states
     setFileName('');
     setFileDesc('');
     setFileSize('42 KB');
+
+    // Update counts in cases
+    const dbCase = cases.find((c) => c.id === targetCase);
+    if (dbCase) {
+      dbCase.evidenceCount += 1;
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -352,14 +297,14 @@ export const EvidencePage: React.FC = () => {
 
                   <div className="flex items-center gap-1">
                     <button 
-                      onClick={() => handleVerify(ev.id)}
+                      onClick={() => handleVerify(ev.id, true)}
                       disabled={status === 'checking'}
                       className="px-2 py-0.5 bg-dark-800 hover:bg-dark-700 text-[10px] font-semibold text-white rounded transition-colors"
                     >
                       Verify
                     </button>
                     <button 
-                      onClick={() => handleVerify(ev.id)}
+                      onClick={() => handleVerify(ev.id, false)}
                       disabled={status === 'checking'}
                       className="px-2 py-0.5 border border-accent-red/25 bg-accent-red/5 hover:bg-accent-red/10 text-[10px] text-accent-red font-semibold rounded transition-colors"
                       title="Simulate Tamper Check"
