@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { mockAuditLogs } from '../data/mockData';
-import { ClipboardList, Shield, Filter, Search, ShieldAlert, CheckCircle, RefreshCw, AlertOctagon } from 'lucide-react';
+import { ClipboardList, Shield, Filter, Search, ShieldAlert, CheckCircle, RefreshCw, AlertOctagon, WifiOff } from 'lucide-react';
 import { formatDate } from '../utils/helpers';
+import { apiGet, API_BASE } from '../utils/api';
 
 interface AuditLogEntry {
   id: string;
@@ -34,44 +34,23 @@ export const AuditPage: React.FC = () => {
     message: ''
   });
 
-  const fetchAuditLogs = async () => {
-    try {
-      const response = await fetch('http://127.0.0.1:8000/api/audit/logs', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setLogs(data);
-        return;
-      }
-    } catch (err) {
-      console.warn('Backend audit logs fetch failed, using fallback list:', err);
-    }
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-    // Staging fallback mock
-    const fallback = mockAuditLogs.map((l: any, idx) => ({
-      id: l.id || `log-${idx}`,
-      user_id: l.userId || 'usr-mock',
-      username: l.username || l.userName || 'Inspector Sharma',
-      action: l.action || 'Query wallet trace',
-      timestamp: l.timestamp || new Date().toISOString(),
-      ip_address: l.ipAddress || '192.168.1.42',
-      status: l.status || 'success',
-      hash: l.hash || 'hash-xyz',
-      prev_hash: l.prevHash || 'hash-abc'
-    }));
-    setLogs(fallback);
+  const fetchAuditLogs = async () => {
+    setFetchError(null);
+    try {
+      const data = await apiGet<AuditLogEntry[]>('/api/audit/logs');
+      setLogs(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setFetchError('Audit log service unavailable. No data is displayed to prevent showing fabricated records.');
+      setLogs([]);
+    }
   };
 
   const verifyLedgerIntegrity = async () => {
     setIsVerifying(true);
-    // Add brief delay for UX feel
-    await new Promise((r) => setTimeout(r, 800));
-
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/audit/verify', {
+      const response = await fetch(`${API_BASE}/api/audit/verify`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
         }

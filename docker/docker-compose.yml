@@ -4,23 +4,23 @@ services:
   # Relational Database
   postgres:
     image: postgres:16-alpine
-    container_name: leatrace-postgres
+    container_name: LEAtTrace-postgres
     restart: always
     environment:
-      POSTGRES_DB: leatrace
-      POSTGRES_USER: leatrace_user
+      POSTGRES_DB: LEAtTrace
+      POSTGRES_USER: LEAtTrace_user
       POSTGRES_PASSWORD: SecureDbPassword2026!
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - leatrace-net
+      - LEAtTrace-net
 
   # Graph Database
   neo4j:
     image: neo4j:5.18-community
-    container_name: leatrace-neo4j
+    container_name: LEAtTrace-neo4j
     restart: always
     ports:
       - "7474:7474"  # HTTP console
@@ -30,24 +30,24 @@ services:
     volumes:
       - neo4jdata:/data
     networks:
-      - leatrace-net
+      - LEAtTrace-net
 
   # Cache & Event Queue
   redis:
     image: redis:7.2-alpine
-    container_name: leatrace-redis
+    container_name: LEAtTrace-redis
     restart: always
     ports:
       - "6379:6379"
     volumes:
       - redisdata:/data
     networks:
-      - leatrace-net
+      - LEAtTrace-net
 
   # Secure Object Storage
   minio:
     image: minio/minio:RELEASE.2024-04-18T19-09-19Z
-    container_name: leatrace-minio
+    container_name: LEAtTrace-minio
     restart: always
     ports:
       - "9000:9000"  # API
@@ -59,17 +59,17 @@ services:
     volumes:
       - miniodata:/data
     networks:
-      - leatrace-net
+      - LEAtTrace-net
 
   # FastAPI REST Service Backend
   backend:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    container_name: leatrace-backend
+    container_name: LEAtTrace-backend
     restart: always
     environment:
-      - DATABASE_URL=postgresql://leatrace_user:SecureDbPassword2026!@postgres:5432/leatrace
+      - DATABASE_URL=postgresql://LEAtTrace_user:SecureDbPassword2026!@postgres:5432/LEAtTrace
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=SecureNeoPassword2026!
@@ -85,26 +85,26 @@ services:
       - redis
       - minio
     networks:
-      - leatrace-net
+      - LEAtTrace-net
 
   # Vite Client React App
   frontend:
     build:
       context: ../frontend
       dockerfile: Dockerfile
-    container_name: leatrace-frontend
+    container_name: LEAtTrace-frontend
     restart: always
     ports:
       - "3000:3000"
     depends_on:
       - backend
     networks:
-      - leatrace-net
+      - LEAtTrace-net
 
   # Production Ingress Gateway (Reverse Proxy + SSL/TLS termination + WS Upgrade)
   gateway:
     image: nginx:1.25-alpine
-    container_name: leatrace-gateway
+    container_name: LEAtTrace-gateway
     restart: always
     ports:
       - "80:80"
@@ -116,12 +116,12 @@ services:
       - frontend
       - backend
     networks:
-      - leatrace-net
+      - LEAtTrace-net
 
   # Centralized Log Storage
   elasticsearch:
     image: elasticsearch:8.11.3
-    container_name: leatrace-elasticsearch
+    container_name: LEAtTrace-elasticsearch
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -131,12 +131,12 @@ services:
     volumes:
       - esdata:/usr/share/elasticsearch/data
     networks:
-      - leatrace-net
+      - LEAtTrace-net
 
   # Centralized Ingest Parser
   logstash:
     image: logstash:8.11.3
-    container_name: leatrace-logstash
+    container_name: LEAtTrace-logstash
     volumes:
       - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
       - ../backend/app/logs:/usr/share/logstash/pipeline/logs:ro
@@ -145,18 +145,18 @@ services:
     depends_on:
       - elasticsearch
     networks:
-      - leatrace-net
+      - LEAtTrace-net
 
   # Logging Dashboard Console
   kibana:
     image: kibana:8.11.3
-    container_name: leatrace-kibana
+    container_name: LEAtTrace-kibana
     ports:
       - "5601:5601"
     depends_on:
       - elasticsearch
     networks:
-      - leatrace-net
+      - LEAtTrace-net
 
 volumes:
   pgdata:
@@ -166,5 +166,5 @@ volumes:
   esdata:
 
 networks:
-  leatrace-net:
+  LEAtTrace-net:
     driver: bridge

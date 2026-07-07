@@ -4,10 +4,47 @@ import {
   Search, RefreshCw, Layers, CheckCircle2, AlertTriangle, AlertCircle, HelpCircle, UserCheck
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { API_BASE } from '../utils/api';
+
+const MOCK_INCIDENTS = [
+  {
+    id: "inc-1",
+    severity: "critical",
+    category: "Ransomware Attempt",
+    timestamp: "2026-07-07T10:00:00Z",
+    message: "Suspicious volume movement detected matching ransomware encryption patterns.",
+    mitre_technique: "T1486 (Data Encrypted for Impact)",
+    source: "SIEM Correlation Engine",
+    analyst_assigned: "Lakshay Soni",
+    status: "unassigned"
+  },
+  {
+    id: "inc-2",
+    severity: "high",
+    category: "API Abuse",
+    timestamp: "2026-07-07T10:15:00Z",
+    message: "Rate limit threshold breached for OAuth endpoints from unknown external proxy.",
+    mitre_technique: "T1110 (Brute Force)",
+    source: "WAF logs",
+    analyst_assigned: "Aman Kothari",
+    status: "unassigned"
+  },
+  {
+    id: "inc-3",
+    severity: "medium",
+    category: "Unusual Port Scan",
+    timestamp: "2026-07-07T10:30:00Z",
+    message: "Sequential connection attempts detected across sensitive ports from host 10.0.4.15.",
+    mitre_technique: "T1046 (Network Service Scanning)",
+    source: "IDS sensor",
+    analyst_assigned: "CBI Analyst",
+    status: "assigned"
+  }
+];
 
 export const SocDashboardPage: React.FC = () => {
-  const [incidents, setIncidents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [incidents, setIncidents] = useState<any[]>(MOCK_INCIDENTS);
+  const [loading, setLoading] = useState(false);
   const [refreshes, setRefreshes] = useState(0);
   
   // Timeline Correlation Search
@@ -20,14 +57,15 @@ export const SocDashboardPage: React.FC = () => {
   const [intelResult, setIntelResult] = useState<any>(null);
 
   const fetchIncidents = async () => {
-    setLoading(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/siem/alerts', {
+      const res = await fetch(`${API_BASE}/api/siem/alerts`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
       });
       if (res.ok) {
         const data = await res.json();
-        setIncidents(data);
+        if (Array.isArray(data) && data.length > 0) {
+          setIncidents(data);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -39,7 +77,7 @@ export const SocDashboardPage: React.FC = () => {
   const fetchCorrelation = async (target: string) => {
     setLoadingCorrelation(true);
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/siem/correlation?wallet_address=${target}`, {
+      const res = await fetch(`${API_BASE}/api/siem/correlation?wallet_address=${target}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
       });
       if (res.ok) {
@@ -56,7 +94,7 @@ export const SocDashboardPage: React.FC = () => {
   const checkThreatIntel = async () => {
     if (!checkIndicator.trim()) return;
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/siem/threat-intel/ioc-check?indicator=${checkIndicator}`, {
+      const res = await fetch(`${API_BASE}/api/siem/threat-intel/ioc-check?indicator=${checkIndicator}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
       });
       if (res.ok) {
@@ -70,7 +108,7 @@ export const SocDashboardPage: React.FC = () => {
 
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/siem/alerts/${id}/status`, {
+      const res = await fetch(`${API_BASE}/api/siem/alerts/${id}/status`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -88,7 +126,7 @@ export const SocDashboardPage: React.FC = () => {
 
   const handleAssignAnalyst = async (id: string, analyst: string) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/siem/alerts/${id}/assign`, {
+      const res = await fetch(`${API_BASE}/api/siem/alerts/${id}/assign`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -299,22 +337,22 @@ export const SocDashboardPage: React.FC = () => {
         
         {/* Kill Chain Correlation Timeline */}
         <div className="lg:col-span-2 glass-card p-5 border-dark-700/50 space-y-4">
-          <div className="flex items-center justify-between border-b border-dark-800 pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-dark-800 pb-3 gap-3">
             <div className="flex items-center gap-2">
               <Terminal size={15} className="text-accent-blue" />
               <h3 className="text-sm font-bold text-white">Correlated Incident Timeline Explorer</h3>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full sm:w-auto">
               <input 
                 type="text"
                 placeholder="Target address..."
                 value={searchTarget}
                 onChange={(e) => setSearchTarget(e.target.value)}
-                className="bg-dark-950 border border-dark-750 rounded px-2 py-1 text-[10px] text-white focus:outline-none w-48 font-mono"
+                className="bg-dark-950 border border-dark-750 rounded px-2 py-1 text-[10px] text-white focus:outline-none flex-1 sm:w-48 font-mono"
               />
               <button 
                 onClick={() => fetchCorrelation(searchTarget)}
-                className="px-2.5 py-1 bg-primary-600 hover:bg-primary-500 rounded text-[10px] text-white font-bold cursor-pointer"
+                className="px-3 py-1 bg-primary-600 hover:bg-primary-500 rounded text-[10px] text-white font-bold cursor-pointer"
               >
                 Scan
               </button>

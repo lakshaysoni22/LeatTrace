@@ -99,3 +99,101 @@ def get_transaction_graph(chain: str, address: str, depth: int = 3, db: Session 
         "nodes": nodes,
         "edges": edges
     }
+
+
+# ===================================================================
+# Graph Intelligence Endpoints
+# ===================================================================
+
+from ..neo4j_service import neo4j_graph
+
+
+@router.get("/centrality/degree")
+def get_degree_centrality(
+    limit: int = 20,
+    current_user: models.User = Depends(security.get_current_user),
+):
+    """Returns nodes with highest degree centrality (most connections)."""
+    return {"centrality_type": "degree", "results": neo4j_graph.get_degree_centrality(limit)}
+
+
+@router.get("/centrality/{address}")
+def get_address_centrality(
+    address: str,
+    current_user: models.User = Depends(security.get_current_user),
+):
+    """Returns centrality metrics for a specific address."""
+    betweenness = neo4j_graph.get_betweenness_centrality(address)
+    influence = neo4j_graph.get_influence_score(address)
+    return {
+        "address": address,
+        "betweenness": betweenness,
+        "influence": influence,
+    }
+
+
+@router.get("/influence/{address}")
+def get_influence_score(
+    address: str,
+    current_user: models.User = Depends(security.get_current_user),
+):
+    """Computes influence score based on connections and risk levels."""
+    return neo4j_graph.get_influence_score(address)
+
+
+@router.get("/paths/{start}/{end}")
+def find_paths(
+    start: str,
+    end: str,
+    max_depth: int = 6,
+    current_user: models.User = Depends(security.get_current_user),
+):
+    """Finds all paths between two addresses up to max_depth."""
+    shortest = neo4j_graph.find_shortest_path(start, end)
+    all_paths = neo4j_graph.find_all_paths(start, end, max_depth)
+    return {
+        "start": start,
+        "end": end,
+        "shortest_path": shortest,
+        "all_paths": all_paths,
+    }
+
+
+@router.get("/communities")
+def get_communities(
+    current_user: models.User = Depends(security.get_current_user),
+):
+    """Identifies wallet communities using graph clustering."""
+    return {"communities": neo4j_graph.get_community_detection()}
+
+
+@router.get("/risk-propagation/{address}")
+def get_risk_propagation(
+    address: str,
+    max_hops: int = 3,
+    current_user: models.User = Depends(security.get_current_user),
+):
+    """Propagates risk from a node to its neighborhood."""
+    return {
+        "source_address": address,
+        "max_hops": max_hops,
+        "propagated_risks": neo4j_graph.propagate_risk(address, max_hops),
+    }
+
+
+@router.get("/investigation/{address}")
+def investigate_neighborhood(
+    address: str,
+    depth: int = 2,
+    current_user: models.User = Depends(security.get_current_user),
+):
+    """Returns the N-hop neighborhood for investigation."""
+    return neo4j_graph.investigate_neighborhood(address, depth)
+
+
+@router.get("/statistics")
+def get_graph_statistics(
+    current_user: models.User = Depends(security.get_current_user),
+):
+    """Returns global graph database statistics."""
+    return neo4j_graph.get_graph_statistics()

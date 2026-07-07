@@ -32,7 +32,7 @@ async def login(
         prev_hash = last_log.hash if last_log else "0"
         log_id = f"log_{uuid.uuid4().hex[:7]}"
         
-        timestamp = datetime.datetime.utcnow()
+        timestamp = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
         timestamp_str = timestamp.isoformat()
         raw_str = f"{prev_hash}_{log_id}_Failed login attempt for account {form_data.username}_{timestamp_str}_failure"
         computed_hash = hashlib.sha256(raw_str.encode('utf-8')).hexdigest()
@@ -100,12 +100,12 @@ async def login(
         ip_address=ip_address,
         user_agent=user_agent,
         is_active=True,
-        expires_at=datetime.datetime.utcnow() + datetime.timedelta(days=7)
+        expires_at=datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + datetime.timedelta(days=7)
     )
     db.add(new_session)
     
     # Update last login time
-    user.last_login = datetime.datetime.utcnow()
+    user.last_login = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     
     # Audit log
     audit_entry = models.AuditLog(
@@ -199,12 +199,12 @@ def verify_mfa(
         ip_address=ip_address,
         user_agent=user_agent,
         is_active=True,
-        expires_at=datetime.datetime.utcnow() + datetime.timedelta(days=7)
+        expires_at=datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + datetime.timedelta(days=7)
     )
     db.add(new_session)
 
     # Update last login
-    user.last_login = datetime.datetime.utcnow()
+    user.last_login = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
 
     # Log action
     audit_entry = models.AuditLog(
@@ -248,7 +248,7 @@ def refresh_token(
     session = db.query(models.UserSession).filter(
         models.UserSession.refresh_token == refresh_req.refresh_token,
         models.UserSession.is_active == True,
-        models.UserSession.expires_at > datetime.datetime.utcnow()
+        models.UserSession.expires_at > datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     ).first()
 
     if not session:
@@ -273,7 +273,7 @@ def refresh_token(
         ip_address=session.ip_address,
         user_agent=session.user_agent,
         is_active=True,
-        expires_at=datetime.datetime.utcnow() + datetime.timedelta(days=7)
+        expires_at=datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + datetime.timedelta(days=7)
     )
     db.add(new_session)
     db.commit()
@@ -382,7 +382,7 @@ def oauth_login(
         ip_address=ip_address,
         user_agent=user_agent,
         is_active=True,
-        expires_at=datetime.datetime.utcnow() + datetime.timedelta(days=7)
+        expires_at=datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + datetime.timedelta(days=7)
     )
     db.add(new_session)
 

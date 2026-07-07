@@ -1,83 +1,161 @@
+"""
+LEATrace Database Configuration — Production.
+
+Supports PostgreSQL (production default) and SQLite (development fallback).
+Integrates with MongoDB for document storage and Redis for caching.
+
+PRODUCTION INVARIANTS:
+- No MockMongoDB or MockRedis classes. If a service is unavailable, return None.
+- PostgreSQL is the recommended production database.
+- Connection pool configured for concurrent access.
+"""
+
 import os
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+import logging
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from sqlalchemy.pool import QueuePool
 
-# Configurable database urls, fallback to local sqlite database file
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./leatrace.db")
+logger = logging.getLogger("leatrace.database")
 
-# Use special connect args for SQLite (enforcing thread safety exceptions)
-connect_args = {}
-if DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+# ===================================================================
+# Primary SQL Database (PostgreSQL recommended, SQLite for dev)
+# ===================================================================
 
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./LEATrace.db")
+
+# Detect database type for engine configuration
+_is_sqlite = DATABASE_URL.startswith("sqlite")
+
+if _is_sqlite:
+    logger.warning(
+        "Using SQLite database. This is suitable for development only. "
+        "Set DATABASE_URL to a PostgreSQL connection string for production."
+    )
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        echo=False,
+    )
+else:
+    # PostgreSQL with production connection pool settings
+    engine = create_engine(
+        DATABASE_URL,
+        pool_size=int(os.getenv("DB_POOL_SIZE", "10")),
+        max_overflow=int(os.getenv("DB_MAX_OVERFLOW", "20")),
+        pool_timeout=int(os.getenv("DB_POOL_TIMEOUT", "30")),
+        pool_recycle=int(os.getenv("DB_POOL_RECYCLE", "1800")),
+        pool_pre_ping=True,
+        poolclass=QueuePool,
+        echo=False,
+    )
+    logger.info(f"PostgreSQL engine initialized. Pool size: {engine.pool.size()}")
+
+
+class Base(DeclarativeBase):
+    """SQLAlchemy declarative base using modern API (replaces deprecated declarative_base())."""
+    pass
+
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-Base = declarative_base()
 
-# Dependency to get db session in FastAPI routes
 def get_db():
+    """FastAPI dependency for database sessions with automatic cleanup."""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
-# --- MongoDB Configuration (NoSQL) ---
-mongo_db = None
-mongo_client = None
+
+def check_db_health() -> dict:
+    """Returns database health status."""
+    try:
+        with engine.connect() as conn:
+            conn.execute(engine.dialect.statement_compiler(engine.dialect, None).__class__("SELECT 1", None))
+        return {"status": "healthy", "backend": "sqlite" if _is_sqlite else "postgresql"}
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)[:200]}
+
+
+# ===================================================================
+# MongoDB Configuration (Document store for AI logs, evidence docs)
+# ===================================================================
+
+_mongo_db = None
+_mongo_client = None
 
 try:
     import pymongo
-    mongo_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
-    mongo_client = pymongo.MongoClient(mongo_url, serverSelectionTimeoutMS=2000)
-    mongo_db = mongo_client[os.getenv("MONGO_DB_NAME", "leatrace_nosql")]
-except Exception:
-    pass
+    _mongo_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+    _mongo_client = pymongo.MongoClient(_mongo_url, serverSelectionTimeoutMS=3000)
+    _mongo_db_name = os.getenv("MONGO_DB_NAME", "LEATrace_nosql")
+    _mongo_db = _mongo_client[_mongo_db_name]
+    # Verify connection
+    _mongo_client.server_info()
+    logger.info(f"MongoDB connected: {_mongo_db_name}")
+except ImportError:
+    logger.info("pymongo not installed. MongoDB features unavailable.")
+except Exception as e:
+    _mongo_db = None
+    logger.info(f"MongoDB unavailable: {e}. Document features disabled.")
 
-class MockMongoCollection:
-    def insert_one(self, document):
-        return type('Obj', (object,), {'inserted_id': 'mock-id'})()
-    def find_one(self, filter):
-        return None
-
-class MockMongoDB:
-    def __getitem__(self, name):
-        return MockMongoCollection()
 
 def get_mongo_db():
-    if mongo_db is not None:
+    """
+    Returns the MongoDB database instance, or None if unavailable.
+    Callers must handle None — no mock objects.
+    """
+    if _mongo_db is not None:
         try:
-            mongo_client.server_info()
-            return mongo_db
+            _mongo_client.server_info()
+            return _mongo_db
         except Exception:
             pass
-    return MockMongoDB()
+    return None
 
-# --- Redis Configuration (Caching) ---
+
+# ===================================================================
+# Redis Configuration (Caching, rate limiting, sessions)
+# ===================================================================
+
 redis_client = None
 
 try:
-    import redis
-    redis_host = os.getenv("REDIS_HOST", "localhost")
-    redis_port = int(os.getenv("REDIS_PORT", 6379))
-    redis_client = redis.Redis(host=redis_host, port=redis_port, db=0, socket_timeout=0.5, socket_connect_timeout=0.5)
-except Exception:
-    pass
+    import redis as _redis_module
+    _redis_host = os.getenv("REDIS_HOST", "localhost")
+    _redis_port = int(os.getenv("REDIS_PORT", "6379"))
+    _redis_password = os.getenv("REDIS_PASSWORD", "")
 
-class MockRedis:
-    def __init__(self):
-        self.store = {}
-    def set(self, key, value, ex=None):
-        self.store[key] = value
-        return True
-    def get(self, key):
-        return self.store.get(key)
-    def expire(self, key, time):
-        return True
+    redis_client = _redis_module.Redis(
+        host=_redis_host,
+        port=_redis_port,
+        password=_redis_password if _redis_password else None,
+        db=0,
+        socket_timeout=1.0,
+        socket_connect_timeout=1.0,
+        decode_responses=True,
+    )
+    # Verify connection
+    redis_client.ping()
+    logger.info(f"Redis connected: {_redis_host}:{_redis_port}")
+except ImportError:
+    logger.info("redis package not installed. Caching features unavailable.")
+except Exception as e:
+    redis_client = None
+    logger.info(f"Redis unavailable: {e}. Caching disabled.")
+
 
 def get_redis_client():
+    """
+    Returns the Redis client, or None if unavailable.
+    Callers must handle None — no mock objects.
+    """
     if redis_client is not None:
-        return redis_client
-    return MockRedis()
+        try:
+            redis_client.ping()
+            return redis_client
+        except Exception:
+            pass
+    return None

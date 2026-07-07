@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import cytoscape from 'cytoscape';
-import { mockGraphNodes, mockGraphEdges } from '../data/mockData';
-import { 
-  ZoomIn, ZoomOut, Maximize, RotateCcw, Download, Search, Filter, Info, 
+import {
+  ZoomIn, ZoomOut, Maximize, RotateCcw, Download, Search, Filter, Info,
   AlertTriangle, Eye, Activity, Play, Pause, FastForward, Building, Link, Shield, Cpu, X, PlusCircle, Bookmark
 } from 'lucide-react';
 import { getRiskColor } from '../utils/helpers';
+import { apiGet, API_BASE } from '../utils/api';
 
 const nodeColors: Record<string, { bg: string; border: string }> = {
   wallet: { bg: '#00d4ff', border: '#4de3ff' },
@@ -18,14 +18,14 @@ const nodeColors: Record<string, { bg: string; border: string }> = {
 export const GraphPage: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
-  
+
   // Selected Node/Edge Inspector
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [selectedEdge, setSelectedEdge] = useState<any>(null);
-  
+
   // Layout Controls
   const [activeLayout, setActiveLayout] = useState<'cose' | 'circle' | 'concentric' | 'breadthfirst'>('cose');
-  
+
   // Toggleable Layers
   const [layers, setLayers] = useState({
     wallets: true,
@@ -44,7 +44,7 @@ export const GraphPage: React.FC = () => {
     { id: 'an-1', text: 'Mixer contract has direct links to Ronin multi-sig exploit node.', author: 'Inspector Sharma' }
   ]);
   const [newAnnotation, setNewAnnotation] = useState('');
-  
+
   // Active right-side tab
   const [activeRightTab, setActiveRightTab] = useState<'inspector' | 'crosschain' | 'notes'>('inspector');
 
@@ -53,36 +53,24 @@ export const GraphPage: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [graphElements, setGraphElements] = useState<any[]>([]);
 
-  // Initialize with mock elements
+  // Graph starts empty — populated by user search
   useEffect(() => {
-    const initialElements = [
-      ...mockGraphNodes.map(n => ({ data: { ...n }, classes: n.type })),
-      ...mockGraphEdges.map(e => ({ data: { ...e } }))
-    ];
-    setGraphElements(initialElements);
+    setGraphElements([]);
   }, []);
 
   // Search backend for address network
   const handleSearchGraph = async () => {
     if (!searchAddress.trim()) return;
     setIsSearching(true);
-    
+
     try {
-      const searchRes = await fetch(`http://127.0.0.1:8000/api/wallets/search?address=${searchAddress}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
-      });
-      if (!searchRes.ok) throw new Error('Search failed');
-      const profile = await searchRes.json();
+      const profile = await apiGet<any>(`/api/wallets/search?address=${searchAddress}`);
 
-      const clusterRes = await fetch(`http://127.0.0.1:8000/api/wallets/cluster/${searchAddress}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
-      });
-      const cluster = clusterRes.ok ? await clusterRes.json() : { addresses: [], risk_score: profile.riskScore };
+      let cluster: any = { addresses: [], risk_score: profile.riskScore };
+      try { cluster = await apiGet<any>(`/api/wallets/cluster/${searchAddress}`); } catch { /* unavailable */ }
 
-      const traceRes = await fetch(`http://127.0.0.1:8000/api/wallets/cross-chain-trace/${searchAddress}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
-      });
-      const trace = traceRes.ok ? await traceRes.json() : { hops: [] };
+      let trace: any = { hops: [] };
+      try { trace = await apiGet<any>(`/api/wallets/cross-chain-trace/${searchAddress}`); } catch { /* unavailable */ }
 
       const newNodes: any[] = [];
       const newEdges: any[] = [];
@@ -153,7 +141,7 @@ export const GraphPage: React.FC = () => {
     } catch (err) {
       console.warn('Backend graph search failed, using simulated graph search:', err);
       const simulatedNodes = [
-        { data: { id: searchAddress, label: `${searchAddress.substring(0,8)}...`, type: 'wallet', risk: 85, balance: '120 ETH' }, classes: 'wallet' },
+        { data: { id: searchAddress, label: `${searchAddress.substring(0, 8)}...`, type: 'wallet', risk: 85, balance: '120 ETH' }, classes: 'wallet' },
         { data: { id: 'sim-cluster-1', label: 'Co-spent Cluster Node 1', type: 'wallet', risk: 85, balance: '' }, classes: 'wallet' },
         { data: { id: 'sim-cluster-2', label: 'Co-spent Cluster Node 2', type: 'wallet', risk: 85, balance: '' }, classes: 'wallet' },
         { data: { id: 'sim-bridge', label: 'Tornado Router', type: 'bridge', risk: 90, balance: 'Cross-chain' }, classes: 'bridge' }
@@ -273,9 +261,9 @@ export const GraphPage: React.FC = () => {
       const node = evt.target;
       const addr = node.id();
       if (!addr || addr.startsWith('hop-') || addr.startsWith('sim-')) return;
-      
+
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/wallets/cluster/${addr}`, {
+        const res = await fetch(`${API_BASE}/api/wallets/cluster/${addr}`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
         });
         if (res.ok) {
@@ -283,7 +271,7 @@ export const GraphPage: React.FC = () => {
           if (data.associated_wallets) {
             const addedNodes: any[] = [];
             const addedEdges: any[] = [];
-            
+
             data.associated_wallets.slice(0, 4).forEach((assoc: string) => {
               if (assoc !== addr && !cy.getElementById(assoc).length) {
                 addedNodes.push({
@@ -308,7 +296,7 @@ export const GraphPage: React.FC = () => {
                 });
               }
             });
-            
+
             cy.add([...addedNodes, ...addedEdges]);
             cy.layout({ name: activeLayout, animate: true }).run();
           }
@@ -352,7 +340,7 @@ export const GraphPage: React.FC = () => {
     const pngUri = cyRef.current.png({ output: 'base64uri' });
     const a = document.createElement('a');
     a.href = pngUri;
-    a.download = `leatrace-graph-${searchAddress || 'network'}.png`;
+    a.download = `LEAtTrace-graph-${searchAddress || 'network'}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -365,7 +353,7 @@ export const GraphPage: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `leatrace-graph-${searchAddress || 'network'}.json`;
+    a.download = `LEAtTrace-graph-${searchAddress || 'network'}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -405,7 +393,7 @@ export const GraphPage: React.FC = () => {
     setAnnotations((prev) => [
       ...prev,
       {
-        id: `an-${Math.random().toString(36).substr(2, 5)}`,
+        id: `an-${crypto.randomUUID().substring(0, 8)}`,
         text: newAnnotation,
         author: 'Inspector Sharma'
       }
@@ -465,24 +453,24 @@ export const GraphPage: React.FC = () => {
           <span className="text-[10px] font-bold text-dark-400 uppercase tracking-wider block">Graph View Layers</span>
           <div className="space-y-1.5 font-semibold text-dark-300">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input 
-                type="checkbox" checked={layers.wallets} 
+              <input
+                type="checkbox" checked={layers.wallets}
                 onChange={() => setLayers(prev => ({ ...prev, wallets: !prev.wallets }))}
                 className="w-3.5 h-3.5 rounded border-dark-700 bg-dark-950 text-primary-500 focus:ring-primary-500/20"
               />
               <span>Wallet Relationships</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input 
-                type="checkbox" checked={layers.transactions} 
+              <input
+                type="checkbox" checked={layers.transactions}
                 onChange={() => setLayers(prev => ({ ...prev, transactions: !prev.transactions }))}
                 className="w-3.5 h-3.5 rounded border-dark-700 bg-dark-950 text-primary-500 focus:ring-primary-500/20"
               />
               <span>Transaction Flow</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input 
-                type="checkbox" checked={layers.entities} 
+              <input
+                type="checkbox" checked={layers.entities}
                 onChange={() => setLayers(prev => ({ ...prev, entities: !prev.entities }))}
                 className="w-3.5 h-3.5 rounded border-dark-700 bg-dark-950 text-primary-500 focus:ring-primary-500/20"
               />
@@ -497,7 +485,7 @@ export const GraphPage: React.FC = () => {
         {/* Interactive Playback Timeline Control Bar */}
         <div className="h-16 bg-dark-900 border-t border-dark-800/80 px-5 flex items-center justify-between text-xs gap-4 z-40 select-none">
           <div className="flex items-center gap-2.5">
-            <button 
+            <button
               onClick={() => setIsPlaying(!isPlaying)}
               className="p-2 rounded bg-primary-500 text-black hover:bg-primary-400 transition-colors flex items-center justify-center cursor-pointer shadow-glow-cyan"
             >
@@ -509,8 +497,8 @@ export const GraphPage: React.FC = () => {
           {/* Slider */}
           <div className="flex-1 flex items-center gap-3">
             <span className="mono text-dark-500 font-semibold text-[10px]">2026-05-01</span>
-            <input 
-              type="range" min="0" max="100" 
+            <input
+              type="range" min="0" max="100"
               value={timelineVal}
               onChange={(e) => setTimelineVal(Number(e.target.value))}
               className="flex-1 accent-primary-500 h-1 bg-dark-800 rounded-lg appearance-none cursor-pointer"
@@ -520,7 +508,7 @@ export const GraphPage: React.FC = () => {
 
           {/* Speed selector */}
           <div className="flex items-center gap-1.5 border-l border-dark-800 pl-4">
-            <button 
+            <button
               onClick={() => setPlaybackSpeed(s => s === 4 ? 1 : s * 2)}
               className="px-2 py-1 rounded bg-dark-800 hover:bg-dark-750 text-[10px] font-mono text-white flex items-center gap-1 font-bold"
             >
@@ -536,25 +524,22 @@ export const GraphPage: React.FC = () => {
         <div className="flex border-b border-dark-700/50 bg-dark-800/20">
           <button
             onClick={() => setActiveRightTab('inspector')}
-            className={`flex-1 py-3 text-center text-xs font-semibold border-b-2 cursor-pointer transition-all ${
-              activeRightTab === 'inspector' ? 'border-primary-500 text-white' : 'border-transparent text-dark-400'
-            }`}
+            className={`flex-1 py-3 text-center text-xs font-semibold border-b-2 cursor-pointer transition-all ${activeRightTab === 'inspector' ? 'border-primary-500 text-white' : 'border-transparent text-dark-400'
+              }`}
           >
             Inspector
           </button>
           <button
             onClick={() => setActiveRightTab('crosschain')}
-            className={`flex-1 py-3 text-center text-xs font-semibold border-b-2 cursor-pointer transition-all ${
-              activeRightTab === 'crosschain' ? 'border-primary-500 text-white' : 'border-transparent text-dark-400'
-            }`}
+            className={`flex-1 py-3 text-center text-xs font-semibold border-b-2 cursor-pointer transition-all ${activeRightTab === 'crosschain' ? 'border-primary-500 text-white' : 'border-transparent text-dark-400'
+              }`}
           >
             Cross-Chain
           </button>
           <button
             onClick={() => setActiveRightTab('notes')}
-            className={`flex-1 py-3 text-center text-xs font-semibold border-b-2 cursor-pointer transition-all ${
-              activeRightTab === 'notes' ? 'border-primary-500 text-white' : 'border-transparent text-dark-400'
-            }`}
+            className={`flex-1 py-3 text-center text-xs font-semibold border-b-2 cursor-pointer transition-all ${activeRightTab === 'notes' ? 'border-primary-500 text-white' : 'border-transparent text-dark-400'
+              }`}
           >
             Notes ({annotations.length})
           </button>
@@ -687,7 +672,7 @@ export const GraphPage: React.FC = () => {
 
               {/* Add Annotation form */}
               <form onSubmit={handleAddAnnotation} className="flex gap-2">
-                <input 
+                <input
                   type="text"
                   placeholder="Add note on graph region..."
                   value={newAnnotation}
@@ -714,13 +699,13 @@ export const GraphPage: React.FC = () => {
 
         {/* Footer Actions */}
         <div className="p-4 border-t border-dark-750/70 flex gap-2">
-          <button 
+          <button
             onClick={exportPNG}
             className="flex-1 btn-ghost py-2 flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer"
           >
             <Download size={14} /> Export PNG
           </button>
-          <button 
+          <button
             onClick={exportJSON}
             className="flex-1 btn-primary py-2 flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer"
           >

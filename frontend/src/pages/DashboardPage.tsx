@@ -1,156 +1,168 @@
 import React from 'react';
 import {
   FolderOpen, Eye, Shield, Bell, FileText, Users, TrendingUp, Activity,
-  ArrowUpRight, ArrowDownRight, AlertTriangle, Clock
+  ArrowUpRight, AlertTriangle, Clock, RefreshCw
 } from 'lucide-react';
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { mockDashboardStats, mockTimeline } from '../data/mockData';
+import {
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, PieChart, Pie, Cell
+} from 'recharts';
 import { useNavStore, useAlertStore, useCaseStore, useWatchlistStore } from '../stores';
-import { timeAgo, getStatusColor, getPriorityColor } from '../utils/helpers';
+import { timeAgo, getPriorityColor } from '../utils/helpers';
+import { apiGet } from '../utils/api';
 
-const activityData = [
-  { day: 'Mon', traces: 12, alerts: 3, evidence: 5 },
-  { day: 'Tue', traces: 18, alerts: 7, evidence: 8 },
-  { day: 'Wed', traces: 15, alerts: 2, evidence: 12 },
-  { day: 'Thu', traces: 25, alerts: 9, evidence: 6 },
-  { day: 'Fri', traces: 22, alerts: 5, evidence: 15 },
-  { day: 'Sat', traces: 8, alerts: 1, evidence: 3 },
-  { day: 'Sun', traces: 30, alerts: 11, evidence: 9 },
-];
+// ─── Types ───────────────────────────────────────────────────────────────────
 
-const caseStatusData = [
-  { name: 'Active', value: 4, color: '#00ff88' },
-  { name: 'Open', value: 2, color: '#00d4ff' },
-  { name: 'Suspended', value: 1, color: '#ffd700' },
-  { name: 'Closed', value: 1, color: '#a855f7' },
-];
+interface SocDashboard {
+  active_cases: number;
+  open_cases: number;
+  total_wallets: number;
+  total_evidence: number;
+  high_risk_wallets: number;
+  open_alerts: number;
+  closed_cases: number;
+  team_members: number;
+  cases_this_month: number;
+}
 
-const chainDistribution = [
-  { chain: 'ETH', txns: 847, volume: 12450 },
-  { chain: 'USDT', txns: 234, volume: 5670 },
-  { chain: 'USDC', txns: 156, volume: 3420 },
-  { chain: 'DAI', txns: 89, volume: 1230 },
-];
+interface AuditEntry {
+  id: string;
+  action: string;
+  username: string;
+  status: string;
+  created_at?: string;
+  timestamp?: string;
+  case_ref?: string;
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  Active:    '#00ff88',
+  Open:      '#00d4ff',
+  Suspended: '#ffd700',
+  Closed:    '#a855f7',
+};
 
 const tlIcon: Record<string, React.ReactNode> = {
-  alert: <Bell size={14} />,
-  trace: <Activity size={14} />,
+  alert:    <Bell size={14} />,
+  trace:    <Activity size={14} />,
   evidence: <Shield size={14} />,
-  case: <FolderOpen size={14} />,
-  report: <FileText size={14} />,
+  case:     <FolderOpen size={14} />,
+  report:   <FileText size={14} />,
 };
 
 const tlColor: Record<string, string> = {
-  alert: 'text-accent-red bg-accent-red/15',
-  trace: 'text-primary-400 bg-primary-500/15',
+  alert:    'text-accent-red bg-accent-red/15',
+  trace:    'text-primary-400 bg-primary-500/15',
   evidence: 'text-accent-green bg-accent-green/15',
-  case: 'text-accent-gold bg-accent-gold/15',
-  report: 'text-accent-purple bg-accent-purple/15',
+  case:     'text-accent-gold bg-accent-gold/15',
+  report:   'text-accent-purple bg-accent-purple/15',
 };
 
+// ─── Component ───────────────────────────────────────────────────────────────
+
 export const DashboardPage: React.FC = () => {
-  const { setPage } = useNavStore();
-  const { alerts } = useAlertStore();
-  const { cases } = useCaseStore();
-  const { entries } = useWatchlistStore();
-  const stats = mockDashboardStats;
+  const { setPage }   = useNavStore();
+  const { alerts }    = useAlertStore();
+  const { cases, loadCases } = useCaseStore();
+  const { entries }   = useWatchlistStore();
 
-  const activeCasesCount = cases.filter(c => c.status.toLowerCase() !== 'closed').length;
-  const watchedCount = entries.length;
-  const unreadAlertsCount = alerts.filter(a => !a.isRead).length;
+  const [dashboard, setDashboard]   = React.useState<SocDashboard | null>(null);
+  const [timeline,  setTimeline]    = React.useState<AuditEntry[]>([]);
+  const [activityData, setActivityData] = React.useState<Array<Record<string, unknown>>>([]);
+  const [loading, setLoading]       = React.useState(false);
+  const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date());
 
-  const [liveOffsets, setLiveOffsets] = React.useState({
-    activeCases: 0,
-    watchedWallets: 0,
-    evidenceItems: 0,
-    activeAlerts: 0,
-    casesThisMonth: 0,
-  });
+  // ── Fetch dashboard stats from real API ─────────────────────────────────
+  const fetchDashboard = React.useCallback(async () => {
+    try {
+      const data = await apiGet<SocDashboard>('/api/soc/dashboard');
+      setDashboard(data);
+    } catch {
+      // If SOC endpoint unavailable, compute from local store state
+      setDashboard(null);
+    }
+  }, []);
 
-  const [liveActivityData, setLiveActivityData] = React.useState(activityData);
-  const [liveCaseStatusData, setLiveCaseStatusData] = React.useState(caseStatusData);
+  // ── Fetch audit timeline ─────────────────────────────────────────────────
+  const fetchTimeline = React.useCallback(async () => {
+    try {
+      const data = await apiGet<AuditEntry[]>('/api/audit/logs');
+      setTimeline(Array.isArray(data) ? data.slice(0, 5) : []);
+    } catch {
+      setTimeline([]);
+    }
+  }, []);
 
+  // ── Fetch weekly activity (audit log aggregation by day) ─────────────────
+  const fetchActivity = React.useCallback(async () => {
+    try {
+      const data = await apiGet<Array<Record<string, unknown>>>('/api/soc/activity');
+      if (Array.isArray(data) && data.length > 0) setActivityData(data);
+    } catch {
+      // Activity chart stays empty — no fabricated fallback
+      setActivityData([]);
+    }
+  }, []);
+
+  // ── Initial load ─────────────────────────────────────────────────────────
+  React.useEffect(() => {
+    void fetchDashboard();
+    void fetchTimeline();
+    void fetchActivity();
+    void loadCases();
+  }, [fetchDashboard, fetchTimeline, fetchActivity, loadCases]);
+
+  // ── Auto-refresh every 30 seconds (real polling, no random jitter) ────────
   React.useEffect(() => {
     const interval = setInterval(() => {
-      // 1. Update stats offsets
-      setLiveOffsets((prev) => {
-        const rand = Math.random();
-        if (rand < 0.25) {
-          // Increment Evidence Items
-          return { ...prev, evidenceItems: prev.evidenceItems + (Math.random() > 0.4 ? 1 : 2) };
-        } else if (rand < 0.5) {
-          // Increment or decrement Active Alerts
-          const change = Math.random() > 0.5 ? 1 : -1;
-          const currentTotal = unreadAlertsCount + prev.activeAlerts + change;
-          if (currentTotal >= 0 && currentTotal <= 30) {
-            return { ...prev, activeAlerts: prev.activeAlerts + change };
-          }
-        } else if (rand < 0.7) {
-          // Increment Watched Wallets
-          const change = Math.random() > 0.7 ? (Math.random() > 0.5 ? 1 : -1) : 0;
-          return { ...prev, watchedWallets: prev.watchedWallets + change };
-        } else if (rand < 0.8) {
-          // Increment Cases This Month
-          const change = Math.random() > 0.8 ? 1 : 0;
-          return { ...prev, casesThisMonth: prev.casesThisMonth + change };
-        }
-        return prev;
-      });
-
-      // 2. Update chart data: slightly shift/jitter the Sunday & Saturday data to simulate live activity
-      setLiveActivityData((prevData) => {
-        return prevData.map((item, index) => {
-          if (index >= 4) { // Only update Thursday to Sunday values
-            const jitterTraces = Math.random() > 0.5 ? (Math.random() > 0.5 ? 1 : -1) : 0;
-            const jitterAlerts = Math.random() > 0.5 ? (Math.random() > 0.5 ? 1 : -1) : 0;
-            const jitterEvidence = Math.random() > 0.5 ? (Math.random() > 0.5 ? 1 : -1) : 0;
-            return {
-              ...item,
-              traces: Math.max(5, item.traces + jitterTraces),
-              alerts: Math.max(1, item.alerts + jitterAlerts),
-              evidence: Math.max(2, item.evidence + jitterEvidence),
-            };
-          }
-          return item;
-        });
-      });
-
-      // 3. Update case status distribution occasionally
-      setLiveCaseStatusData((prevData) => {
-        if (Math.random() > 0.75) {
-          const newData = [...prevData];
-          const action = Math.random();
-          if (action < 0.5) {
-            // Open -> Active
-            if (newData[1].value > 1) {
-              newData[1] = { ...newData[1], value: newData[1].value - 1 };
-              newData[0] = { ...newData[0], value: newData[0].value + 1 };
-            }
-          } else {
-            // Active -> Closed
-            if (newData[0].value > 2) {
-              newData[0] = { ...newData[0], value: newData[0].value - 1 };
-              newData[3] = { ...newData[3], value: newData[3].value + 1 };
-            }
-          }
-          return newData;
-        }
-        return prevData;
-      });
-
-    }, 4000);
-
+      void fetchDashboard();
+      void fetchTimeline();
+      setLastRefresh(new Date());
+    }, 30_000);
     return () => clearInterval(interval);
-  }, [unreadAlertsCount]);
+  }, [fetchDashboard, fetchTimeline]);
+
+  // ── Compute stats — prefer API data, fall back to store state ────────────
+  const activeCases      = dashboard?.active_cases    ?? cases.filter(c => c.status.toLowerCase() === 'active').length;
+  const watchedWallets   = dashboard?.total_wallets   ?? entries.length;
+  const evidenceItems    = dashboard?.total_evidence  ?? cases.reduce((s, c) => s + c.evidenceCount, 0);
+  const activeAlerts     = dashboard?.open_alerts     ?? alerts.filter(a => !a.isRead).length;
+  const casesThisMonth   = dashboard?.cases_this_month ?? 0;
+  const teamMembers      = dashboard?.team_members    ?? Math.max(1, new Set(cases.map(c => c.investigatorName)).size);
+
+  // ── Case status distribution from real case store ────────────────────────
+  const caseStatusData = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    cases.forEach(c => {
+      const key = c.status.charAt(0).toUpperCase() + c.status.slice(1);
+      counts[key] = (counts[key] ?? 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({
+      name,
+      value,
+      color: STATUS_COLORS[name] ?? '#78819a',
+    }));
+  }, [cases]);
 
   const statCards = [
-    { label: 'Active Cases', value: Math.max(0, activeCasesCount + liveOffsets.activeCases), icon: FolderOpen, color: 'from-primary-500/20 to-primary-500/5', iconColor: 'text-primary-400', change: liveOffsets.activeCases >= 0 ? `+${2 + liveOffsets.activeCases}` : `${2 + liveOffsets.activeCases}`, trend: 'up' },
-    { label: 'Watched Wallets', value: Math.max(0, watchedCount + liveOffsets.watchedWallets), icon: Eye, color: 'from-accent-green/20 to-accent-green/5', iconColor: 'text-accent-green', change: liveOffsets.watchedWallets >= 0 ? `+${1 + liveOffsets.watchedWallets}` : `${1 + liveOffsets.watchedWallets}`, trend: 'up' },
-    { label: 'Evidence Items', value: stats.totalEvidence + liveOffsets.evidenceItems, icon: Shield, color: 'from-accent-purple/20 to-accent-purple/5', iconColor: 'text-accent-purple', change: `+${12 + liveOffsets.evidenceItems}`, trend: 'up' },
-    { label: 'Active Alerts', value: Math.max(0, unreadAlertsCount + liveOffsets.activeAlerts), icon: Bell, color: 'from-accent-red/20 to-accent-red/5', iconColor: 'text-accent-red', change: liveOffsets.activeAlerts >= 0 ? `+${3 + liveOffsets.activeAlerts}` : `${3 + liveOffsets.activeAlerts}`, trend: 'up' },
-    { label: 'Cases This Month', value: Math.max(0, stats.casesThisMonth + liveOffsets.casesThisMonth), icon: TrendingUp, color: 'from-accent-gold/20 to-accent-gold/5', iconColor: 'text-accent-gold', change: `+${1 + liveOffsets.casesThisMonth}`, trend: 'up' },
-    { label: 'Team Members', value: stats.totalUsers, icon: Users, color: 'from-cyber-teal/20 to-cyber-teal/5', iconColor: 'text-cyber-teal', change: '0', trend: 'neutral' },
+    { label: 'Active Cases',     value: activeCases,    icon: FolderOpen, color: 'from-primary-500/20 to-primary-500/5',  iconColor: 'text-primary-400' },
+    { label: 'Watched Wallets',  value: watchedWallets, icon: Eye,        color: 'from-accent-green/20 to-accent-green/5', iconColor: 'text-accent-green' },
+    { label: 'Evidence Items',   value: evidenceItems,  icon: Shield,     color: 'from-accent-purple/20 to-accent-purple/5', iconColor: 'text-accent-purple' },
+    { label: 'Active Alerts',    value: activeAlerts,   icon: Bell,       color: 'from-accent-red/20 to-accent-red/5',    iconColor: 'text-accent-red' },
+    { label: 'Cases This Month', value: casesThisMonth, icon: TrendingUp, color: 'from-accent-gold/20 to-accent-gold/5',  iconColor: 'text-accent-gold' },
+    { label: 'Team Members',     value: teamMembers,    icon: Users,      color: 'from-cyber-teal/20 to-cyber-teal/5',    iconColor: 'text-cyber-teal' },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center gap-3 text-dark-400">
+          <RefreshCw size={18} className="animate-spin" />
+          <span className="text-sm">Loading dashboard…</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -158,25 +170,26 @@ export const DashboardPage: React.FC = () => {
       <div className="glass-card p-6 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary-500/5 via-transparent to-accent-purple/5" />
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="relative">
-          <div className="flex items-center gap-3 mb-2 flex-wrap text-[10px] font-semibold tracking-widest uppercase">
-            <div className="flex items-center gap-1.5 text-accent-green">
-              <div className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse" />
-              <span>System Online — All Services Operational</span>
+        <div className="relative flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2 flex-wrap text-[10px] font-semibold tracking-widest uppercase">
+              <div className="flex items-center gap-1.5 text-accent-green">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse" />
+                <span>System Online — All Services Operational</span>
+              </div>
             </div>
-            <span className="text-dark-600">•</span>
-            <div className="flex items-center gap-1.5 text-primary-400">
-              <Shield size={11} className="animate-pulse" />
-              <span>FAIIS Autonomous Loop: ACTIVE</span>
-            </div>
+            <h1 className="text-2xl font-bold text-white mb-1">Intelligence Overview</h1>
+            <p className="text-sm text-dark-400">Real-time blockchain investigation metrics and case intelligence</p>
           </div>
-          <h1 className="text-2xl font-bold text-white mb-1">Intelligence Overview</h1>
-          <p className="text-sm text-dark-400">Real-time blockchain investigation metrics and case intelligence</p>
+          <div className="flex items-center gap-2 text-[10px] text-dark-500 mt-1">
+            <RefreshCw size={11} />
+            <span>Updated {timeAgo(lastRefresh.toISOString())}</span>
+          </div>
         </div>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -185,11 +198,6 @@ export const DashboardPage: React.FC = () => {
               <div className="relative">
                 <div className="flex items-center justify-between mb-3">
                   <Icon size={18} className={stat.iconColor} />
-                  {stat.trend === 'up' && (
-                    <span className="flex items-center text-[10px] text-accent-green font-medium">
-                      <ArrowUpRight size={12} /> {stat.change}
-                    </span>
-                  )}
                 </div>
                 <p className="text-2xl font-bold text-white">{stat.value}</p>
                 <p className="text-[11px] text-dark-400 mt-1">{stat.label}</p>
@@ -214,58 +222,69 @@ export const DashboardPage: React.FC = () => {
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-accent-green" /> Evidence</span>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={liveActivityData}>
-              <defs>
-                <linearGradient id="colorTraces" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#00d4ff" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="colorAlerts" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ff3366" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#ff3366" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="colorEvidence" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00ff88" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#00ff88" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1a1f36" />
-              <XAxis dataKey="day" tick={{ fill: '#78819a', fontSize: 11 }} axisLine={false} />
-              <YAxis tick={{ fill: '#78819a', fontSize: 11 }} axisLine={false} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#1a1f36', border: '1px solid #2a3253', borderRadius: 8, fontSize: 12, color: '#fff' }}
-                itemStyle={{ color: '#e2e8f0' }}
-              />
-              <Area type="monotone" dataKey="traces" stroke="#00d4ff" fillOpacity={1} fill="url(#colorTraces)" strokeWidth={2} isAnimationActive={true} animationDuration={300} />
-              <Area type="monotone" dataKey="alerts" stroke="#ff3366" fillOpacity={1} fill="url(#colorAlerts)" strokeWidth={2} isAnimationActive={true} animationDuration={300} />
-              <Area type="monotone" dataKey="evidence" stroke="#00ff88" fillOpacity={1} fill="url(#colorEvidence)" strokeWidth={2} isAnimationActive={true} animationDuration={300} />
-            </AreaChart>
-          </ResponsiveContainer>
+          {activityData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={activityData}>
+                <defs>
+                  <linearGradient id="colorTraces" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#00d4ff" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorAlerts" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ff3366" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#ff3366" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorEvidence" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#00ff88" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#00ff88" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1a1f36" />
+                <XAxis dataKey="day" tick={{ fill: '#78819a', fontSize: 11 }} axisLine={false} />
+                <YAxis tick={{ fill: '#78819a', fontSize: 11 }} axisLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: '#1a1f36', border: '1px solid #2a3253', borderRadius: 8, fontSize: 12, color: '#fff' }} />
+                <Area type="monotone" dataKey="traces"   stroke="#00d4ff" fillOpacity={1} fill="url(#colorTraces)"   strokeWidth={2} />
+                <Area type="monotone" dataKey="alerts"   stroke="#ff3366" fillOpacity={1} fill="url(#colorAlerts)"   strokeWidth={2} />
+                <Area type="monotone" dataKey="evidence" stroke="#00ff88" fillOpacity={1} fill="url(#colorEvidence)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[220px] text-dark-500 text-xs">
+              No activity data available yet.
+            </div>
+          )}
         </div>
 
-        {/* Case Status Pie */}
+        {/* Case Status Pie — derived from real case store */}
         <div className="glass-card p-5">
           <h3 className="text-sm font-semibold text-white mb-4">Case Distribution</h3>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie data={liveCaseStatusData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" isAnimationActive={true} animationDuration={300}>
-                {liveCaseStatusData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+          {caseStatusData.length > 0 ? (
+            <>
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie data={caseStatusData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value">
+                    {caseStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: '#1a1f36', border: '1px solid #2a3253', borderRadius: 8, fontSize: 12, color: '#fff' }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {caseStatusData.map((item) => (
+                  <div key={item.name} className="flex items-center gap-2 text-[11px]">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                    <span className="text-dark-300">{item.name}</span>
+                    <span className="text-white font-semibold ml-auto">{item.value}</span>
+                  </div>
                 ))}
-              </Pie>
-              <Tooltip contentStyle={{ backgroundColor: '#1a1f36', border: '1px solid #2a3253', borderRadius: 8, fontSize: 12, color: '#fff' }} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            {liveCaseStatusData.map((item) => (
-              <div key={item.name} className="flex items-center gap-2 text-[11px]">
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="text-dark-300">{item.name}</span>
-                <span className="text-white font-semibold ml-auto">{item.value}</span>
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-[180px] text-dark-500 text-xs">
+              No cases loaded.
+            </div>
+          )}
         </div>
       </div>
 
@@ -293,6 +312,9 @@ export const DashboardPage: React.FC = () => {
                 </div>
               </div>
             ))}
+            {alerts.length === 0 && (
+              <p className="text-xs text-dark-500 text-center py-4">No alerts.</p>
+            )}
           </div>
         </div>
 
@@ -303,7 +325,7 @@ export const DashboardPage: React.FC = () => {
             <button onClick={() => setPage('cases')} className="text-[11px] text-primary-400 hover:text-primary-300">View All</button>
           </div>
           <div className="space-y-3">
-            {cases.filter((c) => c.status.toLowerCase() === 'active').slice(0, 4).map((c) => (
+            {cases.filter(c => c.status.toLowerCase() === 'active').slice(0, 4).map((c) => (
               <div key={c.id} className="p-3 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors cursor-pointer border border-transparent hover:border-dark-700/50">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] mono text-dark-400">{c.caseNumber}</span>
@@ -319,48 +341,42 @@ export const DashboardPage: React.FC = () => {
                 </div>
               </div>
             ))}
+            {cases.filter(c => c.status.toLowerCase() === 'active').length === 0 && (
+              <p className="text-xs text-dark-500 text-center py-4">No active cases.</p>
+            )}
           </div>
         </div>
 
-        {/* Activity Timeline */}
+        {/* Activity Timeline — from real audit log */}
         <div className="glass-card p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-white">Activity Timeline</h3>
             <Clock size={14} className="text-dark-400" />
           </div>
           <div className="space-y-4">
-            {mockTimeline.slice(0, 5).map((entry) => (
-              <div key={entry.id} className="flex items-start gap-3">
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${tlColor[entry.type] || 'text-dark-400 bg-dark-700/50'}`}>
-                  {tlIcon[entry.type]}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-white">{entry.title}</p>
-                  <p className="text-[11px] text-dark-400 line-clamp-1">{entry.description}</p>
-                  <div className="flex items-center gap-2 mt-1 text-[10px] text-dark-500">
-                    <span>{entry.user}</span>
-                    {entry.caseRef && <span className="mono text-primary-500/60">{entry.caseRef}</span>}
-                    <span className="ml-auto">{timeAgo(entry.timestamp)}</span>
+            {timeline.map((entry) => {
+              const type = entry.status === 'failure' ? 'alert' : 'case';
+              return (
+                <div key={entry.id} className="flex items-start gap-3">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${tlColor[type] ?? 'text-dark-400 bg-dark-700/50'}`}>
+                    {tlIcon[type]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-white truncate">{entry.action}</p>
+                    <p className="text-[11px] text-dark-400">Recorded by {entry.username}</p>
+                    <div className="flex items-center gap-2 mt-1 text-[10px] text-dark-500">
+                      {entry.case_ref && <span className="mono text-primary-500/60">{entry.case_ref}</span>}
+                      <span className="ml-auto">{timeAgo(entry.created_at ?? entry.timestamp ?? new Date().toISOString())}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
+            {timeline.length === 0 && (
+              <p className="text-xs text-dark-500 text-center py-4">No recent activity.</p>
+            )}
           </div>
         </div>
-      </div>
-
-      {/* Chain Volume */}
-      <div className="glass-card p-5">
-        <h3 className="text-sm font-semibold text-white mb-4">Token Volume Distribution</h3>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={chainDistribution}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1a1f36" />
-            <XAxis dataKey="chain" tick={{ fill: '#78819a', fontSize: 11 }} axisLine={false} />
-            <YAxis tick={{ fill: '#78819a', fontSize: 11 }} axisLine={false} />
-            <Tooltip contentStyle={{ backgroundColor: '#1a1f36', border: '1px solid #2a3253', borderRadius: 8, fontSize: 12, color: '#fff' }} />
-            <Bar dataKey="txns" fill="#00d4ff" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
       </div>
     </div>
   );

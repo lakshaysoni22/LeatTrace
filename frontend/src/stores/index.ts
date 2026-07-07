@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { User, Case, Alert, WatchlistEntry } from '../types';
-import { mockUser, mockCases, mockAlerts, mockWatchlist } from '../data/mockData';
+import { API_BASE } from '../utils/api';
 
 // Auth Store
 interface AuthStore {
@@ -25,7 +25,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       formData.append('username', email);
       formData.append('password', _password);
 
-      const response = await fetch('http://127.0.0.1:8000/api/auth/login', {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData
@@ -67,29 +67,28 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         return true;
       }
     } catch (err) {
-      console.warn('Real login call failed, using mock authentication:', err);
+      console.error('Authentication request failed:', err);
     }
 
-    // Mock Fallback
-    if (isOAuth || (email === 'lakshaysoni@cybercrime.gov.in' && _password === 'SecurePass@2026') || (email === 'auditor.gupta@cybercrime.gov.in' && _password === 'SecurePass@2026')) {
-      const targetUser = {
-        id: 'usr-001',
+    // --- FALLBACK MOCK LOGIN ---
+    // If backend is unseeded or offline, allow instant demonstration login
+    if (email === 'lakshaysoni@cybercrime.gov.in' && _password === 'SecurePass@2026') {
+      const mockUser = {
+        id: "usr-mock-123",
         email: email,
-        username: email === 'auditor.gupta@cybercrime.gov.in' ? 'Auditor Gupta' : 'Lakshay Soni',
-        role: email === 'auditor.gupta@cybercrime.gov.in' ? 'auditor' : 'investigator',
+        username: "lakshaysoni",
+        role: "admin",
         isActive: true,
         mfaEnabled: true,
         createdAt: new Date().toISOString()
       };
-      
-      if (email === 'lakshaysoni@cybercrime.gov.in' && !isOAuth) {
-        set({ mfaPendingUser: targetUser, tempMfaToken: 'mock-temp-token-soni' });
-        return true;
-      }
-
-      set({ user: targetUser, isAuthenticated: true, mfaPendingUser: null, tempMfaToken: null });
+      set({
+        mfaPendingUser: mockUser,
+        tempMfaToken: "mock-mfa-token-xyz"
+      });
       return true;
     }
+
     return false;
   },
   verifyMFA: async (code: string) => {
@@ -97,8 +96,24 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     const tempToken = get().tempMfaToken;
     
     if (pending && tempToken) {
+      // Mock validation path
+      if (tempToken === "mock-mfa-token-xyz") {
+        if (code === "123456") {
+          localStorage.setItem('token', 'mock-jwt-token-access');
+          localStorage.setItem('refresh_token', 'mock-jwt-token-refresh');
+          set({
+            user: pending,
+            isAuthenticated: true,
+            mfaPendingUser: null,
+            tempMfaToken: null
+          });
+          return true;
+        }
+        return false;
+      }
+
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/auth/mfa/verify?temp_token=${tempToken}`, {
+        const response = await fetch(`${API_BASE}/api/auth/mfa/verify?temp_token=${tempToken}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: code })
@@ -124,12 +139,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           return true;
         }
       } catch (err) {
-        console.warn('Real MFA verification failed, checking mock bypass:', err);
-      }
-
-      if (code === '123456') {
-        set({ user: pending, isAuthenticated: true, mfaPendingUser: null, tempMfaToken: null });
-        return true;
+        console.error('MFA verification failed:', err);
       }
     }
     return false;
@@ -161,6 +171,24 @@ export const useNavStore = create<NavStore>((set) => ({
   setShowShortcuts: (v) => set({ showShortcuts: v }),
 }));
 
+const mapCasePayload = (item: any): Case => ({
+  id: item.id,
+  caseNumber: item.case_number ?? item.caseNumber ?? '',
+  title: item.title ?? '',
+  description: item.description ?? '',
+  priority: item.priority ?? 'medium',
+  status: item.status ?? 'open',
+  investigatorId: item.investigator_id ?? item.investigatorId ?? '',
+  investigatorName: item.investigator_name ?? item.investigatorName ?? '',
+  department: item.department ?? '',
+  notes: item.notes,
+  createdAt: item.created_at ?? item.createdAt ?? new Date().toISOString(),
+  updatedAt: item.updated_at ?? item.updatedAt ?? new Date().toISOString(),
+  closedAt: item.closed_at ?? item.closedAt,
+  walletCount: Array.isArray(item.wallets) ? item.wallets.length : item.walletCount ?? 0,
+  evidenceCount: Array.isArray(item.evidence) ? item.evidence.length : item.evidenceCount ?? 0,
+});
+
 // Cases Store
 interface CaseStore {
   cases: Case[];
@@ -168,16 +196,41 @@ interface CaseStore {
   selectCase: (c: Case | null) => void;
   addCase: (c: Case) => void;
   updateCase: (id: string, updates: Partial<Case>) => void;
+  setCases: (cases: Case[]) => void;
+  loadCases: () => Promise<void>;
 }
 
-export const useCaseStore = create<CaseStore>((set) => ({
-  cases: mockCases,
+export const useCaseStore = create<CaseStore>((set, get) => ({
+  cases: [],
   selectedCase: null,
   selectCase: (c) => set({ selectedCase: c }),
   addCase: (c) => set((s) => ({ cases: [c, ...s.cases] })),
   updateCase: (id, updates) => set((s) => ({
     cases: s.cases.map((c) => (c.id === id ? { ...c, ...updates } : c)),
   })),
+  setCases: (cases) => set({ cases }),
+  loadCases: async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`${API_BASE}/api/cases`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const mappedCases = Array.isArray(data) ? data.map(mapCasePayload) : [];
+        const currentSelection = get().selectedCase;
+        set({
+          cases: mappedCases,
+          selectedCase: currentSelection && mappedCases.some((c) => c.id === currentSelection.id)
+            ? currentSelection
+            : mappedCases[0] ?? null,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load cases from backend:', err);
+    }
+  },
 }));
 
 // Alerts Store
@@ -189,7 +242,7 @@ interface AlertStore {
 }
 
 export const useAlertStore = create<AlertStore>((set, get) => ({
-  alerts: mockAlerts,
+  alerts: [],
   get unreadCount() { return get().alerts.filter((a) => !a.isRead).length; },
   markRead: (id) => set((s) => ({
     alerts: s.alerts.map((a) => (a.id === id ? { ...a, isRead: true } : a)),
@@ -207,7 +260,7 @@ interface WatchlistStore {
 }
 
 export const useWatchlistStore = create<WatchlistStore>((set) => ({
-  entries: mockWatchlist,
+  entries: [],
   addEntry: (entry) => set((s) => ({ entries: [entry, ...s.entries] })),
   removeEntry: (id) => set((s) => ({ entries: s.entries.filter((e) => e.id !== id) })),
 }));

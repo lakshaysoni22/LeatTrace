@@ -53,7 +53,7 @@ export const AlertsPage: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-white">Security Notifications Center</h2>
           <p className="text-xs text-dark-400">Review triggered triggers matched on watched addresses and suspect funds layering hops</p>
@@ -61,7 +61,7 @@ export const AlertsPage: React.FC = () => {
 
         <button 
           onClick={markAllRead}
-          className="btn-ghost flex items-center gap-1 text-xs border border-dark-700/50"
+          className="w-full sm:w-auto btn-ghost flex items-center justify-center gap-1 text-xs border border-dark-700/50"
         >
           <Check size={14} /> Mark all read
         </button>
@@ -70,10 +70,12 @@ export const AlertsPage: React.FC = () => {
       {/* Filter Bar */}
       <div className="glass-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Severity */}
-        <div className="flex items-center gap-2">
-          <Filter size={12} className="text-dark-400" />
-          <span className="text-xs text-dark-300">Severity:</span>
-          <div className="flex items-center gap-1">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <div className="flex items-center gap-1 shrink-0">
+            <Filter size={12} className="text-dark-400" />
+            <span className="text-xs text-dark-300">Severity:</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
             {['all', 'critical', 'high', 'medium', 'low'].map((sev) => (
               <button
                 key={sev}
@@ -91,9 +93,9 @@ export const AlertsPage: React.FC = () => {
         </div>
 
         {/* Category */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-dark-300">Category:</span>
-          <div className="flex items-center gap-1">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <span className="text-xs text-dark-300 shrink-0">Category:</span>
+          <div className="flex flex-wrap items-center gap-1.5">
             {[
               { id: 'all', label: 'All' },
               { id: 'security', label: 'Security' },

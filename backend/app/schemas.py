@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 
@@ -17,14 +17,13 @@ class UserLogin(BaseModel):
     password: str
 
 class UserOut(UserBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     is_active: bool
     mfa_enabled: bool
     created_at: datetime
     last_login: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 class Token(BaseModel):
     access_token: str
@@ -63,13 +62,14 @@ class WalletCreate(WalletBase):
     pass
 
 class WalletOut(WalletBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     case_id: str
 
-    class Config:
-        from_attributes = True
-
 class EvidenceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     case_id: str
     filename: str
@@ -79,10 +79,9 @@ class EvidenceOut(BaseModel):
     upload_time: datetime
     description: Optional[str] = None
 
-    class Config:
-        from_attributes = True
-
 class CaseOut(CaseBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     case_number: str
     investigator_id: str
@@ -93,9 +92,6 @@ class CaseOut(CaseBase):
     closed_at: Optional[datetime] = None
     wallets: List[WalletOut] = []
     evidence: List[EvidenceOut] = []
-
-    class Config:
-        from_attributes = True
 
 # Watchlist Schemas
 class WatchlistBase(BaseModel):
@@ -109,11 +105,10 @@ class WatchlistCreate(WatchlistBase):
     pass
 
 class WatchlistOut(WatchlistBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 # Alert Schemas
 class AlertBase(BaseModel):
@@ -128,17 +123,18 @@ class AlertCreate(AlertBase):
     pass
 
 class AlertOut(AlertBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     status: str
     created_at: datetime
     message: Optional[str] = None
     is_read: bool
 
-    class Config:
-        from_attributes = True
-
 # AuditLog Schema
 class AuditLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     user_id: Optional[str] = None
     username: str
@@ -150,9 +146,6 @@ class AuditLogOut(BaseModel):
     decision_source: Optional[str] = None
     execution_result: Optional[str] = None
     validation_status: str
-
-    class Config:
-        from_attributes = True
 
 # AI Chat Schemas
 class AIChatRequest(BaseModel):
@@ -191,6 +184,8 @@ class LoginMFAStatus(BaseModel):
     user: Optional[UserOut] = None
 
 class UserSessionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     user_id: str
     ip_address: Optional[str] = None
@@ -199,10 +194,9 @@ class UserSessionOut(BaseModel):
     created_at: datetime
     expires_at: datetime
 
-    class Config:
-        from_attributes = True
-
 class ChainOfCustodyOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     evidence_id: str
     action: str
@@ -213,19 +207,15 @@ class ChainOfCustodyOut(BaseModel):
     prev_hash: Optional[str] = None
     hash_signature: Optional[str] = None
 
-    class Config:
-        from_attributes = True
-
 class EvidenceSignatureOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     evidence_id: str
     signer_name: str
     signature: str
     timestamp: datetime
     public_key_pem: str
-
-    class Config:
-        from_attributes = True
 
 class LedgerVerificationOut(BaseModel):
     is_valid: bool

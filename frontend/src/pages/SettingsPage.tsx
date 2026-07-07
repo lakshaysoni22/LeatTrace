@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores';
 import { Settings, Shield, User, FileLock2, AlertCircle, CheckCircle2, Users, Heart, Server, ShieldCheck, Lock, Unlock, Key, Globe, Sparkles, RefreshCw } from 'lucide-react';
+import { API_BASE } from '../utils/api';
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -12,7 +13,7 @@ export const SettingsPage: React.FC = () => {
   const fetchRpcStatus = async () => {
     setLoadingRpc(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/health/indexer', {
+      const res = await fetch(`${API_BASE}/api/health/indexer`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
         }
@@ -83,33 +84,29 @@ export const SettingsPage: React.FC = () => {
       <div className="flex border-b border-dark-700/50 bg-dark-800/10 rounded-t-lg overflow-x-auto">
         <button
           onClick={() => setActiveTab('profile')}
-          className={`px-5 py-3 border-b-2 text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-            activeTab === 'profile' ? 'border-primary-500 text-white bg-dark-900/30' : 'border-transparent text-dark-400 hover:text-white'
-          }`}
+          className={`px-5 py-3 border-b-2 text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${activeTab === 'profile' ? 'border-primary-500 text-white bg-dark-900/30' : 'border-transparent text-dark-400 hover:text-white'
+            }`}
         >
           <Shield size={14} className="inline mr-1.5" /> Profile & AML
         </button>
         <button
           onClick={() => setActiveTab('admin')}
-          className={`px-5 py-3 border-b-2 text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-            activeTab === 'admin' ? 'border-primary-500 text-white bg-dark-900/30' : 'border-transparent text-dark-400 hover:text-white'
-          }`}
+          className={`px-5 py-3 border-b-2 text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${activeTab === 'admin' ? 'border-primary-500 text-white bg-dark-900/30' : 'border-transparent text-dark-400 hover:text-white'
+            }`}
         >
           <Users size={14} className="inline mr-1.5" /> User Administration
         </button>
         <button
           onClick={() => setActiveTab('health')}
-          className={`px-5 py-3 border-b-2 text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-            activeTab === 'health' ? 'border-primary-500 text-white bg-dark-900/30' : 'border-transparent text-dark-400 hover:text-white'
-          }`}
+          className={`px-5 py-3 border-b-2 text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${activeTab === 'health' ? 'border-primary-500 text-white bg-dark-900/30' : 'border-transparent text-dark-400 hover:text-white'
+            }`}
         >
           <Heart size={14} className="inline mr-1.5" /> System Health Logs
         </button>
         <button
           onClick={() => setActiveTab('gim')}
-          className={`px-5 py-3 border-b-2 text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-            activeTab === 'gim' ? 'border-primary-500 text-white bg-dark-900/30' : 'border-transparent text-dark-400 hover:text-white'
-          }`}
+          className={`px-5 py-3 border-b-2 text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${activeTab === 'gim' ? 'border-primary-500 text-white bg-dark-900/30' : 'border-transparent text-dark-400 hover:text-white'
+            }`}
         >
           <Globe size={14} className="inline mr-1.5 animate-pulse" /> GIM Federation
         </button>
@@ -127,7 +124,7 @@ export const SettingsPage: React.FC = () => {
                   <User size={16} className="text-primary-400" />
                   <h3 className="text-sm font-bold text-white">Security Identity</h3>
                 </div>
-                
+
                 <div className="space-y-3 text-xs">
                   <div className="flex flex-col">
                     <span className="text-[10px] text-dark-500 uppercase">Operator Name</span>
@@ -154,7 +151,7 @@ export const SettingsPage: React.FC = () => {
                   <Key size={16} className="text-primary-400" />
                   <h3 className="text-sm font-bold text-white">Multi-Factor Auth (MFA)</h3>
                 </div>
-                
+
                 <div className="space-y-4 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-dark-300">MFA Status</span>
@@ -171,8 +168,8 @@ export const SettingsPage: React.FC = () => {
 
                   <div className="flex justify-center bg-white p-3 rounded-lg border border-dark-800 w-32 h-32 mx-auto">
                     <svg className="w-full h-full text-dark-950" viewBox="0 0 29 29" fill="currentColor">
-                      <path d="M0 0h9v9H0zm1 1h7v7H1zm11 0h1v1h-1zm1 1h1v1h-1zm-2 1h1v1h-1zm4-3h9v9h-9zm1 1h7v7h-7zm-11 11h9v9H0zm1 1h7v7H1zm11-1h1v1h-1zm3 0h1v1h-1zm3 0h1v1h-1zm-6 2h1v1h-1zm4 0h1v1h-1zm4 0h1v1h-1zm-7 2h1v1h-1zm3 0h1v1h-1zm3 0h1v1h-1z"/>
-                      <path d="M2 2h5v5H2zm17 0h5v5h-5zM2 13h5v5H2z" fill="none"/>
+                      <path d="M0 0h9v9H0zm1 1h7v7H1zm11 0h1v1h-1zm1 1h1v1h-1zm-2 1h1v1h-1zm4-3h9v9h-9zm1 1h7v7h-7zm-11 11h9v9H0zm1 1h7v7H1zm11-1h1v1h-1zm3 0h1v1h-1zm3 0h1v1h-1zm-6 2h1v1h-1zm4 0h1v1h-1zm4 0h1v1h-1zm-7 2h1v1h-1zm3 0h1v1h-1zm3 0h1v1h-1z" />
+                      <path d="M2 2h5v5H2zm17 0h5v5h-5zM2 13h5v5H2z" fill="none" />
                     </svg>
                   </div>
                 </div>
@@ -217,9 +214,9 @@ export const SettingsPage: React.FC = () => {
 
                 <div className="space-y-3">
                   {sessions.map((sess) => (
-                    <div key={sess.id} className="flex items-center justify-between p-3.5 bg-dark-900/40 border border-dark-800 rounded-lg text-xs hover:border-dark-750 transition-all duration-200">
+                    <div key={sess.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-dark-900/40 border border-dark-800 rounded-lg text-xs hover:border-dark-750 transition-all duration-200 gap-3">
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-white">{sess.device}</span>
                           {sess.isCurrent && (
                             <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-accent-green/10 border border-accent-green/20 text-accent-green uppercase">Current</span>
@@ -231,7 +228,7 @@ export const SettingsPage: React.FC = () => {
                       {!sess.isCurrent && (
                         <button
                           onClick={() => handleRevokeSession(sess.id, sess.device)}
-                          className="px-2.5 py-1 bg-accent-red/10 border border-accent-red/20 text-accent-red rounded hover:bg-accent-red/20 text-[10px] font-bold transition-all duration-200"
+                          className="px-2.5 py-1 bg-accent-red/10 border border-accent-red/20 text-accent-red rounded hover:bg-accent-red/20 text-[10px] font-bold transition-all duration-200 self-start sm:self-auto"
                         >
                           Revoke
                         </button>
@@ -313,7 +310,7 @@ export const SettingsPage: React.FC = () => {
                 <ShieldCheck size={16} className="text-primary-400" />
                 <h3 className="text-sm font-bold text-white">Allowed IP Gateway Ranges</h3>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div>
                   <label className="block text-dark-400 text-[10px] uppercase font-bold mb-1">Session timeout limit (mins)</label>
@@ -365,7 +362,7 @@ export const SettingsPage: React.FC = () => {
                 <div className="p-3 bg-dark-900 border border-dark-850 rounded-xl flex items-center justify-between">
                   <div>
                     <span className="text-[10px] text-dark-500 block uppercase">SQLite Database</span>
-                    <span className="text-white font-mono">leatrace.db</span>
+                    <span className="text-white font-mono">LEAtTrace.db</span>
                   </div>
                   <span className="flex items-center gap-1 text-accent-green"><span className="w-1.5 h-1.5 rounded-full bg-accent-green" /> HEALTHY</span>
                 </div>
@@ -404,9 +401,8 @@ export const SettingsPage: React.FC = () => {
                       <div key={chain} className="p-3.5 bg-dark-900 border border-dark-850 rounded-xl space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-white uppercase tracking-wider">{chain} RPC Node</span>
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                            isHealthy ? 'bg-accent-green/10 text-accent-green border border-accent-green/20' : 'bg-accent-gold/10 text-accent-gold border border-accent-gold/20'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${isHealthy ? 'bg-accent-green/10 text-accent-green border border-accent-green/20' : 'bg-accent-gold/10 text-accent-gold border border-accent-gold/20'
+                            }`}>
                             {details.status}
                           </span>
                         </div>

@@ -1,8 +1,8 @@
-# LEATrace Vercel Cloud Onboarding Wizard
+# LEAtTrace Vercel Cloud Onboarding Wizard
 # Target: Windows Powershell
 
 Write-Host "=========================================================" -ForegroundColor Cyan
-Write-Host "          LEATRACE VERCEL DEPLOYMENT CONFIG              " -ForegroundColor Cyan
+Write-Host "          LEAtTrace VERCEL DEPLOYMENT CONFIG              " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
 
 # Check if Vercel CLI is installed
@@ -19,8 +19,8 @@ if ($hasVercel) {
 # Write env variables templates
 $envTemplatePath = Join-Path $PSScriptRoot "..\..\frontend\.env.example"
 $envContent = @"
-VITE_API_URL=https://api.leatrace.cybercrime.gov.in
-VITE_WS_URL=wss://api.leatrace.cybercrime.gov.in/api/streaming
+VITE_API_URL=https://api.LEAtTrace.cybercrime.gov.in
+VITE_WS_URL=wss://api.LEAtTrace.cybercrime.gov.in/api/streaming
 "@
 $envContent | Out-File $envTemplatePath -Encoding ascii -Force
 Write-Host "  [+] Created Vercel environment variables template (.env.example)." -ForegroundColor Green

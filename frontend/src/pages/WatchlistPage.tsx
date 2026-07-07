@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useWatchlistStore, useAlertStore, useBlockchainStore, useNavStore } from '../stores';
-import { Eye, Plus, Trash2, ShieldAlert, Activity, Play, EyeOff, Search } from 'lucide-react';
+import { Eye, Plus, Trash2, ShieldAlert, Activity, Play, EyeOff, Search, WifiOff } from 'lucide-react';
 import { formatAddress, formatDate, getRiskColor } from '../utils/helpers';
 import type { WatchlistEntry } from '../types';
+import { apiPost } from '../utils/api';
 
 export const WatchlistPage: React.FC = () => {
   const { entries, addEntry, removeEntry } = useWatchlistStore();
@@ -23,7 +24,7 @@ export const WatchlistPage: React.FC = () => {
     if (!address.trim()) return;
 
     const newEntry: WatchlistEntry = {
-      id: `wtl-${Math.random().toString(36).substr(2, 7)}`,
+      id: `wtl-${crypto.randomUUID().substring(0, 8)}`,
       address: address.trim(),
       chain: chain,
       alias: alias || 'Unlabeled Node',
@@ -43,49 +44,60 @@ export const WatchlistPage: React.FC = () => {
   };
 
   const handleSimulateBlock = async () => {
+    if (entries.length === 0) {
+      setSimulationLogs(['No watchlist entries to scan. Add a wallet address first.']);
+      return;
+    }
     setIsSimulating(true);
-    setSimulationLogs(['Initializing simulated blockchain block listener...']);
-    
-    await new Promise((r) => setTimeout(r, 1000));
-    setSimulationLogs((prev) => [...prev, 'Scanning active watchlist addresses...']);
-    
-    await new Promise((r) => setTimeout(r, 800));
-    const randomEntry = entries[Math.floor(Math.random() * entries.length)] || {
-      address: '1LbcPeel5s9zARansom993vX78cDf',
-      chain: 'BTC',
-      alias: 'LockBit Ransomware Receiver'
-    };
+    setSimulationLogs(['Initiating live watchlist scan via blockchain RPC...']);
 
-    const val = (Math.random() * 45).toFixed(2);
-    const mockTx = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-    
-    setSimulationLogs((prev) => [
-      ...prev,
-      `Detected block activity on chain: ${randomEntry.chain}`,
-      `Target address matched: ${randomEntry.address}`,
-      `Tx details: Moving ${val} ${randomEntry.chain} (Tx: ${mockTx.slice(0, 12)}...)`,
-      'Raising critical security alarm notification!'
-    ]);
+    try {
+      const addresses = entries.map(e => ({ address: e.address, chain: e.chain }));
+      setSimulationLogs(prev => [...prev, `Scanning ${addresses.length} monitored address(es)...`]);
 
-    // Force alert trigger in store
-    const alertId = `alr_${Math.random().toString(36).substr(2, 7)}`;
-    useAlertStore.setState((s) => ({
-      alerts: [
-        {
-          id: alertId,
-          chain: randomEntry.chain,
-          address: randomEntry.address,
-          type: 'layering_activity',
-          message: `Trigger Alert [${randomEntry.alias}]: Transaction detected moving ${val} ${randomEntry.chain} (Threshold: 0.1).`,
-          severity: 'critical',
-          createdAt: new Date().toISOString(),
-          isRead: false
-        },
-        ...s.alerts
-      ]
-    }));
+      const result = await apiPost<{
+        hits: Array<{ address: string; chain: string; alias?: string; tx_hash?: string; value?: number; alert_message?: string }>;
+      }>('/api/wallets/watchlist/scan', { addresses });
 
-    setIsSimulating(false);
+      if (result.hits && result.hits.length > 0) {
+        for (const hit of result.hits) {
+          setSimulationLogs(prev => [
+            ...prev,
+            `Activity detected on ${hit.chain}: ${hit.address.slice(0, 12)}...`,
+            hit.tx_hash ? `Tx: ${hit.tx_hash.slice(0, 16)}...` : '',
+            hit.value !== undefined ? `Value: ${hit.value} ${hit.chain}` : '',
+            'Alert raised.',
+          ].filter(Boolean));
+
+          const alertId = crypto.randomUUID();
+          useAlertStore.setState(s => ({
+            alerts: [
+              {
+                id: alertId,
+                chain: hit.chain,
+                address: hit.address,
+                type: 'watchlist_hit',
+                message: hit.alert_message ?? `Watchlist hit on ${hit.address.slice(0, 10)}...`,
+                severity: 'critical',
+                createdAt: new Date().toISOString(),
+                isRead: false,
+              },
+              ...s.alerts,
+            ],
+          }));
+        }
+      } else {
+        setSimulationLogs(prev => [...prev, 'Scan complete. No new activity detected on watched addresses.']);
+      }
+    } catch (err) {
+      setSimulationLogs(prev => [
+        ...prev,
+        'ERROR: Watchlist scan service unavailable. No fabricated data will be displayed.',
+        'Ensure the backend is running and /api/wallets/watchlist/scan is reachable.',
+      ]);
+    } finally {
+      setIsSimulating(false);
+    }
   };
 
   const handleTraceAddress = (addr: string) => {
@@ -96,24 +108,24 @@ export const WatchlistPage: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-white">Active Watchlist Surveillance</h2>
           <p className="text-xs text-dark-400">Establish tracing listener rules on target crypto wallets to raise alarms on fund updates</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button 
             onClick={handleSimulateBlock}
             disabled={isSimulating}
-            className="px-4 py-2 bg-accent-gold/20 text-accent-gold border border-accent-gold/30 rounded-lg font-medium text-sm hover:bg-accent-gold/30 hover:border-accent-gold/50 transition-all flex items-center gap-2 cursor-pointer"
+            className="flex-1 sm:flex-initial px-4 py-2 bg-accent-gold/20 text-accent-gold border border-accent-gold/30 rounded-lg font-medium text-sm hover:bg-accent-gold/30 hover:border-accent-gold/50 transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <Play size={14} className={isSimulating ? 'animate-spin' : ''} />
             {isSimulating ? 'Simulating...' : 'Simulate Block Event'}
           </button>
           <button 
             onClick={() => setShowAddModal(true)}
-            className="btn-primary flex items-center gap-2"
+            className="flex-1 sm:flex-initial btn-primary flex items-center justify-center gap-2"
           >
             <Plus size={16} /> Add Rule
           </button>

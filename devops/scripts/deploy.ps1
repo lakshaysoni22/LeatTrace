@@ -1,10 +1,10 @@
-# LEATrace Automated Deployment Manager
+# LEAtTrace Automated Deployment Manager
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "=========================================================" -ForegroundColor Cyan
-Write-Host "          LEATRACE DEPLOYMENT INITIALIZER               " -ForegroundColor Cyan
+Write-Host "          LEAtTrace DEPLOYMENT INITIALIZER               " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
 
 # 1. Hardware Capacity Check for Auto-Orchestration
@@ -36,7 +36,7 @@ if ($totalRamGb -ge $k8sMinRam -and $cpuCores -ge $k8sMinCpu) {
 }
 
 # Allow override via Environment Variable
-$envProfile = [System.Environment]::GetEnvironmentVariable("LEATRACE_PROFILE")
+$envProfile = [System.Environment]::GetEnvironmentVariable("LEAtTrace_PROFILE")
 if (-not [string]::IsNullOrEmpty($envProfile)) {
     $deployType = $envProfile
 }
@@ -81,8 +81,8 @@ if ($deployType -eq "k8s") {
     
     # Deploy Helm charts
     Set-Location "$PSScriptRoot\.."
-    & helm upgrade --install leatrace-deployment ./kubernetes/helm-chart --namespace leatrace-prod --create-namespace
-    Write-Host "  [+] Helm deployment applied to namespace 'leatrace-prod'." -ForegroundColor Green
+    & helm upgrade --install LEAtTrace-deployment ./kubernetes/helm-chart --namespace LEAtTrace-prod --create-namespace
+    Write-Host "  [+] Helm deployment applied to namespace 'LEAtTrace-prod'." -ForegroundColor Green
     Set-Location $PSScriptRoot
 } else {
     Write-Host "`n[DEPLOY] Low spec resource profile selected. Launching Docker Compose stack..." -ForegroundColor Green
@@ -94,5 +94,5 @@ if ($deployType -eq "k8s") {
     Set-Location $PSScriptRoot
 }
 
-Write-Host "`n[SUCCESS] LEATrace stack deployed successfully." -ForegroundColor Green
+Write-Host "`n[SUCCESS] LEAtTrace stack deployed successfully." -ForegroundColor Green
 Write-Host "Run 'status.ps1' to verify container endpoints." -ForegroundColor White

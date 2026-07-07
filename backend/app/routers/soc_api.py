@@ -1,118 +1,202 @@
-import random
+"""
+LEATrace SOC Dashboard Router — Production.
+
+Real system metrics using psutil (if available), database query counts,
+and actual connection states instead of random-generated mock data.
+
+PRODUCTION INVARIANTS:
+- No random.randint() or random.uniform() in any metric.
+- All metrics from real system measurements or database queries.
+"""
+
 import datetime
-from fastapi import APIRouter, HTTPException, Query, Depends
-from typing import List, Dict, Any
+import logging
+import os
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
-router = APIRouter(prefix="/api/soc", tags=["Centralized Enterprise SOC Operations"])
+from ..database import get_db
+from .. import models, security
 
-def get_utc_now() -> datetime.datetime:
-    return datetime.datetime.utcnow()
+logger = logging.getLogger("leatrace.routers.soc")
+
+router = APIRouter(prefix="/api/soc", tags=["SOC Operations Center"])
+
+# Try to import psutil for real system metrics
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    logger.info("psutil not installed. SOC dashboard will report limited system metrics.")
+
 
 def format_iso(dt: datetime.datetime) -> str:
-    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return dt.isoformat() + "Z"
+
 
 @router.get("/dashboard")
-def get_soc_dashboard_summary():
+def get_soc_dashboard(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """Returns full SOC dashboard metrics from database."""
+    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    active_cases      = db.query(models.Case).filter(models.Case.status.in_(["open", "active", "under_investigation"])).count()
+    open_alerts       = db.query(models.Alert).filter(models.Alert.is_read == False).count()
+    critical_alerts   = db.query(models.Alert).filter(models.Alert.is_read == False, models.Alert.severity == "critical").count()
+    total_wallets     = db.query(models.Wallet).count()
+    total_evidence    = db.query(models.Evidence).count()
+    closed_cases      = db.query(models.Case).filter(models.Case.status == "closed").count()
+    cases_this_month  = db.query(models.Case).filter(models.Case.created_at >= month_start).count()
+    high_risk_wallets = db.query(models.Wallet).filter(models.Wallet.risk_score >= 70).count()
+    team_members      = db.query(models.User).filter(models.User.is_active == True).count()
+
     return {
-        "active_incidents": random.randint(3, 8),
-        "critical_alerts": random.randint(1, 3),
-        "avg_sla_minutes": round(random.uniform(15.0, 30.0), 1),
-        "logs_ingested_per_sec": random.randint(120, 280),
-        "system_status": "Operational"
+        "timestamp":        format_iso(now),
+        "active_cases":     active_cases,
+        "open_alerts":      open_alerts,
+        "critical_alerts":  critical_alerts,
+        "total_wallets":    total_wallets,
+        "total_evidence":   total_evidence,
+        "closed_cases":     closed_cases,
+        "cases_this_month": cases_this_month,
+        "high_risk_wallets": high_risk_wallets,
+        "team_members":     team_members,
+        "data_source":      "database",
     }
 
-@router.get("/incidents")
-def get_soc_incidents(
-    status: str = Query("unassigned", description="Filter incidents by assignment status."),
-    page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100)
-):
-    now = get_utc_now()
-    return [
+
+@router.get("/recent-events")
+def get_recent_events(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """Returns recent audit log events from the database."""
+    recent_logs = db.query(models.AuditLog).order_by(
+        models.AuditLog.timestamp.desc()
+    ).limit(10).all()
+
+    events = [
         {
-            "id": "INC-8812",
-            "category": "Evidence Vault Intrusion",
-            "severity": "critical",
-            "message": "Mass evidence download triggered by user Investigator Verma (IP 192.168.1.45)",
-            "timestamp": format_iso(now - datetime.timedelta(minutes=random.randint(2, 5))),
-            "status": status,
-            "analyst_assigned": "None"
-        },
-        {
-            "id": "INC-8813",
-            "category": "Brute Force Attack",
-            "severity": "high",
-            "message": "Repeated login failures detected from Tor IP 185.220.101.4 on Super Admin portal",
-            "timestamp": format_iso(now - datetime.timedelta(minutes=random.randint(10, 15))),
-            "status": status,
-            "analyst_assigned": "None"
+            "id": log.id,
+            "user": log.username,
+            "action": log.action,
+            "status": log.status,
+            "timestamp": log.timestamp.isoformat() + "Z" if log.timestamp else None,
         }
+        for log in recent_logs
     ]
+    return {"events": events, "total": len(events)}
 
-@router.get("/alerts")
-def get_soc_alerts():
-    return [
-        {"id": "ALT-1", "rule": "Sigma rule: Failed Logins Spike", "source": "Auth", "severity": "high"},
-        {"id": "ALT-2", "rule": "Sigma rule: Tornado Cash Deposit", "source": "Blockchain", "severity": "critical"}
-    ]
 
-@router.get("/correlation")
-def get_soc_correlation(wallet_address: str = Query(..., description="Suspect blockchain wallet address.")):
-    now = get_utc_now()
+@router.get("/activity")
+def get_weekly_activity(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """
+    Returns 7-day investigation activity (traces, alerts, evidence) from audit logs.
+    Groups audit log entries by day of week and action type.
+    """
+    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+    week_ago = now - datetime.timedelta(days=7)
+
+    # Pull last 7 days of audit logs
+    recent = db.query(models.AuditLog).filter(
+        models.AuditLog.timestamp >= week_ago
+    ).all()
+
+    # Aggregate by day name
+    day_map: dict = {}
+    for log in recent:
+        day = log.timestamp.strftime("%a") if log.timestamp else "Unknown"
+        if day not in day_map:
+            day_map[day] = {"day": day, "traces": 0, "alerts": 0, "evidence": 0}
+        action = (log.action or "").lower()
+        if "trace" in action or "wallet" in action:
+            day_map[day]["traces"] += 1
+        elif "alert" in action:
+            day_map[day]["alerts"] += 1
+        elif "evidence" in action:
+            day_map[day]["evidence"] += 1
+
+    # Order by weekday
+    ordered_days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    result = [day_map.get(d, {"day": d, "traces": 0, "alerts": 0, "evidence": 0}) for d in ordered_days]
+    return result
+
+
+@router.get("/correlation-summary")
+def get_correlation_summary(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """Returns real correlation summary from database state."""
+    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
+    total_wallets = db.query(models.Wallet).count()
+    total_cases = db.query(models.Case).count()
+    watchlist_count = db.query(models.WatchlistEntry).count()
+
     return {
-        "correlation_id": f"CORR-{random.randint(7000, 7999)}-{now.year}",
-        "confidence_score": round(random.uniform(88.0, 97.0), 1),
-        "kill_chain_phase": "Exfiltration",
-        "timeline_events": [
-            {"step": 1, "timestamp": format_iso(now - datetime.timedelta(hours=2)), "source": "Auth Gateway", "event": "Successful login from IP 185.220.101.4 (Tor exit node)", "technique": "T1078 (Valid Accounts)"},
-            {"step": 2, "timestamp": format_iso(now - datetime.timedelta(hours=1)), "source": "Blockchain Indexer", "event": f"Transfer of 15.4 ETH from address {wallet_address} to Tornado Cash pool", "technique": "T1041 (Exfiltration Over Alternative Protocol)"}
-        ]
+        "correlation_id": f"CORR-{now.strftime('%Y%m%d%H%M')}",
+        "total_wallets_tracked": total_wallets,
+        "total_cases": total_cases,
+        "watchlist_entries": watchlist_count,
+        "timestamp": format_iso(now),
     }
 
-@router.get("/timeline")
-def get_soc_timeline(target_ip: str = Query(None)):
-    now = get_utc_now()
-    return [
-        {"timestamp": format_iso(now - datetime.timedelta(minutes=30)), "event": "API Port Scan", "severity": "info"},
-        {"timestamp": format_iso(now - datetime.timedelta(minutes=25)), "event": "Brute Force Initiated", "severity": "high"}
-    ]
 
-@router.get("/threats")
-def get_soc_threats():
+@router.get("/threat-metrics")
+def get_threat_metrics(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """Returns real threat metrics from entity labels and alerts."""
+    sanctioned_entities = db.query(models.EntityLabel).filter(
+        models.EntityLabel.category == "sanctioned"
+    ).count()
+    scam_entities = db.query(models.EntityLabel).filter(
+        models.EntityLabel.category == "scam"
+    ).count()
+
     return {
-        "active_feeds": ["OFAC Sanction Database", "Sigma Cyber Threat Intel", "Lazarus Wallet Registry"],
-        "sigma_rule_matches": random.randint(2, 6),
-        "sanction_hits_today": random.randint(0, 2)
+        "sanctioned_entities_tracked": sanctioned_entities,
+        "scam_entities_tracked": scam_entities,
+        "total_entity_labels": db.query(models.EntityLabel).count(),
     }
 
-@router.get("/investigations")
-def get_soc_investigations():
-    return [
-        {"case_id": "C-101", "name": "WazirX Hack Exfiltration Track", "risk_index": 98.4, "status": "active"},
-        {"case_id": "C-102", "name": "CBI Evidence Verification Audit", "risk_index": 12.0, "status": "closed"}
-    ]
 
-@router.get("/metrics")
-def get_soc_metrics():
-    return {
-        "cpu_percent": round(random.uniform(25.0, 60.0), 1),
-        "memory_mb_used": random.randint(1400, 1800),
-        "postgres_active_connections": random.randint(10, 20),
-        "redis_keys_cached": random.randint(900, 1200),
-        "clickhouse_uncompressed_bytes": 841249821 + random.randint(1000, 5000)
+@router.get("/system-health")
+def get_system_health(current_user: models.User = Depends(security.get_current_user)):
+    """Returns real system health metrics using psutil (if available)."""
+    health = {
+        "timestamp": format_iso(datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)),
     }
 
-@router.get("/traces")
-def get_soc_traces():
-    return [
-        {"span_id": f"sp-{random.randint(100000, 999999)}", "trace_id": "tr-7f8a9e10", "endpoint": "GET /api/wallets", "duration_ms": round(random.uniform(5.0, 25.0), 1)},
-        {"span_id": f"sp-{random.randint(100000, 999999)}", "trace_id": "tr-7f8a9e10", "endpoint": "GET /api/soc/dashboard", "duration_ms": round(random.uniform(2.0, 12.0), 1)}
-    ]
+    if PSUTIL_AVAILABLE:
+        health.update({
+            "cpu_percent": psutil.cpu_percent(interval=0.1),
+            "memory_mb_used": round(psutil.virtual_memory().used / (1024 * 1024), 1),
+            "memory_percent": psutil.virtual_memory().percent,
+            "disk_percent": psutil.disk_usage("/").percent if os.name != "nt" else psutil.disk_usage("C:\\").percent,
+        })
+    else:
+        health.update({
+            "cpu_percent": None,
+            "memory_mb_used": None,
+            "memory_percent": None,
+            "disk_percent": None,
+            "note": "psutil not installed — install for real system metrics",
+        })
 
-@router.get("/logs")
-def get_soc_logs():
-    now = get_utc_now()
-    return [
-        {"timestamp": format_iso(now - datetime.timedelta(seconds=random.randint(5, 10))), "level": "info", "message": "API call completed successfully"},
-        {"timestamp": format_iso(now - datetime.timedelta(seconds=random.randint(30, 45))), "level": "warning", "message": "Slow database response detected in ClickHouse"}
-    ]
+    return health
+
+
+@router.get("/observability")
+def get_observability(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """Returns observability data from real audit logs."""
+    recent_logs = db.query(models.AuditLog).order_by(
+        models.AuditLog.timestamp.desc()
+    ).limit(5).all()
+
+    log_entries = []
+    for log in recent_logs:
+        log_entries.append({
+            "timestamp": log.timestamp.isoformat() + "Z" if log.timestamp else None,
+            "level": "warning" if log.status == "warning" else "info",
+            "message": log.action,
+        })
+
+    return {
+        "recent_logs": log_entries,
+        "data_source": "audit_log_database",
+    }

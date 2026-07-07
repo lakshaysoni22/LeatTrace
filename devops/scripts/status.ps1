@@ -1,11 +1,11 @@
-# LEATrace Operations Status Dashboard
+# LEAtTrace Operations Status Dashboard
 # Target: Windows Powershell
 
 $ErrorActionPreference = "Continue"
 
 Clear-Host
 Write-Host "=========================================================" -ForegroundColor Cyan
-Write-Host "         LEATRACE OPERATIONS DIAGNOSTIC DASHBOARD        " -ForegroundColor Cyan
+Write-Host "         LEAtTrace OPERATIONS DIAGNOSTIC DASHBOARD        " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
 Write-Host "Checked at: $(Get-Date)" -ForegroundColor Gray
 Write-Host "---------------------------------------------------------" -ForegroundColor Gray
@@ -38,7 +38,7 @@ if (Test-Command "docker") {
 # 2. Kubernetes Pods Status
 Write-Host "`n[KUBERNETES STATUS]" -ForegroundColor Gray
 if (Test-Command "kubectl") {
-    $pods = & kubectl get pods -n leatrace-prod --no-headers -o custom-columns=":metadata.name,:status.phase"
+    $pods = & kubectl get pods -n LEAtTrace-prod --no-headers -o custom-columns=":metadata.name,:status.phase"
     if ($pods) {
         foreach ($p in $pods) {
             if ($p -like "*Running*") {
@@ -48,7 +48,7 @@ if (Test-Command "kubectl") {
             }
         }
     } else {
-        Write-Host "  [-] No pods running in namespace 'leatrace-prod'." -ForegroundColor Yellow
+        Write-Host "  [-] No pods running in namespace 'LEAtTrace-prod'." -ForegroundColor Yellow
     }
 } else {
     Write-Host "  [-] Kubernetes kubectl is offline or not installed." -ForegroundColor Yellow
@@ -95,7 +95,7 @@ try {
 }
 
 Write-Host "`n[BACKUP LOGS]" -ForegroundColor Gray
-$backupDir = "C:\var\backups\leatrace"
+$backupDir = "C:\var\backups\LEAtTrace"
 if (Test-Path $backupDir) {
     $backups = Get-ChildItem $backupDir -Filter "*.tar.gz" | Sort-Object LastWriteTime -Descending | Select-Object -First 3
     if ($backups) {
@@ -106,7 +106,7 @@ if (Test-Path $backupDir) {
         Write-Host "  [-] No backup archives found in $backupDir." -ForegroundColor Yellow
     }
 } else {
-    Write-Host "  [-] Backup directory C:\var\backups\leatrace does not exist yet." -ForegroundColor Yellow
+    Write-Host "  [-] Backup directory C:\var\backups\LEAtTrace does not exist yet." -ForegroundColor Yellow
 }
 
 Write-Host "=========================================================" -ForegroundColor Cyan

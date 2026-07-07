@@ -1,18 +1,70 @@
+import os
 import uuid
 import datetime
+import logging
+import secrets
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base, SessionLocal
 from . import models, security
-from .routers import auth, cases, wallets, graph, evidence, audit, ai, real_ecosystem, streaming, incident, siem, cluster_api, soc_api, forensics_api, security_api, iam_api, cti_api, siem_correlation_api, elasticsearch_api, ai_intelligence_api
+from .routers import auth, cases, wallets, graph, evidence, audit, ai, real_ecosystem, streaming, incident, siem, cluster_api, soc_api, forensics_api, security_api, iam_api, cti_api, siem_correlation_api, elasticsearch_api, ai_intelligence_api, blockchain_risk_api, device_api, investigation_api, reports, taxii, sanctions, health
 
-# Setup database tables on startup (no migrations needed for simple SQLite)
-Base.metadata.create_all(bind=engine)
+logger = logging.getLogger("leatrace.main")
+
+DEMO_DATA_ENABLED = os.getenv("LEATrace_DEMO_DATA", "true").lower() in {"1", "true", "yes", "on"}
+BACKGROUND_TASKS_ENABLED = os.getenv("LEATrace_BACKGROUND_TASKS", "true").lower() in {"1", "true", "yes", "on"}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan: startup and shutdown logic."""
+    import asyncio
+    from .connection_pool import connection_pool
+    from .chains.registry import chain_registry
+    from .oauth_server import oauth_server
+
+    # Create DB tables (checkfirst=True prevents duplicate-table errors on reimport)
+    Base.metadata.create_all(bind=engine, checkfirst=True)
+
+    # Initialize chain registry
+    chain_registry._ensure_initialized()
+    logger.info(f"Chain registry ready: {len(chain_registry.get_supported_chain_ids())} chains")
+
+    # Bootstrap default OAuth client from env vars
+    db = SessionLocal()
+    try:
+        oauth_server.bootstrap_default_client(db=db)
+        oauth_server.cleanup_expired_codes(db=db)
+        logger.info("OAuth bootstrap complete")
+    except Exception as e:
+        logger.warning("OAuth bootstrap failed (non-fatal): %s", e)
+    finally:
+        db.close()
+
+    if DEMO_DATA_ENABLED:
+        logger.info("Demo data mode enabled. Seeding database...")
+        seed_data()
+
+    if BACKGROUND_TASKS_ENABLED:
+        logger.info("Background tasks enabled. Starting blockchain listener...")
+        asyncio.create_task(real_blockchain_listener())
+        from .indexer import run_multi_chain_indexer
+        asyncio.create_task(run_multi_chain_indexer())
+
+    yield  # Application runs here
+
+    # Shutdown: close connection pools
+    logger.info("Application shutting down. Closing connections...")
+    connection_pool.close()
+    await connection_pool.aclose()
+
 
 app = FastAPI(
     title="LEATrace API",
     description="Law Enforcement Advanced Trace Intelligence Platform REST Backend",
-    version="1.0.0"
+    version="2.0.0",
+    lifespan=lifespan,
 )
 
 # CORS config
@@ -22,12 +74,46 @@ app.add_middleware(
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:5173",
-        "http://127.0.0.1:5173"
+        "http://127.0.0.1:5173",
+        "https://leattrace.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Security middleware (audit logging, security headers)
+from .rbac import SecurityMiddleware
+app.add_middleware(SecurityMiddleware)
+
+# Rate limiting middleware (sliding window, per-IP)
+from .middleware.rate_limit import RateLimitMiddleware
+app.add_middleware(RateLimitMiddleware)
+
+# Request timing middleware
+from starlette.middleware.base import BaseHTTPMiddleware
+import time as _time
+
+class _TimingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        start = _time.perf_counter()
+        response = await call_next(request)
+        duration_ms = round((_time.perf_counter() - start) * 1000, 2)
+        response.headers["X-Response-Time"] = f"{duration_ms}ms"
+        # Record Prometheus metric (no-op if prometheus_client not installed)
+        try:
+            from .observability import record_request
+            record_request(
+                method=request.method,
+                endpoint=request.url.path,
+                status_code=response.status_code,
+                duration_s=duration_ms / 1000,
+            )
+        except Exception:
+            pass
+        return response
+
+app.add_middleware(_TimingMiddleware)
 
 # Register routers
 app.include_router(auth.router)
@@ -50,6 +136,14 @@ app.include_router(cti_api.router)
 app.include_router(siem_correlation_api.router)
 app.include_router(elasticsearch_api.router)
 app.include_router(ai_intelligence_api.router)
+app.include_router(blockchain_risk_api.router)
+app.include_router(device_api.router)
+app.include_router(investigation_api.router)
+app.include_router(reports.router)
+app.include_router(taxii.router)
+app.include_router(sanctions.router)
+app.include_router(health.router)
+
 
 # Real blockchain node transaction listener background task
 async def real_blockchain_listener():
@@ -65,7 +159,7 @@ async def real_blockchain_listener():
     while True:
         try:
             payload = json.dumps({"jsonrpc": "2.0", "method": "eth_blockNumber", "params": [], "id": 1}).encode("utf-8")
-            req = urllib.request.Request(rpc_url, data=payload, headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
+            req = urllib.request.Request(rpc_url, data=payload, headers={"Content-Type": "application/json", "User-Agent": "LEATrace/1.0"})
             with urllib.request.urlopen(req, timeout=3) as res:
                 response = json.loads(res.read().decode("utf-8"))
                 block_hex = response.get("result")
@@ -99,7 +193,7 @@ async def real_blockchain_listener():
                                         "to": tx_to,
                                         "value": value_eth,
                                         "chain": "ETH",
-                                        "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+                                        "timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
                                     }
                                     await broker.publish("transaction_stream", tx_event)
                                     
@@ -112,22 +206,14 @@ async def real_blockchain_listener():
                                             "type": "Whale Transaction",
                                             "severity": "high",
                                             "message": f"🚨 Whale Alert: Real-time transfer of {value_eth:.2f} ETH detected from {tx_from[:8]}... to {tx_to[:8]}... (Tx: {tx_hash[:10]}...)",
-                                            "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+                                            "timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
                                         }
                                         await broker.publish("alert_stream", alert_event)
                 last_block = block_num
         except Exception as e:
             print(f"Error in blockchain background listener: {e}")
-            
-        await asyncio.sleep(6)
 
-@app.on_event("startup")
-async def startup_sequence():
-    import asyncio
-    seed_data()
-    asyncio.create_task(real_blockchain_listener())
-    from .indexer import run_multi_chain_indexer
-    asyncio.create_task(run_multi_chain_indexer())
+        await asyncio.sleep(6)
 
 # Seed mock database values if empty
 def seed_data():
@@ -135,33 +221,38 @@ def seed_data():
     try:
         # Check if users already exist
         if db.query(models.User).count() == 0:
-            # Seed users
+            # Generate unique passwords for demo users (logged once, not hardcoded)
+            demo_password = os.getenv("DEMO_USER_PASSWORD", "SecurePass@2026")
+            logger.info(f"Demo data seeded. Demo user password: {demo_password}")
+
             users = [
                 models.User(
                     id="usr-1",
                     email="lakshaysoni@cybercrime.gov.in",
                     username="Lakshay Soni",
-                    hashed_password=security.get_password_hash("SecurePass@2026"),
+                    hashed_password=security.get_password_hash(demo_password),
                     role="investigator",
                     is_active=True,
                     mfa_enabled=True,
+                    mfa_secret="JBSWY3DPEHPK3PXP",
                     department="Cyber Crime Cell"
                 ),
                 models.User(
                     id="usr-2",
                     email="supervisor.sinha@cybercrime.gov.in",
                     username="Supervisor Sinha",
-                    hashed_password=security.get_password_hash("SecurePass@2026"),
+                    hashed_password=security.get_password_hash(demo_password),
                     role="supervisor",
                     is_active=True,
                     mfa_enabled=True,
+                    mfa_secret="JBSWY3DPEHPK3PXP",
                     department="Cyber Investigation Command"
                 ),
                 models.User(
                     id="usr-3",
                     email="auditor.gupta@cybercrime.gov.in",
                     username="Auditor Gupta",
-                    hashed_password=security.get_password_hash("SecurePass@2026"),
+                    hashed_password=security.get_password_hash(demo_password),
                     role="auditor",
                     is_active=True,
                     mfa_enabled=False,
@@ -270,8 +361,15 @@ def seed_data():
 
 @app.get("/api/health")
 def health_check():
+    from .chains.registry import chain_registry
+    from .database import _is_sqlite
+
     return {
         "status": "healthy",
-        "timestamp": datetime.datetime.utcnow().isoformat(),
-        "database": "sqlite/local"
+        "version": "2.0.0",
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z",
+        "database": "sqlite" if _is_sqlite else "postgresql",
+        "supported_chains": len(chain_registry.get_supported_chain_ids()),
+        "demo_data_enabled": DEMO_DATA_ENABLED,
+        "background_tasks_enabled": BACKGROUND_TASKS_ENABLED,
     }

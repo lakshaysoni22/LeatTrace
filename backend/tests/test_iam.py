@@ -8,26 +8,69 @@ from app.rbac_engine import rbac_engine
 from app.abac_engine import abac_engine
 
 def test_oauth_pkce_validation():
-    # Generate auth code
+    import base64, hashlib, secrets as _secrets
+    from unittest.mock import MagicMock
+
+    # Build a lightweight mock DB that captures add() and commit() calls
+    mock_db = MagicMock()
+    captured_code_obj = {}
+
+    def mock_add(obj):
+        captured_code_obj.update({
+            "code":                 obj.code,
+            "client_id":            obj.client_id,
+            "code_challenge":       obj.code_challenge,
+            "code_challenge_method": obj.code_challenge_method,
+            "expires_at":           obj.expires_at,
+            "used":                 obj.used,
+        })
+    mock_db.add.side_effect = mock_add
+
+    # Generate auth code with PKCE challenge
+    challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
     code = oauth_server.generate_auth_code(
-        client_id="leatrace-frontend",
+        client_id="LEAtTrace-frontend",
         user_id="user_101",
-        code_challenge="E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
-        code_challenge_method="S256"
+        code_challenge=challenge,
+        code_challenge_method="S256",
+        db=mock_db,
     )
-    
-    # Validation with incorrect verifier should fail
-    assert oauth_server.validate_auth_code("auth_code_invalid", "leatrace-frontend") is False
-    assert oauth_server.validate_auth_code(code, "leatrace-frontend", "wrong-verifier") is False
-    
-    # Regenerate code and test with correct verifier (dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk)
-    code = oauth_server.generate_auth_code(
-        client_id="leatrace-frontend",
-        user_id="user_101",
-        code_challenge="E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
-        code_challenge_method="S256"
-    )
-    assert oauth_server.validate_auth_code(code, "leatrace-frontend", "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk") is True
+    assert isinstance(code, str)
+    assert len(code) > 10
+
+    # Validation with incorrect code should fail (not found)
+    mock_db2 = MagicMock()
+    mock_db2.query.return_value.filter.return_value.first.return_value = None
+    assert oauth_server.validate_auth_code("auth_code_invalid", "LEAtTrace-frontend", db=mock_db2) is False
+
+    # Validation with wrong verifier should fail
+    import datetime as _dt
+    from app import models as _models
+    mock_auth_code = MagicMock()
+    mock_auth_code.client_id = "LEAtTrace-frontend"
+    mock_auth_code.expires_at = _dt.datetime.now(_dt.timezone.utc).replace(tzinfo=None) + _dt.timedelta(minutes=5)
+    mock_auth_code.used = False
+    mock_auth_code.code_challenge = challenge
+    mock_auth_code.code_challenge_method = "S256"
+    mock_db3 = MagicMock()
+    mock_db3.query.return_value.filter.return_value.first.return_value = mock_auth_code
+    assert oauth_server.validate_auth_code(code, "LEAtTrace-frontend", code_verifier="wrong-verifier", db=mock_db3) is False
+
+    # Correct verifier: dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk corresponds to E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM
+    mock_db4 = MagicMock()
+    mock_auth_code2 = MagicMock()
+    mock_auth_code2.client_id = "LEAtTrace-frontend"
+    mock_auth_code2.expires_at = _dt.datetime.now(_dt.timezone.utc).replace(tzinfo=None) + _dt.timedelta(minutes=5)
+    mock_auth_code2.used = False
+    mock_auth_code2.code_challenge = challenge
+    mock_auth_code2.code_challenge_method = "S256"
+    mock_db4.query.return_value.filter.return_value.first.return_value = mock_auth_code2
+    assert oauth_server.validate_auth_code(
+        code, "LEAtTrace-frontend",
+        code_verifier="dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+        db=mock_db4,
+    ) is True
+
 
 def test_oidc_discovery_and_claims():
     doc = oidc_provider.get_discovery_document()

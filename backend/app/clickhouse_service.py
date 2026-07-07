@@ -109,4 +109,140 @@ class ClickHouseService:
                 pass
         return []
 
+    def _create_extended_schema(self):
+        """Creates additional analytics tables for blockchain intelligence."""
+        tables = [
+            (
+                "CREATE TABLE IF NOT EXISTS wallet_profiles ("
+                "  address String,"
+                "  chain String,"
+                "  wallet_type String,"
+                "  entity_name String,"
+                "  risk_score Int32,"
+                "  trust_score Int32,"
+                "  total_tx_count Int64,"
+                "  total_volume_eth Float64,"
+                "  mixer_exposure_pct Float64,"
+                "  first_seen DateTime,"
+                "  last_seen DateTime,"
+                "  updated_at DateTime DEFAULT now()"
+                ") ENGINE = ReplacingMergeTree(updated_at) "
+                "ORDER BY (chain, address)"
+            ),
+            (
+                "CREATE TABLE IF NOT EXISTS risk_scores ("
+                "  target_type String,"
+                "  target_id String,"
+                "  chain String,"
+                "  overall_score Int32,"
+                "  mixer_score Int32,"
+                "  sanctions_score Int32,"
+                "  counterparty_score Int32,"
+                "  behavioral_score Int32,"
+                "  fraud_probability Float64,"
+                "  aml_risk Float64,"
+                "  scored_at DateTime DEFAULT now()"
+                ") ENGINE = MergeTree() "
+                "ORDER BY (target_type, target_id, scored_at)"
+            ),
+            (
+                "CREATE TABLE IF NOT EXISTS bridge_events ("
+                "  bridge_name String,"
+                "  bridge_address String,"
+                "  source_chain String,"
+                "  destination_chain String,"
+                "  tx_hash String,"
+                "  user_address String,"
+                "  amount_in Float64,"
+                "  amount_out Float64,"
+                "  timestamp DateTime DEFAULT now()"
+                ") ENGINE = MergeTree() "
+                "ORDER BY (source_chain, destination_chain, timestamp)"
+            ),
+            (
+                "CREATE TABLE IF NOT EXISTS cluster_assignments ("
+                "  address String,"
+                "  cluster_id String,"
+                "  heuristic_type String,"
+                "  confidence Float64,"
+                "  risk_score Int32,"
+                "  assigned_at DateTime DEFAULT now()"
+                ") ENGINE = ReplacingMergeTree(assigned_at) "
+                "ORDER BY (address, cluster_id)"
+            ),
+        ]
+        for tbl in tables:
+            self._execute_query(tbl)
+        print("[CLICKHOUSE] Extended analytics tables verified/created.")
+
+    def insert_risk_score(self, target_type: str, target_id: str, chain: str, scores: dict):
+        """Inserts a risk score record into ClickHouse for historical tracking."""
+        if not self._connected:
+            return
+        query = (
+            "INSERT INTO risk_scores (target_type, target_id, chain, overall_score, mixer_score, "
+            "sanctions_score, counterparty_score, behavioral_score, fraud_probability, aml_risk) VALUES ("
+            f"'{target_type}', '{target_id}', '{chain}', {scores.get('overall', 0)}, {scores.get('mixer', 0)}, "
+            f"{scores.get('sanctions', 0)}, {scores.get('counterparty', 0)}, {scores.get('behavioral', 0)}, "
+            f"{scores.get('fraud', 0.0)}, {scores.get('aml', 0.0)})"
+        )
+        self._execute_query(query)
+
+    def get_risk_history(self, target_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """Gets historical risk scores for a target."""
+        if not self._connected:
+            return []
+        query = (
+            f"SELECT target_type, target_id, overall_score, mixer_score, sanctions_score, "
+            f"fraud_probability, aml_risk, scored_at "
+            f"FROM risk_scores WHERE target_id = '{target_id}' "
+            f"ORDER BY scored_at DESC LIMIT {limit} FORMAT JSON"
+        )
+        res = self._execute_query(query)
+        if res:
+            try:
+                return json.loads(res).get("data", [])
+            except Exception:
+                pass
+        return []
+
+    def get_bridge_analytics(self, chain: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Gets bridge event analytics summary."""
+        if not self._connected:
+            return []
+        where = f"WHERE source_chain = '{chain}' OR destination_chain = '{chain}'" if chain else ""
+        query = (
+            f"SELECT bridge_name, source_chain, destination_chain, "
+            f"count() as event_count, sum(amount_in) as total_volume "
+            f"FROM bridge_events {where} "
+            f"GROUP BY bridge_name, source_chain, destination_chain "
+            f"ORDER BY total_volume DESC LIMIT 20 FORMAT JSON"
+        )
+        res = self._execute_query(query)
+        if res:
+            try:
+                return json.loads(res).get("data", [])
+            except Exception:
+                pass
+        return []
+
+    def get_warehouse_statistics(self) -> Dict[str, Any]:
+        """Returns ClickHouse warehouse statistics."""
+        if not self._connected:
+            return {"status": "offline"}
+        stats = {}
+        for table in ["indexed_transactions", "wallet_profiles", "risk_scores", "bridge_events", "cluster_assignments"]:
+            res = self._execute_query(f"SELECT count() as cnt FROM {table} FORMAT JSON")
+            if res:
+                try:
+                    data = json.loads(res).get("data", [])
+                    stats[table] = int(data[0]["cnt"]) if data else 0
+                except Exception:
+                    stats[table] = 0
+            else:
+                stats[table] = 0
+        stats["status"] = "connected"
+        return stats
+
+
 clickhouse_warehouse = ClickHouseService()

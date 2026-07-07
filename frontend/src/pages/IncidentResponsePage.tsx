@@ -4,6 +4,7 @@ import {
   Terminal, Shield, FileText, CheckCircle, Clock, Zap 
 } from 'lucide-react';
 import { useAlertStore, useCaseStore, useWatchlistStore } from '../stores';
+import { API_BASE } from '../utils/api';
 
 interface PrioritizedCase {
   id: string;
@@ -48,7 +49,7 @@ export const IncidentResponsePage: React.FC = () => {
   // Fetch threat dashboard data with mock fallback
   const fetchThreatData = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/incident/threats', {
+      const response = await fetch(`${API_BASE}/api/incident/threats`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
         }
@@ -165,7 +166,7 @@ export const IncidentResponsePage: React.FC = () => {
   // Call automated alert escalation endpoint
   const triggerAutoEscalation = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/incident/escalate', {
+      const response = await fetch(`${API_BASE}/api/incident/escalate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
@@ -201,10 +202,10 @@ export const IncidentResponsePage: React.FC = () => {
   const runRecalibration = async () => {
     setIsCalibrating(true);
     // Simulate slight loading delay for UX premium feel
-    await new Promise(r => setTimeout(r, 1200));
+    await new Promise(r => setTimeout(r, 50));
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/incident/prioritize-cases', {
+      const response = await fetch(`${API_BASE}/api/incident/prioritize-cases`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
@@ -253,10 +254,10 @@ export const IncidentResponsePage: React.FC = () => {
     if (!lockAddress) return;
     
     setIsLocking(true);
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 50));
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/incident/emergency-lockdown', {
+      const response = await fetch(`${API_BASE}/api/incident/emergency-lockdown`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -283,7 +284,7 @@ export const IncidentResponsePage: React.FC = () => {
 
     // Local fallback
     addEntry({
-      id: `wtl-${Math.random().toString(36).substr(2, 7)}`,
+      id: `wtl-${crypto.randomUUID().substring(0, 8)}`,
       address: lockAddress,
       chain: lockChain,
       alias: `LOCKED: ${lockAddress.substring(0, 8)}...`,

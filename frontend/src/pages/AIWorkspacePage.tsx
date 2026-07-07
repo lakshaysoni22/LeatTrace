@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuthStore, useBlockchainStore, useCaseStore } from '../stores';
 import { 
   MessageSquare, Send, Sparkles, AlertTriangle, ShieldCheck, Clock, 
   ListTodo, Activity, FileText, CheckCircle2, ChevronRight, Bookmark, Database, LayoutGrid, Info, Globe
 } from 'lucide-react';
 import { getRiskColor } from '../utils/helpers';
-import { mockTimeline, mockEvidence } from '../data/mockData';
+import { API_BASE } from '../utils/api';
+import type { Evidence, TimelineEntry } from '../types';
 
 export const AIWorkspacePage: React.FC = () => {
   const { user } = useAuthStore();
   const { searchAddress } = useBlockchainStore();
-  const { selectedCase } = useCaseStore();
+  const { selectedCase, cases } = useCaseStore();
 
   // Left panel active context mode
   const [contextMode, setContextMode] = useState<'investigation' | 'wallet' | 'transaction' | 'evidence' | 'timeline' | 'report'>('investigation');
@@ -34,6 +35,8 @@ I can assist with summarizing investigations, drafting reports, and cross-refere
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[]>([]);
+  const [evidenceItems, setEvidenceItems] = useState<Evidence[]>([]);
 
   // Saved investigations (Left Panel)
   const savedChats = [
@@ -74,6 +77,64 @@ I can assist with summarizing investigations, drafting reports, and cross-refere
     { label: 'Audit Log Dispatch & Verification', status: 'pending' }
   ]);
 
+  useEffect(() => {
+    const targetCaseId = selectedCase?.id || cases[0]?.id;
+    if (!targetCaseId) return;
+
+    const controller = new AbortController();
+    const token = localStorage.getItem('token');
+
+    const loadWorkspaceData = async () => {
+      try {
+        const [auditResponse, evidenceResponse] = await Promise.all([
+          fetch(`${API_BASE}/api/audit/logs`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            signal: controller.signal,
+          }),
+          fetch(`${API_BASE}/api/evidence/case/${targetCaseId}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            signal: controller.signal,
+          }),
+        ]);
+
+        if (auditResponse.ok) {
+          const auditData = await auditResponse.json();
+          setTimelineEntries((auditData || []).slice(0, 5).map((entry: any, index: number) => ({
+            id: entry.id || `audit-${index}`,
+            type: entry.status === 'failure' ? 'alert' : 'case',
+            title: entry.action || 'Audit event',
+            description: `Recorded by ${entry.username || 'system'} in the investigation ledger.`,
+            timestamp: entry.created_at || entry.timestamp || new Date().toISOString(),
+            user: entry.username || 'system',
+            caseRef: entry.case_ref || undefined,
+          })));
+        }
+
+        if (evidenceResponse.ok) {
+          const evidenceData = await evidenceResponse.json();
+          setEvidenceItems((evidenceData || []).map((item: any) => ({
+            id: item.id,
+            caseId: item.case_id,
+            filename: item.filename,
+            fileHash: item.file_hash,
+            fileSize: item.file_size ? `${item.file_size} bytes` : 'Unknown size',
+            uploadedBy: item.uploaded_by,
+            uploadTime: item.upload_time,
+            description: item.description,
+            fileName: item.filename,
+            downloadUrl: '#',
+          })) as Evidence[]);
+        }
+      } catch (err) {
+        console.error('Workspace data load failed:', err);
+      }
+    };
+
+    void loadWorkspaceData();
+
+    return () => controller.abort();
+  }, [selectedCase?.id, cases]);
+
   const triggerSOISLoop = async () => {
     setIsRunningSOIS(true);
     setSoisStepIndex(0);
@@ -82,7 +143,7 @@ I can assist with summarizing investigations, drafting reports, and cross-refere
     for (let step = 0; step < 5; step++) {
       setSoisStepIndex(step);
       setSoisSteps(prev => prev.map((s, i) => i === step ? { ...s, status: 'running' } : s));
-      await new Promise(r => setTimeout(r, 650));
+      await new Promise(r => setTimeout(r, 50));
       setSoisSteps(prev => prev.map((s, i) => i === step ? { ...s, status: 'completed' } : s));
     }
 
@@ -104,7 +165,7 @@ I can assist with summarizing investigations, drafting reports, and cross-refere
     setTimeout(() => {
       setIsRunningSOIS(false);
       setSoisStepIndex(-1);
-    }, 4000);
+    }, 500);
   };
 
   const [isRunningQuantum, setIsRunningQuantum] = useState(false);
@@ -123,7 +184,7 @@ I can assist with summarizing investigations, drafting reports, and cross-refere
       }
     ]);
 
-    await new Promise(r => setTimeout(r, 1200));
+    await new Promise(r => setTimeout(r, 50));
 
     setChatLog(prev => [
       ...prev,
@@ -137,7 +198,7 @@ I can assist with summarizing investigations, drafting reports, and cross-refere
       }
     ]);
 
-    await new Promise(r => setTimeout(r, 1200));
+    await new Promise(r => setTimeout(r, 50));
 
     setChatLog(prev => [
       ...prev,
@@ -163,7 +224,7 @@ I can assist with summarizing investigations, drafting reports, and cross-refere
     setIsTyping(true);
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/ai/chat', {
+      const res = await fetch(`${API_BASE}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,7 +246,7 @@ I can assist with summarizing investigations, drafting reports, and cross-refere
     } catch (e) {
       console.log('Assistant endpoint failed, running offline fallback response heuristics:', e);
       // Simulate Streaming response delay
-      await new Promise((r) => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 50));
 
       let reply = '';
       const msgLower = userMsg.toLowerCase();
@@ -451,7 +512,7 @@ I can assist with summarizing investigations, drafting reports, and cross-refere
               <div className="space-y-4 text-xs">
                 <span className="text-[10px] font-bold text-dark-400 uppercase tracking-wider block">Unified Case Milestones</span>
                 <div className="relative border-l border-dark-800 pl-4 space-y-4 ml-2">
-                  {mockTimeline.map((item) => (
+                  {timelineEntries.map((item) => (
                     <div key={item.id} className="relative text-xs">
                       <div className="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-dark-900 border-2 border-primary-500" />
                       <span className="text-[10px] text-dark-500">{new Date(item.timestamp).toLocaleDateString('en-IN')}</span>
@@ -467,7 +528,7 @@ I can assist with summarizing investigations, drafting reports, and cross-refere
               <div className="space-y-4 text-xs">
                 <span className="text-[10px] font-bold text-dark-400 uppercase tracking-wider block">Indexed Evidence Integrity Seals</span>
                 <div className="space-y-2">
-                  {mockEvidence.map((item) => (
+                  {evidenceItems.map((item) => (
                     <div key={item.id} className="p-3 bg-dark-800/40 border border-dark-700/30 rounded-lg flex items-center justify-between">
                       <div>
                         <span className="font-semibold text-white block">{item.title}</span>
@@ -739,7 +800,7 @@ I can assist with summarizing investigations, drafting reports, and cross-refere
 
           {/* SOIS Autonomous Execution Controls */}
           <div className="space-y-3 pb-4 border-b border-dark-700/50 text-xs">
-            <span className="text-[10px] font-bold text-dark-300 uppercase tracking-wider block flex items-center gap-1.5 text-primary-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 text-primary-400">
               <Database size={14} />
               SOIS Autonomous Execution
             </span>
@@ -800,7 +861,7 @@ I can assist with summarizing investigations, drafting reports, and cross-refere
 
           {/* Evidence Gaps recommendations */}
           <div className="space-y-3 pb-4 border-b border-dark-700/50 text-xs">
-            <span className="text-[10px] font-bold text-dark-300 uppercase tracking-wider block flex items-center gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
               <AlertTriangle size={14} className="text-accent-gold" />
               Evidence Gap Recommendations
             </span>
@@ -815,7 +876,7 @@ I can assist with summarizing investigations, drafting reports, and cross-refere
 
           {/* Suggested Followups */}
           <div className="space-y-3 text-xs">
-            <span className="text-[10px] font-bold text-dark-300 uppercase tracking-wider block flex items-center gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
               <ListTodo size={14} className="text-primary-400" />
               Suggested Work Queue
             </span>

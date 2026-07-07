@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCaseStore } from '../stores';
-import { FileText, FileDown, CheckCircle2, ShieldAlert, FileCheck, ArrowRight, Loader2 } from 'lucide-react';
+import { FileText, FileDown, CheckCircle2, ShieldAlert, FileCheck, ArrowRight, Loader2, WifiOff } from 'lucide-react';
 import { formatDate } from '../utils/helpers';
+import { apiGet, apiPost } from '../utils/api';
 
 interface GeneratedReport {
   id: string;
@@ -28,63 +29,47 @@ export const ReportsPage: React.FC = () => {
     }
   }, [selectedCase]);
   
-  const [reports, setReports] = useState<GeneratedReport[]>([
-    {
-      id: 'rep-01',
-      caseNumber: 'CC-2026-0847',
-      caseTitle: 'Crypto Ponzi Scheme — GainChain Network',
-      title: 'GainChain Hop-3 Layering Audit Dossier',
-      generatedAt: '2026-06-18T10:00:00Z',
-      fileSize: '342 KB',
-      status: 'available'
-    },
-    {
-      id: 'rep-02',
-      caseNumber: 'CC-2025-1102',
-      caseTitle: 'Phishing Wallet Cluster Analysis',
-      title: 'Final Investigative Report to Court',
-      generatedAt: '2026-02-28T17:00:00Z',
-      fileSize: '1.2 MB',
-      status: 'available'
-    }
-  ]);
+  const [reports, setReports] = useState<GeneratedReport[]>([]);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Load existing reports from backend
+  useEffect(() => {
+    apiGet<GeneratedReport[]>('/api/reports')
+      .then(data => setReports(Array.isArray(data) ? data : []))
+      .catch(() => setFetchError('Report service unavailable.'));
+  }, []);
 
   const handleGenerateReport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reportTitle.trim()) return;
 
+    const selectedCaseObj = cases.find(c => c.id === targetCaseId) || cases[0];
+    if (!selectedCaseObj) {
+      alert('Select a case before generating a report.');
+      return;
+    }
+
     setIsGenerating(true);
-    setGenerationStep('Extracting transaction flow graphs...');
-    await new Promise((r) => setTimeout(r, 1000));
-    
-    setGenerationStep('Compiling heuristics risk indicators...');
-    await new Promise((r) => setTimeout(r, 800));
-    
-    setGenerationStep('Generating cryptographical file signature...');
-    await new Promise((r) => setTimeout(r, 800));
+    setGenerationStep('Submitting report generation request...');
 
-    const selectedCaseObj = cases.find((c) => c.id === targetCaseId) || cases[0];
-    
-    const newReport: GeneratedReport = {
-      id: `rep-${Math.random().toString(36).substr(2, 7)}`,
-      caseNumber: selectedCaseObj.caseNumber,
-      caseTitle: selectedCaseObj.title,
-      title: reportTitle.trim(),
-      generatedAt: new Date().toISOString(),
-      fileSize: '142 KB',
-      status: 'available'
-    };
+    try {
+      const created = await apiPost<GeneratedReport>('/api/reports', {
+        case_id:    selectedCaseObj.id,
+        title:      reportTitle.trim(),
+        summary:    summary.trim(),
+        conclusions: conclusions.trim(),
+      });
 
-    setReports((prev) => [newReport, ...prev]);
-    setIsGenerating(false);
-    
-    // Reset fields
-    setReportTitle('');
-    setSummary('');
-    setConclusions('');
-
-    // Trigger alert or state update
-    alert('Investigative Report Dossier compiled and persisted successfully to Evidence Locker.');
+      setReports(prev => [created, ...prev]);
+      setGenerationStep('Report generated successfully.');
+      setReportTitle('');
+      setSummary('');
+      setConclusions('');
+    } catch (err) {
+      setGenerationStep('Report generation failed. Check backend connectivity.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (

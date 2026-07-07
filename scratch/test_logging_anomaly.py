@@ -49,7 +49,7 @@ def test_anomaly_system():
 
     # 5. Check SIEM log file
     print("\n[Test 5] Inspecting local SIEM log file...")
-    siem_path = os.path.join(os.path.dirname(__file__), "..", "backend", "app", "logs", "leatrace_siem.log")
+    siem_path = os.path.join(os.path.dirname(__file__), "..", "backend", "app", "logs", "LEAtTrace_siem.log")
     if os.path.exists(siem_path):
         print("SIEM Log File Exists. Last 2 entries:")
         with open(siem_path, "r") as f:

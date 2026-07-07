@@ -1,6 +1,6 @@
-# LEATrace Enterprise Operations & Infrastructure Manual
+# LEAtTrace Enterprise Operations & Infrastructure Manual
 
-Welcome to the LEATrace Operations Manual. This guide details cloud provisioning, local deployment profiles, GitHub repository setups, and disaster recovery processes.
+Welcome to the LEAtTrace Operations Manual. This guide details cloud provisioning, local deployment profiles, GitHub repository setups, and disaster recovery processes.
 
 ---
 
@@ -30,13 +30,13 @@ Welcome to the LEATrace Operations Manual. This guide details cloud provisioning
 ## 🌐 2. GitHub Migration & Vercel Deployment Guide
 
 ### GitHub Onboarding
-1. Create a PRIVATE repository named `LEATrace` on your GitHub account.
+1. Create a PRIVATE repository named `LEAtTrace` on your GitHub account.
 2. Initialize and push files:
    ```bash
    git init -b main
    git add .
    git commit -m "feat: initial enterprise release"
-   git remote add origin https://github.com/YOUR_USERNAME/LEATrace.git
+   git remote add origin https://github.com/YOUR_USERNAME/LEAtTrace.git
    git push -u origin main
    ```
 
@@ -48,8 +48,8 @@ Welcome to the LEATrace Operations Manual. This guide details cloud provisioning
    vercel --cwd frontend
    ```
 2. Configure environment overrides:
-   * `VITE_API_URL`: Points to your backend API gateway (`https://api.leatrace.cybercrime.gov.in`).
-   * `VITE_WS_URL`: Points to the WebSocket alert streaming URL (`wss://api.leatrace.cybercrime.gov.in/api/streaming`).
+   * `VITE_API_URL`: Points to your backend API gateway (`https://api.LEAtTrace.cybercrime.gov.in`).
+   * `VITE_WS_URL`: Points to the WebSocket alert streaming URL (`wss://api.LEAtTrace.cybercrime.gov.in/api/streaming`).
 
 ---
 
@@ -72,7 +72,7 @@ Deploy AWS networking structures, EKS nodes, and multi-AZ databases:
 
 The NGINX reverse proxy automates SSL/TLS based on your domain profiles:
 * **Localhost / 127.0.0.1**: The setup script automatically issues self-signed TLS certificates and places them in `devops/nginx/certs/`.
-* **Public Domain**: When the `LEATRACE_DOMAIN` environment variable is defined with a public domain, the setup script executes Certbot challenge runs to verify domain ownership and downloads Let's Encrypt certificates.
+* **Public Domain**: When the `LEAtTrace_DOMAIN` environment variable is defined with a public domain, the setup script executes Certbot challenge runs to verify domain ownership and downloads Let's Encrypt certificates.
 
 ---
 
@@ -81,7 +81,7 @@ The NGINX reverse proxy automates SSL/TLS based on your domain profiles:
 Deploy raw manifests to standard clusters:
 1. Helm deployment target command:
    ```bash
-   helm upgrade --install leatrace-deployment ./devops/kubernetes/helm-chart -n leatrace-prod
+   helm upgrade --install LEAtTrace-deployment ./devops/kubernetes/helm-chart -n LEAtTrace-prod
    ```
 2. Dynamic Horizontal Pod Autoscaling (HPA) rules scale backend pods from 3 to 10 replicas if CPU utilization exceeds 75%.
 
@@ -90,7 +90,7 @@ Deploy raw manifests to standard clusters:
 ## 💾 6. Disaster Recovery Runbook
 
 ### Running Automated Backups
-Run the backup sequence to save SQLite data, ClickHouse tables, and Neo4j graphs to `C:\var\backups\leatrace\`:
+Run the backup sequence to save SQLite data, ClickHouse tables, and Neo4j graphs to `C:\var\backups\LEAtTrace\`:
 ```bash
 make backup
 ```

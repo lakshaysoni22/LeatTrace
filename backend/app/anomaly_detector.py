@@ -9,7 +9,7 @@ async def detect_login_brute_force(db: Session, username: str, ip_address: str, 
     Checks recent audit logs to detect brute-force attempts.
     If more than 3 failed attempts are recorded in the last 5 minutes, raises a critical anomaly alert.
     """
-    five_minutes_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=5)
+    five_minutes_ago = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(minutes=5)
     
     # Query failed logins for this user in last 5 minutes
     failed_attempts = db.query(models.AuditLog).filter(
@@ -56,7 +56,7 @@ async def detect_login_brute_force(db: Session, username: str, ip_address: str, 
             "type": "brute_force_attack",
             "severity": "critical",
             "message": alert_msg,
-            "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
         }
         await broker.publish("alert_stream", alert_event)
         
@@ -110,7 +110,7 @@ async def detect_session_hijacking(db: Session, session_id: str, current_ip: str
             "type": "session_hijack",
             "severity": "critical",
             "message": alert_msg,
-            "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
         }
         await broker.publish("alert_stream", alert_event)
         return True
@@ -150,6 +150,6 @@ def calculate_fraud_probability(address: str, base_score: int, sanctions_status:
         "fraud_probability_percent": total_score,
         "risk_classification": profile_rating,
         "behavioral_anomalies": anomaly_indicators,
-        "assessment_timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+        "assessment_timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
     }
 

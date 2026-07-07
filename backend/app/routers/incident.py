@@ -127,7 +127,7 @@ async def trigger_escalation(db: Session = Depends(get_db), current_user: models
             "type": "escalation",
             "severity": "critical",
             "message": esc_message,
-            "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
         }
         await broker.publish("alert_stream", esc_event)
 
@@ -174,7 +174,7 @@ def run_case_prioritizer(db: Session = Depends(get_db), current_user: models.Use
 
         if c.priority != new_priority:
             c.priority = new_priority
-            c.updated_at = datetime.datetime.utcnow()
+            c.updated_at = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
             updated_count += 1
             
             # Log adjustment
@@ -243,7 +243,7 @@ async def trigger_emergency_lockdown(req: LockdownRequest, db: Session = Depends
         "type": "lockdown",
         "severity": "critical",
         "message": lockdown_msg,
-        "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
     }
     await broker.publish("alert_stream", lockdown_event)
 

@@ -5,7 +5,7 @@ import datetime
 
 # Directory for secure SIEM audit files
 LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
-SIEM_LOG_PATH = os.path.join(LOG_DIR, "leatrace_siem.log")
+SIEM_LOG_PATH = os.path.join(LOG_DIR, "LEAtTrace_siem.log")
 
 # Ensure secure directory exists
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -25,7 +25,7 @@ def log_security_event(
     emits standard CEF syslog signals to stdout.
     """
     event_id = f"evt_{uuid.uuid4().hex[:8]}"
-    timestamp = datetime.datetime.utcnow().isoformat() + "Z"
+    timestamp = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
     
     # 1. Construct JSON log record
     log_record = {
@@ -54,7 +54,7 @@ def log_security_event(
     cef_sev = cef_severity_mapping.get(severity.upper(), 5)
     
     cef_string = (
-        f"CEF:0|LEATrace|LEATrace-X|1.0.0|{status.upper()}|{action}|{cef_sev}|"
+        f"CEF:0|LEAtTrace|LEAtTrace-X|1.0.0|{status.upper()}|{action}|{cef_sev}|"
         f"suser={username} src={ip_address} msg={action} outcome={status}"
     )
     

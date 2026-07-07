@@ -5,7 +5,7 @@ def test_elasticsearch_cluster_health():
     health = es_client.get_cluster_health()
     assert health["status"] == "green"
     assert health["number_of_nodes"] == 3
-    assert health["cluster_name"] == "leatrace-siem-cluster"
+    assert health["cluster_name"] == "LEAtTrace-siem-cluster"
 
 def test_index_template_registration():
     mapping = {

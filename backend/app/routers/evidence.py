@@ -61,7 +61,7 @@ async def upload_evidence(
     db.refresh(new_evidence)
 
     # Blockchain-style Chain of Custody (Initial block)
-    timestamp = datetime.datetime.utcnow()
+    timestamp = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     initial_log_id = f"cust_{uuid.uuid4().hex[:7]}"
     raw_hash_data = f"0_{new_evidence.id}_UPLOADED_{timestamp.isoformat()}_{current_user.username}"
     hash_signature = security.calculate_sha256(raw_hash_data.encode('utf-8'))
@@ -163,7 +163,7 @@ def transfer_custody(
     ).order_by(models.ChainOfCustody.timestamp.desc()).first()
 
     prev_hash = last_block.hash_signature if last_block else "0"
-    timestamp = datetime.datetime.utcnow()
+    timestamp = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
 
     # Calculate linked hash
     raw_hash_data = f"{prev_hash}_{evidence_id}_TRANSFERRED_{timestamp.isoformat()}_{current_user.username}_{recipient}"
@@ -233,7 +233,7 @@ def seal_evidence(
     ).order_by(models.ChainOfCustody.timestamp.desc()).first()
 
     prev_hash = last_block.hash_signature if last_block else "0"
-    timestamp = datetime.datetime.utcnow()
+    timestamp = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     raw_hash_data = f"{prev_hash}_{evidence_id}_SEALED_{timestamp.isoformat()}_{current_user.username}"
     hash_signature = security.calculate_sha256(raw_hash_data.encode('utf-8'))
 
@@ -360,6 +360,6 @@ def export_court_admissibility_certificate(
         ],
         "certification_clause": "I hereby certify that the computer system / secure electronic vault described above was operating properly and under my lawful control at the time of evidence ingestion. The cryptographical hash and signatures verify that the electronic record has not been tampered with or modified since its preservation.",
         "certified_by": signature.signer_name if signature else current_user.username,
-        "certified_date": datetime.datetime.utcnow().date().isoformat()
+        "certified_date": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).date().isoformat()
     }
     return certificate
