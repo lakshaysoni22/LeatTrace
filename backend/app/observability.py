@@ -107,7 +107,66 @@ try:
         registry=REGISTRY,
     )
 
-    logger.info("Prometheus metrics enabled")
+    # ── Threat Intelligence Metrics ──
+
+    TI_IOCS_TOTAL = Gauge(
+        "leatrace_ti_iocs_total",
+        "Total IOCs in the database by type and status",
+        ["ioc_type", "status"],
+        registry=REGISTRY,
+    )
+    TI_SYNC_TOTAL = Counter(
+        "leatrace_ti_sync_total",
+        "Total TI sync operations by provider and status",
+        ["provider", "status"],
+        registry=REGISTRY,
+    )
+    TI_SYNC_DURATION = Histogram(
+        "leatrace_ti_sync_duration_seconds",
+        "TI provider sync duration in seconds",
+        ["provider"],
+        buckets=[1.0, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0],
+        registry=REGISTRY,
+    )
+    TI_ENRICHMENT_TOTAL = Counter(
+        "leatrace_ti_enrichment_total",
+        "Total IOC enrichment operations by type",
+        ["enrichment_type", "status"],
+        registry=REGISTRY,
+    )
+    TI_ENRICHMENT_DURATION = Histogram(
+        "leatrace_ti_enrichment_duration_seconds",
+        "IOC enrichment duration in seconds",
+        ["enrichment_type"],
+        buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0],
+        registry=REGISTRY,
+    )
+    TI_PROVIDER_HEALTH = Gauge(
+        "leatrace_ti_provider_health",
+        "TI provider health status (1=healthy, 0=unhealthy)",
+        ["provider"],
+        registry=REGISTRY,
+    )
+    TI_CONFIDENCE_DISTRIBUTION = Histogram(
+        "leatrace_ti_confidence_distribution",
+        "Distribution of IOC confidence scores",
+        buckets=[10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+        registry=REGISTRY,
+    )
+    TI_FEED_PRIORITY = Gauge(
+        "leatrace_ti_feed_priority_score",
+        "Feed priority composite score by provider",
+        ["provider"],
+        registry=REGISTRY,
+    )
+    TI_OBJECTS_INGESTED = Counter(
+        "leatrace_ti_objects_ingested_total",
+        "Total STIX objects ingested by type and source",
+        ["stix_type", "source"],
+        registry=REGISTRY,
+    )
+
+    logger.info("Prometheus metrics enabled (including TI metrics)")
 
 except ImportError:
     logger.info(

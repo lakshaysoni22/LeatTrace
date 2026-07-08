@@ -342,7 +342,7 @@ class ThreatFeedScheduler:
         self.last_sync_time = time.time()
         results = []
 
-        for source_config in self._sources:
+        for source_config in self._get_sources():
             provider_type = source_config.get("type", "").upper()
             url = source_config.get("url") or PROVIDER_ENDPOINTS.get(provider_type)
 

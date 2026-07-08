@@ -8,7 +8,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base, SessionLocal
 from . import models, security
-from .routers import auth, cases, wallets, graph, evidence, audit, ai, real_ecosystem, streaming, incident, siem, cluster_api, soc_api, forensics_api, security_api, iam_api, cti_api, siem_correlation_api, elasticsearch_api, ai_intelligence_api, blockchain_risk_api, device_api, investigation_api, reports, taxii, sanctions, health
+from .routers import auth, cases, wallets, graph, evidence, audit, ai, real_ecosystem, streaming, incident, siem, cluster_api, soc_api, forensics_api, security_api, iam_api, cti_api, siem_correlation_api, elasticsearch_api, ai_intelligence_api, blockchain_risk_api, device_api, investigation_api, reports, taxii, sanctions, health, threat_intel_api
 
 logger = logging.getLogger("leatrace.main")
 
@@ -23,6 +23,9 @@ async def lifespan(app: FastAPI):
     from .connection_pool import connection_pool
     from .chains.registry import chain_registry
     from .oauth_server import oauth_server
+
+    # Import stix_models so all STIX/IOC/TI tables are registered with Base
+    from . import stix_models  # noqa: F401
 
     # Create DB tables (checkfirst=True prevents duplicate-table errors on reimport)
     Base.metadata.create_all(bind=engine, checkfirst=True)
@@ -41,6 +44,10 @@ async def lifespan(app: FastAPI):
         logger.warning("OAuth bootstrap failed (non-fatal): %s", e)
     finally:
         db.close()
+
+    # ── Register Threat Intelligence Providers ──
+    _register_ti_providers()
+    logger.info("Threat Intelligence providers registered")
 
     if DEMO_DATA_ENABLED:
         logger.info("Demo data mode enabled. Seeding database...")
@@ -143,6 +150,34 @@ app.include_router(reports.router)
 app.include_router(taxii.router)
 app.include_router(sanctions.router)
 app.include_router(health.router)
+app.include_router(threat_intel_api.router)
+
+
+# ─── Threat Intelligence Provider Registration ───────────────────────────────
+
+def _register_ti_providers():
+    """Registers all TI providers with the provider manager."""
+    from .threat_intel.provider_manager import provider_manager
+    from .threat_intel.providers.taxii_provider import TAXIIProvider
+    from .threat_intel.providers.sanctions_provider import SanctionsProvider
+    from .threat_intel.providers.mitre_attack_provider import MITREAttackProvider
+
+    provider_manager.register_provider(TAXIIProvider(
+        name="taxii_default",
+        priority=40,
+    ))
+    provider_manager.register_provider(SanctionsProvider(
+        name="sanctions_default",
+        priority=30,
+    ))
+    provider_manager.register_provider(MITREAttackProvider(
+        name="mitre_attack",
+        priority=20,
+    ))
+    logger.info(
+        "TI providers registered: %s",
+        [p.name for p in provider_manager.registry.get_all()],
+    )
 
 
 # Real blockchain node transaction listener background task

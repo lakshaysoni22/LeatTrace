@@ -49,3 +49,5 @@ htmlcov/
 *.pem
 /backend/app/logs/
 docker/nginx/certs/
+*.db-journal
+
