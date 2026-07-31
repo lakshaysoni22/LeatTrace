@@ -107,20 +107,25 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         sessionStorage.setItem('token', data.access_token);
         sessionStorage.setItem('refresh_token', data.refresh_token);
         sessionStorage.setItem('user', JSON.stringify(loggedUser));
-        set({ 
-          user: loggedUser, 
-          isAuthenticated: true, 
-          mfaPendingUser: null, 
-          tempMfaToken: null 
-        });
-        return true;
       }
     } catch {
       clearTimeout(timer);
     }
 
-    // --- INSTANT RESILIENT FALLBACK FOR VERCEL DEPLOYMENTS ---
-    if (cleanEmail || isOAuth) {
+    // Validate credentials for Vercel / offline / static mode
+    if (isOAuth) {
+      set({
+        mfaPendingUser: mockUser,
+        tempMfaToken: "mock-mfa-token-xyz"
+      });
+      return true;
+    }
+
+    // Require valid preset credentials or official government officer email format
+    const isValidPreset = (cleanEmail.toLowerCase() === 'lakshaysoni@cybercrime.gov.in' && cleanPassword === 'SecurePass@2026');
+    const isGovDomain = cleanEmail.includes('@') && ['cybercrime.gov.in', 'cbi.gov.in', 'i4c.gov.in', 'police.gov.in', 'gov.in'].some(domain => cleanEmail.toLowerCase().endsWith(domain)) && cleanPassword.length >= 6;
+
+    if (isValidPreset || isGovDomain) {
       set({
         mfaPendingUser: mockUser,
         tempMfaToken: "mock-mfa-token-xyz"

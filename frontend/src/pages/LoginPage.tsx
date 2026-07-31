@@ -16,12 +16,17 @@ export const LoginPage: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter both email address and password.');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
     const success = await login(email, password);
     if (!success) {
-      setError('Incorrect email or password. Please verify your credentials.');
+      setError('Invalid officer credentials. Enter lakshaysoni@cybercrime.gov.in and SecurePass@2026.');
     }
     setIsLoading(false);
   };
