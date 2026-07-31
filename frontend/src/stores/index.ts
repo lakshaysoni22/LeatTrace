@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { User, Case, Alert, WatchlistEntry } from '../types';
 import { API_BASE } from '../utils/api';
+import { useInvestigationStore } from './investigation';
 
 // Auth Store
 interface AuthStore {
@@ -337,6 +338,12 @@ interface BlockchainStore {
 export const useBlockchainStore = create<BlockchainStore>((set) => ({
   searchAddress: '',
   isAnalyzing: false,
-  setSearchAddress: (addr) => set({ searchAddress: addr }),
+  setSearchAddress: (addr) => {
+    const clean = addr.trim();
+    set({ searchAddress: clean });
+    if (clean) {
+      void useInvestigationStore.getState().setActiveTarget(clean);
+    }
+  },
   setAnalyzing: (v) => set({ isAnalyzing: v }),
 }));
