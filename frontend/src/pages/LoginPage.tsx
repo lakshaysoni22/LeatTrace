@@ -83,13 +83,18 @@ export const LoginPage: React.FC = () => {
   };
 
   const handleVerifyCode = async (codeToVerify?: string) => {
-    const code = codeToVerify || otpDigits.join('');
+    const code = (codeToVerify !== undefined ? codeToVerify : otpDigits.join('')).trim();
+    if (!code || code.length < 6) {
+      setError('Please enter the full 6-digit OTP code (123456).');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
-    const success = await verifyMFA(code || '123456');
+    const success = await verifyMFA(code);
     if (!success) {
-      setError('Invalid 6-digit verification code. Enter 123456 to authorize.');
+      setError('Invalid 6-digit verification code. Please enter 123456.');
     }
     setIsLoading(false);
   };

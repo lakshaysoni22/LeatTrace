@@ -131,26 +131,30 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     return false;
   },
   verifyMFA: async (code: string) => {
+    const cleanCode = code.trim();
     const pending = get().mfaPendingUser;
     const tempToken = get().tempMfaToken;
-    
-    if (pending) {
-      // Mock validation path or 123456 code or direct verify
-      if (tempToken === "mock-mfa-token-xyz" || !tempToken || code === "123456" || code.length >= 4) {
-        sessionStorage.setItem('token', 'mock-jwt-token-access');
-        sessionStorage.setItem('refresh_token', 'mock-jwt-token-refresh');
-        sessionStorage.setItem('user', JSON.stringify(pending));
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        set({
-          user: pending,
-          isAuthenticated: true,
-          mfaPendingUser: null,
-          tempMfaToken: null
-        });
-        return true;
-      }
 
+    if (!pending) return false;
+
+    // Strict validation: OTP must match '123456'
+    if (cleanCode === "123456") {
+      sessionStorage.setItem('token', 'mock-jwt-token-access');
+      sessionStorage.setItem('refresh_token', 'mock-jwt-token-refresh');
+      sessionStorage.setItem('user', JSON.stringify(pending));
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      set({
+        user: pending,
+        isAuthenticated: true,
+        mfaPendingUser: null,
+        tempMfaToken: null
+      });
+      return true;
+    }
+
+    // Backend verification path if real token present
+    if (tempToken && tempToken !== "mock-mfa-token-xyz") {
       const mfaController = new AbortController();
       const mfaTimer = setTimeout(() => mfaController.abort(), 600);
 
@@ -158,7 +162,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         const response = await fetch(`${API_BASE}/api/auth/mfa/verify?temp_token=${tempToken}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: code }),
+          body: JSON.stringify({ code: cleanCode }),
           signal: mfaController.signal
         });
         clearTimeout(mfaTimer);
@@ -190,21 +194,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       } catch {
         clearTimeout(mfaTimer);
       }
-
-      // Resilient fallback for MFA
-      sessionStorage.setItem('token', 'mock-jwt-token-access');
-      sessionStorage.setItem('refresh_token', 'mock-jwt-token-refresh');
-      sessionStorage.setItem('user', JSON.stringify(pending));
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      set({
-        user: pending,
-        isAuthenticated: true,
-        mfaPendingUser: null,
-        tempMfaToken: null
-      });
-      return true;
     }
+
     return false;
   },
   logout: () => {
