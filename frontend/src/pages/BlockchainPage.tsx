@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useBlockchainStore, useNavStore } from '../stores';
+import { useInvestigationStore } from '../stores/investigation';
 import { Search, Wallet, ArrowUpRight, ArrowDownRight, ExternalLink, AlertTriangle, TrendingUp, Activity, Copy, Eye, Shield, Cpu, ShieldCheck, X, FileText, CheckCircle2, RefreshCw, Key, HelpCircle } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatAddress, formatETH, formatCrypto, formatUSD, formatDate, getRiskColor, getRiskBg, timeAgo, detectBlockchainFromAddress } from '../utils/helpers';
@@ -473,10 +474,75 @@ export const BlockchainPage: React.FC = () => {
           <button
             onClick={handleAnalyze}
             disabled={isAnalyzing}
-            className="btn-primary py-2 px-6 text-xs font-semibold flex items-center justify-center gap-2 shrink-0"
+            className="btn-primary py-2 px-6 text-xs font-semibold flex items-center justify-center gap-2 shrink-0 cursor-pointer"
           >
             {isAnalyzing ? 'Analyzing...' : 'Analyze'}
           </button>
+        </div>
+
+        {/* Preset Sample Target Addresses Box */}
+        <div className="mt-4 pt-3 border-t border-dark-800/80">
+          <div className="flex items-center gap-2 mb-2 text-[11px] text-dark-300">
+            <ShieldCheck size={13} className="text-primary-400" />
+            <span className="font-semibold text-white">1-CLICK SAMPLE TARGET ADDRESS PRESETS (Click any to analyze):</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                const target = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa';
+                setAddress(target);
+                setSearchAddress(target);
+                useInvestigationStore.getState().setActiveTarget(target);
+              }}
+              className="p-2.5 rounded-xl bg-dark-900/90 border border-primary-500/30 hover:border-primary-400 hover:bg-dark-850 text-left transition-all group cursor-pointer shadow-sm"
+            >
+              <div className="text-[10px] text-primary-400 font-bold uppercase tracking-wider mb-0.5">Satoshi Genesis (BTC)</div>
+              <code className="text-[11px] font-mono text-dark-200 group-hover:text-white truncate block">1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa</code>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const target = '34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo';
+                setAddress(target);
+                setSearchAddress(target);
+                useInvestigationStore.getState().setActiveTarget(target);
+              }}
+              className="p-2.5 rounded-xl bg-dark-900/90 border border-cyber-teal/30 hover:border-cyber-teal hover:bg-dark-850 text-left transition-all group cursor-pointer shadow-sm"
+            >
+              <div className="text-[10px] text-cyber-teal font-bold uppercase tracking-wider mb-0.5">Binance Reserve (BTC)</div>
+              <code className="text-[11px] font-mono text-dark-200 group-hover:text-white truncate block">34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo</code>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const target = 'bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97';
+                setAddress(target);
+                setSearchAddress(target);
+                useInvestigationStore.getState().setActiveTarget(target);
+              }}
+              className="p-2.5 rounded-xl bg-dark-900/90 border border-accent-purple/30 hover:border-accent-purple hover:bg-dark-850 text-left transition-all group cursor-pointer shadow-sm"
+            >
+              <div className="text-[10px] text-accent-purple font-bold uppercase tracking-wider mb-0.5">Bitfinex Storage (SegWit)</div>
+              <code className="text-[11px] font-mono text-dark-200 group-hover:text-white truncate block">bc1qgdjqv0av3q56jvd82tkdjpy...</code>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const target = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
+                setAddress(target);
+                setSearchAddress(target);
+                useInvestigationStore.getState().setActiveTarget(target);
+              }}
+              className="p-2.5 rounded-xl bg-dark-900/90 border border-accent-gold/30 hover:border-accent-gold hover:bg-dark-850 text-left transition-all group cursor-pointer shadow-sm"
+            >
+              <div className="text-[10px] text-accent-gold font-bold uppercase tracking-wider mb-0.5">Vitalik.eth (EVM / ETH)</div>
+              <code className="text-[11px] font-mono text-dark-200 group-hover:text-white truncate block">0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045</code>
+            </button>
+          </div>
         </div>
       </div>
 
