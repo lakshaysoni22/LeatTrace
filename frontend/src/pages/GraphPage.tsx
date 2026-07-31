@@ -41,9 +41,9 @@ export const GraphPage: React.FC = () => {
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
 
   // Annotations and Bookmarks
-  const [annotations, setAnnotations] = useState<Array<{ id: string; text: string; author: string }>>([
-    { id: 'an-1', text: 'Mixer contract has direct links to Ronin multi-sig exploit node.', author: 'Inspector Sharma' }
-  ]);
+  const [annotations, setAnnotations] = useState<Array<{ id: string; text: string; author: string }>>(
+    []
+  );
   const [newAnnotation, setNewAnnotation] = useState('');
 
   // Active right-side tab

@@ -6,66 +6,41 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { formatAddress, formatETH, formatCrypto, formatUSD, formatDate, getRiskColor, getRiskBg, timeAgo, detectBlockchainFromAddress } from '../utils/helpers';
 import { apiGet, apiPost, API_BASE } from '../utils/api';
 
-const mockTransactions = [
-  {
-    hash: '0xfe3b5928d11c439e05c5b3259aec9be5fbfe3e9af3971dd833d26ba9b5c936f',
-    from: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28',
-    to: '0x71c20e241775e5332f143715df332f143789a71b',
-    value: 25.5,
-    timestamp: '2026-06-20T10:00:00Z',
-    status: 'success',
-    blockNumber: 18492025,
-    gasUsed: '0.0034 ETH',
-    confirmations: 84
-  },
-  {
-    hash: '0x53d2b273e5a3f5ce5fbfe3e9af3971dd833d26ba9b5c936f0be1a4cf13e8f8f',
-    from: '0x71c20e241775e5332f143715df332f143789a71b',
-    to: '0xab5801a7d398351b8be11c439e05c5b3259aec9b',
-    value: 10.0,
-    timestamp: '2026-06-18T14:32:10Z',
-    status: 'success',
-    blockNumber: 18491800,
-    gasUsed: '0.0021 ETH',
-    confirmations: 120
-  },
-  {
-    hash: '0xfa7b9c0d1e2f3a4b5b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b568a8e4e9b',
-    from: '0xab5801a7d398351b8be11c439e05c5b3259aec9b',
-    to: '0x71c20e241775e5332f143715df332f143789a71b',
-    value: 1.0,
-    timestamp: '2026-06-15T09:12:05Z',
-    status: 'success',
-    blockNumber: 18491200,
-    gasUsed: '0.0015 ETH',
-    confirmations: 340
-  },
-  {
-    hash: '0xbc1d3a4b5b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b568a8e4e9bcda9d9e4',
-    from: '0x71c20e241775e5332f143715df332f143789a71b',
-    to: '0xbcda9d9e4f1a2b3c4d5e6f7a8b9c0d1e2f3a4b568a8e4e9b',
-    value: 15.3,
-    timestamp: '2026-06-12T11:00:30Z',
-    status: 'success',
-    blockNumber: 18490900,
-    gasUsed: '0.0042 ETH',
-    confirmations: 412
-  }
-];
-
-const txVolumeData = [
-  { month: 'Jan', inflow: 120, outflow: 85 },
-  { month: 'Feb', inflow: 150, outflow: 110 },
-  { month: 'Mar', inflow: 180, outflow: 140 },
-  { month: 'Apr', inflow: 220, outflow: 195 },
-  { month: 'May', inflow: 190, outflow: 210 },
-  { month: 'Jun', inflow: 260, outflow: 245 }
-];
+// Mock data removed — live data from useInvestigationStore
 
 export const BlockchainPage: React.FC = () => {
   const { searchAddress, setSearchAddress } = useBlockchainStore();
   const { setPage } = useNavStore();
-  const { activeTargetAddress } = useInvestigationStore();
+  const { activeTargetAddress, transactions: liveTxs } = useInvestigationStore();
+
+  // Derive ledger-compatible transaction list from live data
+  const liveTxForLedger = liveTxs.slice(0, 25).map(tx => ({
+    hash: tx.txid,
+    from: tx.vin[0]?.prevout?.scriptpubkey_address || 'Unknown',
+    to: tx.vout[0]?.scriptpubkey_address || 'Unknown',
+    value: tx.vout.reduce((s: number, o: any) => s + o.value, 0) / 1e8,
+    timestamp: tx.status.block_time ? new Date(tx.status.block_time * 1000).toISOString() : new Date().toISOString(),
+    status: tx.status.confirmed ? 'success' : 'pending',
+    blockNumber: tx.status.block_height || 0,
+    gasUsed: `${(tx.fee / 1e8).toFixed(6)} BTC`,
+    confirmations: tx.status.block_height ? Math.max(0, 850000 - tx.status.block_height) : 0,
+  }));
+
+  // Compute monthly volume from live transactions
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const volumeMap = new Map<string, { inflow: number; outflow: number }>();
+  liveTxs.forEach(tx => {
+    const bt = tx.status.block_time;
+    if (!bt) return;
+    const d = new Date(bt * 1000);
+    const key = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+    const entry = volumeMap.get(key) || { inflow: 0, outflow: 0 };
+    const isInbound = tx.vout.some(o => o.scriptpubkey_address === activeTargetAddress);
+    const val = tx.vout.reduce((s, o) => s + o.value, 0) / 1e8;
+    if (isInbound) entry.inflow += val; else entry.outflow += val;
+    volumeMap.set(key, entry);
+  });
+  const txVolumeData = Array.from(volumeMap.entries()).map(([month, data]) => ({ month, ...data })).slice(-6);
 
   const [address, setAddress] = useState(activeTargetAddress || searchAddress || '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28');
 
@@ -745,12 +720,12 @@ export const BlockchainPage: React.FC = () => {
             <div className="glass-card p-3 sm:p-5 border-dark-700/50 space-y-4">
               <div className="flex items-center justify-between border-b border-dark-800 pb-3">
                 <h3 className="text-xs font-bold text-dark-300 uppercase tracking-wider">Transaction Ledger</h3>
-                <span className="text-[10px] text-dark-400">{mockTransactions.length} events</span>
+                <span className="text-[10px] text-dark-400">{liveTxForLedger.length} events</span>
               </div>
 
               {/* Mobile Card View */}
               <div className="sm:hidden space-y-2">
-                {mockTransactions.map((tx: any) => {
+                {liveTxForLedger.map((tx: any) => {
                   const isOut = tx.from.toLowerCase() === wallet.address.toLowerCase();
                   return (
                     <div
@@ -796,7 +771,7 @@ export const BlockchainPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {mockTransactions.map((tx: any) => {
+                    {liveTxForLedger.map((tx: any) => {
                       const isOut = tx.from.toLowerCase() === wallet.address.toLowerCase();
                       return (
                         <tr

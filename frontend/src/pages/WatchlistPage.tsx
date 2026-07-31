@@ -1,110 +1,34 @@
 import React, { useState } from 'react';
-import { useWatchlistStore, useAlertStore, useBlockchainStore, useNavStore } from '../stores';
 import { useInvestigationStore } from '../stores/investigation';
-import { Eye, Plus, Trash2, ShieldAlert, Activity, Play, EyeOff, Search, WifiOff } from 'lucide-react';
-import { formatAddress, formatDate, getRiskColor } from '../utils/helpers';
-import type { WatchlistEntry } from '../types';
-import { apiPost } from '../utils/api';
+import { useNavStore } from '../stores';
+import { Eye, Wallet, ArrowUpRight, ArrowDownRight, ArrowLeftRight, ExternalLink, Search, Activity } from 'lucide-react';
 
 export const WatchlistPage: React.FC = () => {
-  const { entries, addEntry, removeEntry } = useWatchlistStore();
-  const { alerts, markAllRead } = useAlertStore();
-  const { setSearchAddress } = useBlockchainStore();
+  const { activeTargetAddress, summary, counterparties, riskScore, riskLevel } = useInvestigationStore();
   const { setPage } = useNavStore();
-  const { activeTargetAddress, summary } = useInvestigationStore();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dirFilter, setDirFilter] = useState<'all' | 'inbound' | 'outbound' | 'both'>('all');
 
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [address, setAddress] = useState('');
-  const [chain, setChain] = useState('BTC');
-  const [alias, setAlias] = useState('');
-  const [risk, setRisk] = useState(50);
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [simulationLogs, setSimulationLogs] = useState<string[]>([]);
+  const filtered = counterparties.filter(cp => {
+    const matchesSearch = searchTerm === '' || cp.address.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDir = dirFilter === 'all' || cp.direction === dirFilter;
+    return matchesSearch && matchesDir;
+  });
 
-  const handleAddEntry = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!address.trim()) return;
-
-    const newEntry: WatchlistEntry = {
-      id: `wtl-${crypto.randomUUID().substring(0, 8)}`,
-      address: address.trim(),
-      chain: chain,
-      alias: alias || 'Unlabeled Node',
-      riskScore: risk,
-      status: 'Monitored',
-      createdAt: new Date().toISOString()
-    };
-
-    addEntry(newEntry);
-    setShowAddModal(false);
-    
-    // Reset states
-    setAddress('');
-    setChain('BTC');
-    setAlias('');
-    setRisk(50);
-  };
-
-  const handleSimulateBlock = async () => {
-    if (entries.length === 0) {
-      setSimulationLogs(['No watchlist entries to scan. Add a wallet address first.']);
-      return;
-    }
-    setIsSimulating(true);
-    setSimulationLogs(['Initiating live watchlist scan via blockchain RPC...']);
-
-    try {
-      const addresses = entries.map(e => ({ address: e.address, chain: e.chain }));
-      setSimulationLogs(prev => [...prev, `Scanning ${addresses.length} monitored address(es)...`]);
-
-      const result = await apiPost<{
-        hits: Array<{ address: string; chain: string; alias?: string; tx_hash?: string; value?: number; alert_message?: string }>;
-      }>('/api/wallets/watchlist/scan', { addresses });
-
-      if (result.hits && result.hits.length > 0) {
-        for (const hit of result.hits) {
-          setSimulationLogs(prev => [
-            ...prev,
-            `Activity detected on ${hit.chain}: ${hit.address.slice(0, 12)}...`,
-            hit.tx_hash ? `Tx: ${hit.tx_hash.slice(0, 16)}...` : '',
-            hit.value !== undefined ? `Value: ${hit.value} ${hit.chain}` : '',
-            'Alert raised.',
-          ].filter(Boolean));
-
-          const alertId = crypto.randomUUID();
-          useAlertStore.setState(s => ({
-            alerts: [
-              {
-                id: alertId,
-                chain: hit.chain,
-                address: hit.address,
-                type: 'watchlist_hit',
-                message: hit.alert_message ?? `Watchlist hit on ${hit.address.slice(0, 10)}...`,
-                severity: 'critical',
-                createdAt: new Date().toISOString(),
-                isRead: false,
-              },
-              ...s.alerts,
-            ],
-          }));
-        }
-      } else {
-        setSimulationLogs(prev => [...prev, 'Scan complete. No new activity detected on watched addresses.']);
-      }
-    } catch (err) {
-      setSimulationLogs(prev => [
-        ...prev,
-        'ERROR: Watchlist scan service unavailable. No fabricated data will be displayed.',
-        'Ensure the backend is running and /api/wallets/watchlist/scan is reachable.',
-      ]);
-    } finally {
-      setIsSimulating(false);
+  const dirIcon = (dir: string) => {
+    switch (dir) {
+      case 'inbound': return <ArrowDownRight size={12} className="text-accent-green" />;
+      case 'outbound': return <ArrowUpRight size={12} className="text-accent-red" />;
+      default: return <ArrowLeftRight size={12} className="text-accent-gold" />;
     }
   };
 
-  const handleTraceAddress = (addr: string) => {
-    setSearchAddress(addr);
-    setPage('blockchain');
+  const dirColor = (dir: string) => {
+    switch (dir) {
+      case 'inbound': return 'bg-accent-green/20 text-accent-green border-accent-green/30';
+      case 'outbound': return 'bg-accent-red/20 text-accent-red border-accent-red/30';
+      default: return 'bg-accent-gold/20 text-accent-gold border-accent-gold/30';
+    }
   };
 
   return (
@@ -112,202 +36,136 @@ export const WatchlistPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white">Active Watchlist Surveillance</h2>
-          <p className="text-xs text-dark-400">Establish tracing listener rules on target crypto wallets to raise alarms on fund updates</p>
-        </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <button 
-            onClick={handleSimulateBlock}
-            disabled={isSimulating}
-            className="flex-1 sm:flex-initial px-4 py-2 bg-accent-gold/20 text-accent-gold border border-accent-gold/30 rounded-lg font-medium text-sm hover:bg-accent-gold/30 hover:border-accent-gold/50 transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Play size={14} className={isSimulating ? 'animate-spin' : ''} />
-            {isSimulating ? 'Simulating...' : 'Simulate Block Event'}
-          </button>
-          <button 
-            onClick={() => setShowAddModal(true)}
-            className="flex-1 sm:flex-initial btn-primary flex items-center justify-center gap-2"
-          >
-            <Plus size={16} /> Add Rule
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Watchlist Grid */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="glass-card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-dark-800/40 border-b border-dark-700/40 text-dark-400 font-semibold uppercase tracking-wider">
-                    <th className="p-4">Chain / Target</th>
-                    <th className="p-4">Alias</th>
-                    <th className="p-4">Risk</th>
-                    <th className="p-4">Surveillance Status</th>
-                    <th className="p-4 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-dark-800/50">
-                  {entries.map((item) => (
-                    <tr key={item.id} className="hover:bg-dark-800/10 transition-colors">
-                      <td className="p-4">
-                        <div className="flex items-center gap-2.5">
-                          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-dark-800 border border-dark-700 text-primary-400">
-                            {item.chain}
-                          </span>
-                          <code className="text-white font-medium mono">{formatAddress(item.address, 6)}</code>
-                        </div>
-                      </td>
-                      <td className="p-4 font-semibold text-dark-100">
-                        {item.alias}
-                      </td>
-                      <td className="p-4">
-                        <span className={`font-bold ${getRiskColor(item.riskScore || 0)}`}>
-                          {item.riskScore || 0}%
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <span className="flex items-center gap-1.5 text-accent-green">
-                          <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse" />
-                          {item.status}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center justify-center gap-2">
-                          <button 
-                            onClick={() => handleTraceAddress(item.address)}
-                            className="p-1 rounded text-dark-400 hover:text-white hover:bg-dark-800 transition-colors"
-                            title="Run Trace Graph"
-                          >
-                            <Search size={14} />
-                          </button>
-                          <button 
-                            onClick={() => removeEntry(item.id)}
-                            className="p-1 rounded text-dark-400 hover:text-accent-red hover:bg-dark-800 transition-colors"
-                            title="Remove Rule"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="flex items-center gap-2">
+            <Eye size={20} className="text-primary-400" />
+            <h2 className="text-xl font-bold text-white">Watchlist & Counterparties</h2>
           </div>
-        </div>
-
-        {/* Right: Simulation Logs */}
-        <div className="lg:col-span-1 space-y-4">
-          <div className="glass-card p-5 space-y-4 h-full min-h-[300px] flex flex-col">
-            <div className="flex items-center justify-between border-b border-dark-700/50 pb-3">
-              <div className="flex items-center gap-2">
-                <Activity size={16} className="text-accent-gold" />
-                <h3 className="text-sm font-bold text-white">Block Engine Terminal</h3>
-              </div>
-              
-              <div className="pulse-dot bg-accent-gold" />
-            </div>
-
-            <div className="flex-1 bg-dark-950 p-4 rounded-lg border border-dark-800/80 font-mono text-[10px] text-dark-300 space-y-1.5 overflow-y-auto max-h-[300px]">
-              {simulationLogs.length === 0 ? (
-                <div className="text-center py-12 text-dark-500 italic">
-                  Launch the block listener simulation to stream dynamic blockchain events.
-                </div>
-              ) : (
-                simulationLogs.map((log, idx) => (
-                  <div key={idx} className={log.includes('Alarm') || log.includes('Matched') ? 'text-accent-gold font-semibold' : ''}>
-                    {log.startsWith('Detect') || log.startsWith('Target') ? `> ${log}` : log}
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="text-[10px] text-dark-500 leading-normal flex items-start gap-1">
-              <ShieldAlert size={12} className="mt-0.5 flex-shrink-0" />
-              Simulating alerts generates on-chain transaction inputs to verify the rate monitoring engines.
-            </div>
+          <div className="flex items-center gap-2 mt-1">
+            <Wallet size={12} className="text-primary-400" />
+            <span className="text-xs text-dark-400 mono">{activeTargetAddress.slice(0, 16)}…{activeTargetAddress.slice(-8)}</span>
+            <span className="text-[10px] text-dark-500">•</span>
+            <span className="text-xs text-dark-400">{counterparties.length} counterpart{counterparties.length !== 1 ? 'ies' : 'y'} detected</span>
           </div>
         </div>
       </div>
 
-      {/* Add Rule Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-card w-full max-w-md p-6 animate-scale-in">
-            <div className="flex items-center gap-2 mb-4 border-b border-dark-700/50 pb-3">
-              <Eye size={18} className="text-primary-400" />
-              <h3 className="text-base font-semibold text-white">Create Surveillance Rule</h3>
+      {/* Active Target Card */}
+      <div className="glass-card p-4 border border-primary-500/20 bg-primary-500/5">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-[10px] text-primary-400 uppercase font-bold mb-1">● Active Investigation Target</div>
+            <code className="text-sm text-white mono">{activeTargetAddress}</code>
+            <div className="flex items-center gap-3 mt-2 text-xs text-dark-400">
+              <span>Balance: {summary ? `${(summary.confirmedBalance / 1e8).toFixed(4)} BTC` : '—'}</span>
+              <span>Txns: {summary?.txCount?.toLocaleString() || '—'}</span>
+              <span>Type: {summary?.scriptType || '—'}</span>
             </div>
-
-            <form onSubmit={handleAddEntry} className="space-y-4">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-1">
-                  <label className="block text-xs font-medium text-dark-300 mb-1">Blockchain</label>
-                  <select 
-                    value={chain} 
-                    onChange={(e) => setChain(e.target.value)}
-                    className="input-field py-2 text-xs bg-dark-900 border-dark-700/50"
-                  >
-                    <option value="BTC">BTC</option>
-                    <option value="ETH">ETH</option>
-                    <option value="SOL">SOL</option>
-                    <option value="BSC">BSC</option>
-                  </select>
-                </div>
-                
-                <div className="col-span-2">
-                  <label className="block text-xs font-medium text-dark-300 mb-1">Wallet Alias</label>
-                  <input 
-                    type="text" required value={alias} onChange={(e) => setAlias(e.target.value)}
-                    placeholder="e.g. LockBit Ransomware Collector"
-                    className="input-field py-2 text-xs"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-dark-300 mb-1">Target Address</label>
-                <input 
-                  type="text" required value={address} onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Enter crypto wallet address..."
-                  className="input-field py-2 text-xs mono"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-medium text-dark-300 mb-1">
-                  <span>Assigned Initial Risk Score</span>
-                  <span className="font-bold text-primary-400">{risk}%</span>
-                </div>
-                <input 
-                  type="range" min="10" max="99" value={risk} onChange={(e) => setRisk(Number(e.target.value))}
-                  className="w-full h-1 bg-dark-800 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-dark-700/50">
-                <button 
-                  type="button" 
-                  onClick={() => setShowAddModal(false)}
-                  className="btn-ghost py-2 text-xs px-4"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn-primary py-2 text-xs px-4"
-                >
-                  Enable Tracing
-                </button>
-              </div>
-            </form>
+          </div>
+          <div className="text-right">
+            <div className={`text-2xl font-bold ${riskLevel === 'critical' ? 'text-accent-red' : riskLevel === 'high' ? 'text-accent-gold' : riskLevel === 'medium' ? 'text-primary-400' : 'text-accent-green'}`}>
+              {riskScore}%
+            </div>
+            <div className="text-[10px] text-dark-400 uppercase">Risk Score</div>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Search & Filter */}
+      <div className="glass-card p-4 flex flex-col md:flex-row md:items-center gap-4">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Search counterparty addresses..."
+            className="w-full pl-9 pr-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-xs text-white placeholder:text-dark-500 focus:border-primary-500/50 focus:outline-none"
+          />
+        </div>
+        <div className="flex items-center gap-1.5">
+          {(['all', 'inbound', 'outbound', 'both'] as const).map(dir => (
+            <button
+              key={dir}
+              onClick={() => setDirFilter(dir)}
+              className={`px-2.5 py-0.5 rounded text-[10px] font-bold capitalize transition-all cursor-pointer ${
+                dirFilter === dir
+                  ? 'bg-primary-500/20 text-primary-400 border border-primary-500/30'
+                  : 'bg-dark-800 text-dark-400 border border-transparent hover:border-dark-700'
+              }`}
+            >
+              {dir}
+            </button>
+          ))}
+        </div>
+        <span className="text-[10px] text-dark-500">{filtered.length} results</span>
+      </div>
+
+      {/* Counterparties Table */}
+      <div className="glass-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-dark-700/50">
+                <th className="text-left text-[10px] text-dark-400 font-semibold uppercase p-3">Address</th>
+                <th className="text-left text-[10px] text-dark-400 font-semibold uppercase p-3">Direction</th>
+                <th className="text-right text-[10px] text-dark-400 font-semibold uppercase p-3">Received From</th>
+                <th className="text-right text-[10px] text-dark-400 font-semibold uppercase p-3">Sent To</th>
+                <th className="text-right text-[10px] text-dark-400 font-semibold uppercase p-3">Txns</th>
+                <th className="text-left text-[10px] text-dark-400 font-semibold uppercase p-3">Last Seen</th>
+                <th className="text-left text-[10px] text-dark-400 font-semibold uppercase p-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(cp => (
+                <tr key={cp.address} className="border-b border-dark-800/50 hover:bg-dark-800/30 transition-colors">
+                  <td className="p-3">
+                    <code className="text-xs text-white mono">{cp.address.slice(0, 14)}…{cp.address.slice(-6)}</code>
+                  </td>
+                  <td className="p-3">
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase border flex items-center gap-1 w-fit ${dirColor(cp.direction)}`}>
+                      {dirIcon(cp.direction)} {cp.direction}
+                    </span>
+                  </td>
+                  <td className="p-3 text-right">
+                    <span className="text-xs text-accent-green font-mono">
+                      {cp.totalIn > 0 ? `${(cp.totalIn / 1e8).toFixed(4)} BTC` : '—'}
+                    </span>
+                  </td>
+                  <td className="p-3 text-right">
+                    <span className="text-xs text-accent-red font-mono">
+                      {cp.totalOut > 0 ? `${(cp.totalOut / 1e8).toFixed(4)} BTC` : '—'}
+                    </span>
+                  </td>
+                  <td className="p-3 text-right">
+                    <span className="text-xs text-white">{cp.txCount}</span>
+                  </td>
+                  <td className="p-3">
+                    <span className="text-[10px] text-dark-400">{new Date(cp.lastSeen).toLocaleDateString()}</span>
+                  </td>
+                  <td className="p-3">
+                    <a
+                      href={`https://mempool.space/address/${cp.address}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] text-primary-400 hover:underline flex items-center gap-1"
+                    >
+                      <ExternalLink size={10} /> Explore
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {filtered.length === 0 && (
+          <div className="p-12 text-center text-dark-500 italic text-sm">
+            {counterparties.length === 0
+              ? 'No counterparties detected. Analyze a wallet to discover connected addresses.'
+              : 'No counterparties match the current filter.'}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

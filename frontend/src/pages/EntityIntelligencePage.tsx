@@ -1,215 +1,215 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useInvestigationStore } from '../stores/investigation';
-import { Shield, ShieldAlert, ShieldCheck, Globe, Search, ArrowRight, Building, Link, AlertTriangle, Cpu } from 'lucide-react';
-import { getRiskColor } from '../utils/helpers';
-
-interface EntityProfile {
-  name: string;
-  category: 'Exchange' | 'Bridge' | 'Sanctioned Entity' | 'DeFi Protocol' | 'Mixer';
-  verificationLevel: 'Publicly Verified' | 'Analyst Flagged' | 'Unverified';
-  website: string;
-  knownWalletsCount: number;
-  associatedCasesCount: number;
-  riskScore: number;
-  confidence: 'High' | 'Medium' | 'Low';
-  supportingData: string;
-  addressList: string[];
-}
+import { Fingerprint, Wallet, Shield, Activity, Clock, ArrowUpRight, ArrowDownRight, ExternalLink, AlertTriangle, HelpCircle, Globe } from 'lucide-react';
 
 export const EntityIntelligencePage: React.FC = () => {
-  const { activeTargetAddress, summary } = useInvestigationStore();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const { activeTargetAddress, summary, transactions, counterparties, riskScore, riskLevel, investigationId, utxos } = useInvestigationStore();
 
-  const entities: EntityProfile[] = [
-    {
-      name: `Active Target Node (${activeTargetAddress.slice(0, 10)}...)`,
-      category: 'Sanctioned Entity',
-      verificationLevel: 'Analyst Flagged',
-      website: 'mempool.space',
-      knownWalletsCount: summary?.txCount || 1,
-      associatedCasesCount: 1,
-      riskScore: 85,
-      confidence: 'High',
-      supportingData: `Target On-Chain Address: ${activeTargetAddress}. Script Type: ${summary?.scriptType || 'P2PKH'}. Total Balance: ${((summary?.confirmedBalance || 0) / 1e8).toFixed(4)} BTC.`,
-      addressList: [activeTargetAddress],
-    },
-    {
-      name: 'Garantex Exchange',
-      category: 'Exchange',
-      verificationLevel: 'Publicly Verified',
-      website: 'https://garantex.org',
-      knownWalletsCount: 142,
-      associatedCasesCount: 5,
-      riskScore: 95,
-      confidence: 'High',
-      supportingData: 'OFAC Sanctioned Entity — Designated for facilitating laundering of ransom proceeds.',
-      addressList: [
-        '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28',
-        '0x22086e3f43818e381042c1042c1042c1042c1042'
-      ]
-    },
-    {
-      name: 'Tornado.Cash Mixer',
-      category: 'Mixer',
-      verificationLevel: 'Publicly Verified',
-      website: 'https://tornado.cash',
-      knownWalletsCount: 89,
-      associatedCasesCount: 12,
-      riskScore: 98,
-      confidence: 'High',
-      supportingData: 'Smart contract coin mixer — sanctioned by US Treasury for laundering illicit assets.',
-      addressList: [
-        '0x71c20e241775e5332f143715df332f143789a71b',
-        '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
-      ]
-    },
-    {
-      name: 'Binance Hot Wallet #4',
-      category: 'Exchange',
-      verificationLevel: 'Publicly Verified',
-      website: 'https://binance.com',
-      knownWalletsCount: 1,
-      associatedCasesCount: 3,
-      riskScore: 12,
-      confidence: 'High',
-      supportingData: 'Verified institutional hot-wallet belonging to Binance exchange operations.',
-      addressList: [
-        '0x3f5CE5FBFe3E9af3971dD833D26bA9b5C936f0bE'
-      ]
-    },
-    {
-      name: 'Ronin Bridge Exploit Intermediary',
-      category: 'Bridge',
-      verificationLevel: 'Analyst Flagged',
-      website: 'N/A',
-      knownWalletsCount: 14,
-      associatedCasesCount: 1,
-      riskScore: 88,
-      confidence: 'Medium',
-      supportingData: 'Identified as a bridge multi-sig node compromised during Lazarus campaign transfers.',
-      addressList: [
-        '0x098b716b8a213715df332f143715df332f143789'
-      ]
+  // Compute behavioral analysis from transactions
+  const totalInflow = transactions.reduce((sum, tx) => {
+    return sum + tx.vout.filter(o => o.scriptpubkey_address === activeTargetAddress).reduce((s, o) => s + o.value, 0);
+  }, 0);
+  const totalOutflow = transactions.reduce((sum, tx) => {
+    return sum + tx.vin.filter(i => i.prevout?.scriptpubkey_address === activeTargetAddress).reduce((s, i) => s + (i.prevout?.value || 0), 0);
+  }, 0);
+
+  // Activity time distribution
+  const hourDistribution = new Array(24).fill(0);
+  transactions.forEach(tx => {
+    if (tx.status.block_time) {
+      const hour = new Date(tx.status.block_time * 1000).getHours();
+      hourDistribution[hour]++;
     }
-  ];
-
-  const filteredEntities = entities.filter((e) => {
-    const matchesSearch = e.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          e.supportingData.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || e.category === categoryFilter;
-    return matchesSearch && matchesCategory;
   });
+  const peakHour = hourDistribution.indexOf(Math.max(...hourDistribution));
+
+  // Transaction frequency (average days between txs)
+  const txTimestamps = transactions
+    .map(t => t.status.block_time)
+    .filter((t): t is number => Boolean(t))
+    .sort((a, b) => a - b);
+  let avgDaysBetween = 0;
+  if (txTimestamps.length > 1) {
+    const totalSpan = txTimestamps[txTimestamps.length - 1] - txTimestamps[0];
+    avgDaysBetween = totalSpan / (txTimestamps.length - 1) / 86400;
+  }
+
+  // Entity classification
+  const classifyEntity = (): { label: string; confidence: string; description: string } => {
+    if (!summary) return { label: 'Unknown Entity', confidence: 'N/A', description: 'No blockchain data available for classification.' };
+    
+    const txCount = summary.txCount;
+    const balance = summary.confirmedBalance / 1e8;
+    
+    if (txCount > 10000 && balance > 1000) {
+      return { label: 'Exchange / High-Volume Service', confidence: 'High', description: 'Extremely high transaction count and balance suggests an exchange or large custodial service.' };
+    }
+    if (txCount > 1000 && balance > 100) {
+      return { label: 'Commercial Entity / Service', confidence: 'Medium', description: 'High activity volume suggests a commercial service, payment processor, or large merchant.' };
+    }
+    if (txCount > 100 && counterparties.length > 50) {
+      return { label: 'Active Trader / Business', confidence: 'Medium', description: 'Moderate transaction count with many counterparties suggests active trading or business operations.' };
+    }
+    if (txCount > 10 && balance < 1) {
+      return { label: 'Standard Retail Account', confidence: 'Medium', description: 'Normal activity pattern consistent with individual user.' };
+    }
+    if (txCount <= 5 && balance > 10) {
+      return { label: 'Cold Storage / Hodler', confidence: 'Medium', description: 'Low transaction frequency with significant balance suggests long-term storage.' };
+    }
+    return { label: 'Unknown Entity', confidence: 'Low', description: 'Insufficient data for reliable classification.' };
+  };
+
+  const entity = classifyEntity();
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-white">Entity Intelligence Directory</h2>
-        <p className="text-xs text-dark-400">Database of categorized centralized services, bridges, protocols, and sanctioned nodes</p>
-      </div>
-
-      {/* Controls */}
-      <div className="flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex items-center gap-3 flex-1 max-w-md">
-          <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
-            <input
-              type="text"
-              placeholder="Search service name, description..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-field pl-10 py-1.5 text-xs"
-            />
-          </div>
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="input-field py-1.5 px-3 text-xs w-40"
-          >
-            <option value="all">All Categories</option>
-            <option value="Exchange">Exchanges</option>
-            <option value="Mixer">Mixers</option>
-            <option value="Bridge">Bridges</option>
-            <option value="Sanctioned Entity">Sanctioned</option>
-          </select>
+        <div className="flex items-center gap-2">
+          <Fingerprint size={20} className="text-primary-400" />
+          <h2 className="text-xl font-bold text-white">Entity Intelligence</h2>
+        </div>
+        <div className="flex items-center gap-2 mt-1">
+          <Wallet size={12} className="text-primary-400" />
+          <span className="text-xs text-dark-400 mono">{activeTargetAddress.slice(0, 16)}…{activeTargetAddress.slice(-8)}</span>
+          <span className="text-[10px] text-dark-500">•</span>
+          <span className="text-xs text-dark-400">Case {investigationId}</span>
         </div>
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredEntities.map((entity, idx) => (
-          <div key={idx} className="glass-card p-5 space-y-4 border-dark-700/50">
-            {/* Header info */}
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-dark-800 border border-dark-700 flex items-center justify-center text-primary-400">
-                  <Building size={20} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    {entity.name}
-                    {entity.verificationLevel === 'Publicly Verified' ? (
-                      <span title="Verified Public Entry"><ShieldCheck size={14} className="text-accent-green" /></span>
-                    ) : (
-                      <span title="Analyst Flagged Entry"><ShieldAlert size={14} className="text-accent-gold" /></span>
-                    )}
-                  </h3>
-                  <div className="flex items-center gap-2 text-[10px] text-dark-400 mt-0.5">
-                    <span>{entity.category}</span>
-                    <span>•</span>
-                    <span className="flex items-center gap-0.5"><Globe size={10} /> {entity.website}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Risk indicator */}
-              <div className="text-right">
-                <span className={`text-xs font-black ${getRiskColor(entity.riskScore)} block`}>
-                  {entity.riskScore}% RISK
-                </span>
-                <span className="text-[9px] text-dark-500 font-semibold uppercase block mt-0.5">
-                  Confidence: {entity.confidence}
-                </span>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="bg-dark-900/40 p-3 rounded-lg border border-dark-800 text-[11px] text-dark-300 leading-relaxed">
-              <span className="font-bold text-white block mb-0.5">Supporting Public Info</span>
-              {entity.supportingData}
-            </div>
-
-            {/* Wallets mapping */}
-            <div className="space-y-2">
-              <span className="text-[10px] font-bold text-dark-400 uppercase tracking-wider block">Mapped On-Chain Nodes ({entity.knownWalletsCount})</span>
-              <div className="space-y-1.5">
-                {entity.addressList.map((addr, aIdx) => (
-                  <div key={aIdx} className="p-2 bg-dark-800/40 rounded border border-dark-700/30 flex items-center justify-between text-[11px]">
-                    <code className="text-primary-400 font-mono select-all truncate max-w-[280px]">{addr}</code>
-                    <span className="text-[9px] text-dark-500 font-semibold font-mono uppercase">Etherscan</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Data quality standard statement */}
-            <div className="pt-2.5 border-t border-dark-800 flex items-center justify-between text-[9px] text-dark-500">
-              <span className="flex items-center gap-1 font-semibold">
-                <Cpu size={10} /> Verified blockchain database matching
+      {/* Entity Classification Card */}
+      <div className="glass-card p-5 border border-primary-500/20">
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="text-[10px] text-dark-400 uppercase font-semibold mb-1">Entity Classification</div>
+            <h3 className="text-lg font-bold text-white mb-1">{entity.label}</h3>
+            <p className="text-xs text-dark-400 max-w-lg">{entity.description}</p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-primary-500/20 text-primary-400 border border-primary-500/30">
+                Confidence: {entity.confidence}
               </span>
-              <span>Case Associations: {entity.associatedCasesCount}</span>
+              <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-dark-700 text-dark-300 border border-dark-600">
+                {summary?.scriptType || 'Unknown Script'}
+              </span>
             </div>
+          </div>
+          <div className="text-right">
+            <div className={`text-3xl font-bold ${riskLevel === 'critical' ? 'text-accent-red' : riskLevel === 'high' ? 'text-accent-gold' : riskLevel === 'medium' ? 'text-primary-400' : 'text-accent-green'}`}>
+              {riskScore}%
+            </div>
+            <div className={`text-[10px] uppercase font-bold ${riskLevel === 'critical' ? 'text-accent-red' : riskLevel === 'high' ? 'text-accent-gold' : 'text-primary-400'}`}>
+              {riskLevel} risk
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Key Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'Total Received', value: summary ? `${(summary.totalReceived / 1e8).toFixed(2)} BTC` : '—', icon: ArrowDownRight, color: 'text-accent-green' },
+          { label: 'Total Sent', value: summary ? `${(summary.totalSent / 1e8).toFixed(2)} BTC` : '—', icon: ArrowUpRight, color: 'text-accent-red' },
+          { label: 'Counterparties', value: counterparties.length.toString(), icon: Globe, color: 'text-primary-400' },
+          { label: 'Live UTXOs', value: utxos.length.toString(), icon: Activity, color: 'text-accent-gold' },
+        ].map(m => (
+          <div key={m.label} className="glass-card p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <m.icon size={12} className={m.color} />
+              <span className="text-[9px] text-dark-400 uppercase font-semibold">{m.label}</span>
+            </div>
+            <div className="text-lg font-bold text-white">{m.value}</div>
           </div>
         ))}
+      </div>
 
-        {filteredEntities.length === 0 && (
-          <div className="col-span-2 text-center py-16 bg-dark-800/10 border border-dashed border-dark-800 rounded-xl">
-            <AlertTriangle size={32} className="mx-auto text-dark-500 mb-2" />
-            <h4 className="text-sm font-semibold text-white">No entity records matched</h4>
-            <p className="text-xs text-dark-400 mt-1">Refine your keyword search queries or select a different category filter.</p>
+      {/* Behavioral Analysis */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="glass-card p-5">
+          <h3 className="text-sm font-bold text-white mb-3">Behavioral Profile</h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-dark-400">Peak Activity Hour (UTC)</span>
+              <span className="text-xs text-white font-bold">{txTimestamps.length > 0 ? `${peakHour}:00 — ${(peakHour + 1) % 24}:00` : '—'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-dark-400">Avg Days Between Txns</span>
+              <span className="text-xs text-white font-bold">{avgDaysBetween > 0 ? `${avgDaysBetween.toFixed(1)} days` : '—'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-dark-400">First Seen</span>
+              <span className="text-xs text-white font-bold">{summary?.firstSeen ? new Date(summary.firstSeen).toLocaleDateString() : '—'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-dark-400">Last Active</span>
+              <span className="text-xs text-white font-bold">{summary?.lastSeen ? new Date(summary.lastSeen).toLocaleDateString() : '—'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-dark-400">Inflow/Outflow Ratio</span>
+              <span className="text-xs text-white font-bold">{totalOutflow > 0 ? (totalInflow / totalOutflow).toFixed(2) : '—'}</span>
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* Activity Heatmap */}
+        <div className="glass-card p-5">
+          <h3 className="text-sm font-bold text-white mb-3">Hourly Activity Distribution (UTC)</h3>
+          <div className="grid grid-cols-12 gap-1">
+            {hourDistribution.map((count, hour) => {
+              const max = Math.max(...hourDistribution, 1);
+              const intensity = count / max;
+              return (
+                <div key={hour} className="text-center">
+                  <div
+                    className="w-full rounded-sm mb-1"
+                    style={{
+                      height: `${Math.max(4, intensity * 60)}px`,
+                      background: intensity > 0.7 ? '#06b6d4' : intensity > 0.3 ? '#0891b2' : intensity > 0 ? '#164e63' : '#1a1a2e',
+                    }}
+                    title={`${hour}:00 — ${count} txns`}
+                  />
+                  <span className="text-[7px] text-dark-500">{hour}</span>
+                </div>
+              );
+            })}
+          </div>
+          {txTimestamps.length === 0 && (
+            <div className="text-center text-dark-500 text-xs italic mt-4">No timestamped transaction data available.</div>
+          )}
+        </div>
+      </div>
+
+      {/* Top Counterparties */}
+      <div className="glass-card p-5">
+        <h3 className="text-sm font-bold text-white mb-3">Top Counterparties by Volume</h3>
+        <div className="space-y-2">
+          {counterparties.slice(0, 10).map((cp, i) => (
+            <div key={cp.address} className="flex items-center gap-3 p-2 rounded-lg hover:bg-dark-800/30 transition-colors">
+              <span className="text-xs text-dark-500 w-5 text-right">{i + 1}</span>
+              <code className="text-xs text-white mono flex-1">{cp.address.slice(0, 16)}…{cp.address.slice(-6)}</code>
+              <span className="text-[10px] text-accent-green">{cp.totalIn > 0 ? `↓${(cp.totalIn / 1e8).toFixed(4)}` : ''}</span>
+              <span className="text-[10px] text-accent-red">{cp.totalOut > 0 ? `↑${(cp.totalOut / 1e8).toFixed(4)}` : ''}</span>
+              <span className="text-[10px] text-dark-400">{cp.txCount} txns</span>
+              <a href={`https://mempool.space/address/${cp.address}`} target="_blank" rel="noopener noreferrer" className="text-primary-400">
+                <ExternalLink size={10} />
+              </a>
+            </div>
+          ))}
+          {counterparties.length === 0 && (
+            <div className="text-center text-dark-500 text-xs italic py-4">No counterparties detected.</div>
+          )}
+        </div>
+      </div>
+
+      {/* Public Intelligence Notice */}
+      <div className="glass-card p-4 border border-dark-700/50 flex items-start gap-3">
+        <HelpCircle size={16} className="text-dark-400 shrink-0 mt-0.5" />
+        <div>
+          <div className="text-xs text-white font-semibold mb-1">Public Intelligence Lookup</div>
+          <p className="text-xs text-dark-400">
+            No public entity labels found for this address. Classification above is computed from on-chain behavioral analysis only. 
+            If this wallet belongs to a known exchange, service, or entity, labels would appear here automatically.
+          </p>
+        </div>
       </div>
     </div>
   );

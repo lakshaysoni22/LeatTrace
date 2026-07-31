@@ -1,215 +1,182 @@
-import React, { useState, useEffect } from 'react';
-import { useCaseStore } from '../stores';
+import React, { useState } from 'react';
 import { useInvestigationStore } from '../stores/investigation';
-import { FileText, FileDown, CheckCircle2, ShieldAlert, FileCheck, ArrowRight, Loader2, WifiOff } from 'lucide-react';
-import { formatDate } from '../utils/helpers';
-import { apiGet, apiPost } from '../utils/api';
-
-interface GeneratedReport {
-  id: string;
-  caseNumber: string;
-  caseTitle: string;
-  title: string;
-  generatedAt: string;
-  fileSize: string;
-  status: 'available' | 'generating';
-}
+import { FileText, Download, Wallet, Shield, Activity, Clock, Printer, Copy, CheckCircle2 } from 'lucide-react';
 
 export const ReportsPage: React.FC = () => {
-  const { cases, selectedCase, selectCase } = useCaseStore();
-  const { activeTargetAddress, summary: liveSummary } = useInvestigationStore();
+  const { activeTargetAddress, summary, transactions, utxos, counterparties, riskScore, riskLevel, investigationId, evidenceItems, alerts, addAuditEntry } = useInvestigationStore();
+  const [generatedReports, setGeneratedReports] = useState<Array<{ id: string; title: string; generatedAt: string; type: string }>>([]);
+  const [activeReport, setActiveReport] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const [targetCaseId, setTargetCaseId] = useState(selectedCase?.id || cases[0]?.id || '');
-  const [reportTitle, setReportTitle] = useState('');
-  const [summary, setSummary] = useState('');
-  const [conclusions, setConclusions] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationStep, setGenerationStep] = useState('');
-
-  useEffect(() => {
-    if (activeTargetAddress) {
-      setReportTitle(`Forensic Blockchain Intelligence Report: ${activeTargetAddress.slice(0, 12)}...`);
-      setSummary(`Official law enforcement forensic analysis for target address ${activeTargetAddress}. Confirmed balance: ${((liveSummary?.confirmedBalance || 0) / 1e8).toFixed(4)} BTC across ${liveSummary?.txCount || 0} transactions on ${liveSummary?.chain || 'Bitcoin Mainnet'}.`);
-      setConclusions(`Target address ${activeTargetAddress} analyzed via Mempool.space on-chain graph. Script type: ${liveSummary?.scriptType || 'P2PKH'}. Recommending continuous watchlist monitoring.`);
-    }
-  }, [activeTargetAddress, liveSummary]);
-
-  React.useEffect(() => {
-    if (selectedCase) {
-      setTargetCaseId(selectedCase.id);
-    }
-  }, [selectedCase]);
-  
-  const [reports, setReports] = useState<GeneratedReport[]>([]);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-
-  // Load existing reports from backend
-  useEffect(() => {
-    apiGet<GeneratedReport[]>('/api/reports')
-      .then(data => setReports(Array.isArray(data) ? data : []))
-      .catch(() => setFetchError('Report service unavailable.'));
-  }, []);
-
-  const handleGenerateReport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reportTitle.trim()) return;
-
-    const selectedCaseObj = cases.find(c => c.id === targetCaseId) || cases[0];
-    if (!selectedCaseObj) {
-      alert('Select a case before generating a report.');
-      return;
-    }
-
-    setIsGenerating(true);
-    setGenerationStep('Submitting report generation request...');
-
-    try {
-      const created = await apiPost<GeneratedReport>('/api/reports', {
-        case_id:    selectedCaseObj.id,
-        title:      reportTitle.trim(),
-        summary:    summary.trim(),
-        conclusions: conclusions.trim(),
-      });
-
-      setReports(prev => [created, ...prev]);
-      setGenerationStep('Report generated successfully.');
-      setReportTitle('');
-      setSummary('');
-      setConclusions('');
-    } catch (err) {
-      setGenerationStep('Report generation failed. Check backend connectivity.');
-    } finally {
-      setIsGenerating(false);
-    }
+  const handleGenerateReport = (type: string, title: string) => {
+    const report = {
+      id: `rpt-${Date.now()}`,
+      title,
+      generatedAt: new Date().toISOString(),
+      type,
+    };
+    setGeneratedReports(prev => [report, ...prev]);
+    setActiveReport(report.id);
+    addAuditEntry('REPORT_GENERATED', `Report "${title}" generated for ${activeTargetAddress.slice(0, 16)}…`);
   };
+
+  const balanceBtc = summary ? (summary.confirmedBalance / 1e8).toFixed(4) : '—';
+  const totalReceivedBtc = summary ? (summary.totalReceived / 1e8).toFixed(4) : '—';
+  const totalSentBtc = summary ? (summary.totalSent / 1e8).toFixed(4) : '—';
+
+  const fullReportText = `
+═══════════════════════════════════════════════════════
+BLOCKCHAIN INVESTIGATION REPORT
+═══════════════════════════════════════════════════════
+Investigation ID: ${investigationId}
+Target Address:   ${activeTargetAddress}
+Generated:        ${new Date().toISOString()}
+Chain:            ${summary?.chain || 'Bitcoin Mainnet'}
+Script Type:      ${summary?.scriptType || '—'}
+
+═══════════════════════════════════════════════════════
+FINANCIAL SUMMARY
+═══════════════════════════════════════════════════════
+Confirmed Balance:    ${balanceBtc} BTC
+Total Received:       ${totalReceivedBtc} BTC
+Total Sent:           ${totalSentBtc} BTC
+Transaction Count:    ${summary?.txCount?.toLocaleString() || '—'}
+Live UTXOs:           ${utxos.length}
+Counterparties:       ${counterparties.length}
+
+═══════════════════════════════════════════════════════
+RISK ASSESSMENT
+═══════════════════════════════════════════════════════
+Risk Score:           ${riskScore}/100
+Risk Level:           ${riskLevel.toUpperCase()}
+Alerts Generated:     ${alerts.length}
+Critical Alerts:      ${alerts.filter(a => a.severity === 'critical').length}
+Evidence Items:       ${evidenceItems.length}
+
+═══════════════════════════════════════════════════════
+ACTIVITY TIMELINE
+═══════════════════════════════════════════════════════
+First Seen:           ${summary?.firstSeen ? new Date(summary.firstSeen).toLocaleDateString() : '—'}
+Last Active:          ${summary?.lastSeen ? new Date(summary.lastSeen).toLocaleDateString() : '—'}
+
+═══════════════════════════════════════════════════════
+TOP COUNTERPARTIES
+═══════════════════════════════════════════════════════
+${counterparties.slice(0, 10).map((cp, i) => `${i + 1}. ${cp.address} (${cp.direction}, ${cp.txCount} txns, ${((cp.totalIn + cp.totalOut) / 1e8).toFixed(4)} BTC)`).join('\n') || 'No counterparties detected.'}
+
+═══════════════════════════════════════════════════════
+RECENT TRANSACTIONS (Last 10)
+═══════════════════════════════════════════════════════
+${transactions.slice(0, 10).map(tx => `TX: ${tx.txid.slice(0, 20)}… | ${tx.status.confirmed ? 'Confirmed' : 'Pending'} | Fee: ${(tx.fee / 1e8).toFixed(8)} BTC | Block: ${tx.status.block_height || 'Mempool'}`).join('\n') || 'No transactions.'}
+`.trim();
+
+  const handleCopyReport = () => {
+    void navigator.clipboard.writeText(fullReportText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const reportTemplates = [
+    { type: 'full', title: 'Full Investigation Report', desc: 'Complete blockchain analysis with all findings, transactions, and risk assessment.' },
+    { type: 'financial', title: 'Financial Summary', desc: 'Balance, inflow/outflow, and transaction volume summary.' },
+    { type: 'risk', title: 'Risk Assessment Report', desc: 'Risk score breakdown, alerts, and behavioral indicators.' },
+    { type: 'counterparty', title: 'Counterparty Analysis', desc: 'All detected counterparty addresses with volume and direction analysis.' },
+  ];
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-white">Compliance Report Exporter</h2>
-        <p className="text-xs text-dark-400">Compile transaction histories, visual tracing paths, and risk scores into court-ready investigation dossiers</p>
+        <div className="flex items-center gap-2">
+          <FileText size={20} className="text-primary-400" />
+          <h2 className="text-xl font-bold text-white">Investigation Reports</h2>
+        </div>
+        <div className="flex items-center gap-2 mt-1">
+          <Wallet size={12} className="text-primary-400" />
+          <span className="text-xs text-dark-400 mono">{activeTargetAddress.slice(0, 16)}…{activeTargetAddress.slice(-8)}</span>
+          <span className="text-[10px] text-dark-500">•</span>
+          <span className="text-xs text-dark-400">Case {investigationId}</span>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Form */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="glass-card p-6">
-            <div className="flex items-center gap-2 mb-4 border-b border-dark-700/50 pb-3">
-              <FileText size={18} className="text-primary-400" />
-              <h3 className="text-base font-semibold text-white">Generate Investigation Dossier</h3>
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'Balance', value: `${balanceBtc} BTC`, icon: Wallet },
+          { label: 'Risk Score', value: `${riskScore}%`, icon: Shield },
+          { label: 'Transactions', value: summary?.txCount?.toLocaleString() || '—', icon: Activity },
+          { label: 'Generated Reports', value: generatedReports.length.toString(), icon: FileText },
+        ].map(s => (
+          <div key={s.label} className="glass-card p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <s.icon size={12} className="text-primary-400" />
+              <span className="text-[9px] text-dark-400 uppercase font-semibold">{s.label}</span>
             </div>
-
-            <form onSubmit={handleGenerateReport} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-dark-300 mb-1">Select Case Profile</label>
-                  <select
-                    value={targetCaseId}
-                    onChange={(e) => setTargetCaseId(e.target.value)}
-                    className="input-field py-2 text-xs bg-dark-900 border-dark-700/50"
-                  >
-                    {cases.map((c) => (
-                      <option key={c.id} value={c.id}>{c.caseNumber} - {c.title}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-dark-300 mb-1">Report Heading / Title</label>
-                  <input
-                    type="text" required value={reportTitle} onChange={(e) => setReportTitle(e.target.value)}
-                    placeholder="e.g. Primary Suspect Flow Evidence Dossier"
-                    className="input-field py-2 text-xs"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-dark-300 mb-1">Investigator Summary (Observed Facts)</label>
-                <textarea
-                  value={summary} onChange={(e) => setSummary(e.target.value)}
-                  placeholder="Record verified direct transfers, exchange deposits, and associated wallets..."
-                  className="w-full h-24 p-2.5 text-xs bg-dark-800/40 border border-dark-700/50 rounded-lg focus:outline-none focus:border-primary-500 text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-dark-300 mb-1">Analytical Hypotheses (Analytical Inferences)</label>
-                <textarea
-                  value={conclusions} onChange={(e) => setConclusions(e.target.value)}
-                  placeholder="Note peeling chain change structures, mixer interactions, and suspect identification theories..."
-                  className="w-full h-24 p-2.5 text-xs bg-dark-800/40 border border-dark-700/50 rounded-lg focus:outline-none focus:border-primary-500 text-white"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-dark-700/50 flex items-center justify-between flex-wrap gap-3">
-                <p className="text-[10px] text-dark-500 max-w-xs leading-normal flex items-start gap-1">
-                  <ShieldAlert size={12} className="mt-0.5 flex-shrink-0" />
-                  Generating reports calculates a dynamic SHA-256 hash automatically and saves it in the system audit registry.
-                </p>
-
-                <button
-                  type="submit"
-                  disabled={isGenerating || !reportTitle}
-                  className="btn-primary py-2 px-6 flex items-center gap-2"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin text-primary-400" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>Compile PDF Dossier</>
-                  )}
-                </button>
-              </div>
-            </form>
+            <div className="text-lg font-bold text-white">{s.value}</div>
           </div>
+        ))}
+      </div>
 
-          {/* Progress Overlay */}
-          {isGenerating && (
-            <div className="glass-card p-6 border-accent-gold/20 bg-accent-gold/5 animate-pulse-slow">
-              <div className="flex items-center gap-3">
-                <Loader2 size={18} className="animate-spin text-accent-gold" />
-                <div>
-                  <h4 className="text-xs font-bold text-white">Dossier Compilation Pipeline Running</h4>
-                  <p className="text-[10px] text-dark-400 mt-0.5">{generationStep}</p>
-                </div>
-              </div>
+      {/* Report Templates */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {reportTemplates.map(tmpl => (
+          <div key={tmpl.type} className="glass-card p-4 hover:border-primary-500/30 border border-dark-700/50 transition-all">
+            <h3 className="text-sm font-bold text-white mb-1">{tmpl.title}</h3>
+            <p className="text-xs text-dark-400 mb-3">{tmpl.desc}</p>
+            <button
+              onClick={() => handleGenerateReport(tmpl.type, tmpl.title)}
+              className="px-3 py-1.5 rounded-lg bg-primary-500/20 text-primary-400 text-xs font-bold border border-primary-500/30 hover:bg-primary-500/30 flex items-center gap-1"
+            >
+              <FileText size={12} /> Generate
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Live Report Preview */}
+      {summary && (
+        <div className="glass-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-white">Live Report Preview</h3>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCopyReport}
+                className="px-3 py-1 rounded text-[10px] font-bold bg-dark-800 text-dark-300 border border-dark-700 hover:border-dark-600 flex items-center gap-1"
+              >
+                {copied ? <><CheckCircle2 size={10} /> Copied!</> : <><Copy size={10} /> Copy</>}
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="px-3 py-1 rounded text-[10px] font-bold bg-dark-800 text-dark-300 border border-dark-700 hover:border-dark-600 flex items-center gap-1"
+              >
+                <Printer size={10} /> Print
+              </button>
             </div>
-          )}
+          </div>
+          <pre className="text-[10px] text-dark-300 mono whitespace-pre-wrap bg-dark-900/50 p-4 rounded-lg border border-dark-700/50 max-h-[500px] overflow-y-auto leading-relaxed">
+            {fullReportText}
+          </pre>
         </div>
+      )}
 
-        {/* Right Generated Reports list */}
-        <div className="lg:col-span-1 space-y-4">
-          <h3 className="text-sm font-semibold text-dark-300 uppercase tracking-wider">Historical Exports</h3>
-          <div className="space-y-3">
-            {reports.map((rep) => (
-              <div key={rep.id} className="glass-card p-4 space-y-3 hover:border-dark-600 transition-colors">
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="text-[10px] mono text-primary-400 font-semibold">{rep.caseNumber}</span>
-                    <span className="text-[10px] text-dark-500">{formatDate(rep.generatedAt)}</span>
-                  </div>
-                  <h4 className="text-xs font-bold text-white truncate">{rep.title}</h4>
-                  <p className="text-[10px] text-dark-400 truncate mt-0.5">{rep.caseTitle}</p>
+      {/* Generated Reports History */}
+      {generatedReports.length > 0 && (
+        <div className="glass-card p-5">
+          <h3 className="text-sm font-bold text-white mb-3">Generated Reports</h3>
+          <div className="space-y-2">
+            {generatedReports.map(rpt => (
+              <div key={rpt.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-dark-800/30 transition-colors">
+                <div className="flex items-center gap-2">
+                  <FileText size={14} className="text-primary-400" />
+                  <span className="text-xs text-white">{rpt.title}</span>
+                  <span className="text-[10px] text-dark-500">{new Date(rpt.generatedAt).toLocaleString()}</span>
                 </div>
-
-                <div className="flex items-center justify-between border-t border-dark-700/50 pt-2 text-[10px]">
-                  <span className="text-dark-500">{rep.fileSize} • PDF format</span>
-                  <a
-                    href="#"
-                    onClick={(e) => { e.preventDefault(); alert('Downloading report file template...'); }}
-                    className="flex items-center gap-1 text-primary-400 hover:text-primary-300 font-semibold"
-                  >
-                    <FileDown size={12} /> Download
-                  </a>
-                </div>
+                <Download size={14} className="text-dark-400 cursor-pointer hover:text-primary-400" />
               </div>
             ))}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
