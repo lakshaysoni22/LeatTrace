@@ -121,12 +121,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       return true;
     }
 
-    // Require exact password 'SecurePass@2026' and valid email
+    // Require EXACT preset email 'lakshaysoni@cybercrime.gov.in' and EXACT password 'SecurePass@2026'
     const isValidCredential = (
       cleanEmail.toLowerCase() === 'lakshaysoni@cybercrime.gov.in' &&
-      cleanPassword === 'SecurePass@2026'
-    ) || (
-      cleanEmail.includes('@') &&
       cleanPassword === 'SecurePass@2026'
     );
 
