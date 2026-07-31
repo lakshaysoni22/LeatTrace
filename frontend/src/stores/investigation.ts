@@ -68,6 +68,7 @@ interface InvestigationStore {
 }
 
 const DEFAULT_TARGET = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'; // Genesis / Satoshi Address
+const LS_KEY = 'leattrace_investigation_cache';
 
 interface CachedAddressData {
   summary: LiveAddressSummary;
@@ -77,13 +78,35 @@ interface CachedAddressData {
 }
 
 const addressCacheMap = new Map<string, CachedAddressData>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes in-memory cache
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// ── Hydrate from localStorage on startup ────────────────────────────────────
+function loadPersistedCache(): { address: string; data: CachedAddressData | null } {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return { address: DEFAULT_TARGET, data: null };
+    const parsed = JSON.parse(raw) as { address: string; data: CachedAddressData };
+    if (parsed.address && parsed.data) {
+      addressCacheMap.set(parsed.address, parsed.data);
+      return { address: parsed.address, data: parsed.data };
+    }
+  } catch { /* ignore corrupt data */ }
+  return { address: DEFAULT_TARGET, data: null };
+}
+
+function persistToLocalStorage(address: string, data: CachedAddressData) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({ address, data }));
+  } catch { /* quota exceeded — skip */ }
+}
+
+const persisted = loadPersistedCache();
 
 export const useInvestigationStore = create<InvestigationStore>((set, get) => ({
-  activeTargetAddress: DEFAULT_TARGET,
-  summary: null,
-  transactions: [],
-  utxos: [],
+  activeTargetAddress: persisted.address,
+  summary: persisted.data?.summary ?? null,
+  transactions: persisted.data?.transactions ?? [],
+  utxos: persisted.data?.utxos ?? [],
   isLoading: false,
   error: null,
 
@@ -204,13 +227,15 @@ export const useInvestigationStore = create<InvestigationStore>((set, get) => ({
         scriptType,
       };
 
-      // Save to 0ms in-memory cache
-      addressCacheMap.set(target, {
+      // Save to in-memory cache + localStorage
+      const cacheEntry: CachedAddressData = {
         summary,
         transactions: txs,
         utxos: utxosList,
         cachedAt: Date.now(),
-      });
+      };
+      addressCacheMap.set(target, cacheEntry);
+      persistToLocalStorage(target, cacheEntry);
 
       set({
         summary,
