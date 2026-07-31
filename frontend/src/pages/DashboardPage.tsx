@@ -1,172 +1,194 @@
 import React from 'react';
 import {
-  FolderOpen, Eye, Shield, Bell, FileText, Users, TrendingUp, Activity,
-  ArrowUpRight, AlertTriangle, Clock, RefreshCw
+  Wallet, ArrowUpRight, ArrowDownRight, Activity, TrendingUp,
+  AlertTriangle, Clock, RefreshCw, Copy, ExternalLink, Shield,
+  Cpu, Hash, Layers, Zap, Target, ArrowRight
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
-import { useNavStore, useAlertStore, useCaseStore, useWatchlistStore } from '../stores';
+import { useNavStore } from '../stores';
 import { useInvestigationStore } from '../stores/investigation';
-import { timeAgo, getPriorityColor } from '../utils/helpers';
-import { apiGet } from '../utils/api';
+import type { LiveTransaction } from '../stores/investigation';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-interface SocDashboard {
-  active_cases: number;
-  open_cases: number;
-  total_wallets: number;
-  total_evidence: number;
-  high_risk_wallets: number;
-  open_alerts: number;
-  closed_cases: number;
-  team_members: number;
-  cases_this_month: number;
-}
-
-interface AuditEntry {
-  id: string;
-  action: string;
-  username: string;
-  status: string;
-  created_at?: string;
-  timestamp?: string;
-  case_ref?: string;
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  Active:    '#00ff88',
-  Open:      '#00d4ff',
-  Suspended: '#ffd700',
-  Closed:    '#a855f7',
+const satToBtc = (sat: number) => (sat / 1e8).toFixed(8);
+const satToBtcShort = (sat: number) => {
+  const btc = sat / 1e8;
+  if (btc >= 1000) return `${(btc / 1000).toFixed(2)}K`;
+  if (btc >= 1) return btc.toFixed(4);
+  return btc.toFixed(8);
 };
 
-const tlIcon: Record<string, React.ReactNode> = {
-  alert:    <Bell size={14} />,
-  trace:    <Activity size={14} />,
-  evidence: <Shield size={14} />,
-  case:     <FolderOpen size={14} />,
-  report:   <FileText size={14} />,
+const truncateAddr = (addr: string, len = 10) =>
+  addr.length > len * 2 ? `${addr.slice(0, len)}…${addr.slice(-len)}` : addr;
+
+const timeAgo = (iso: string) => {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
 };
 
-const tlColor: Record<string, string> = {
-  alert:    'text-accent-red bg-accent-red/15',
-  trace:    'text-primary-400 bg-primary-500/15',
-  evidence: 'text-accent-green bg-accent-green/15',
-  case:     'text-accent-gold bg-accent-gold/15',
-  report:   'text-accent-purple bg-accent-purple/15',
+const formatTimestamp = (unix: number) => {
+  const d = new Date(unix * 1000);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export const DashboardPage: React.FC = () => {
-  const { setPage }   = useNavStore();
-  const { alerts }    = useAlertStore();
-  const { cases, loadCases } = useCaseStore();
-  const { entries }   = useWatchlistStore();
+  const { setPage } = useNavStore();
+  const {
+    activeTargetAddress,
+    summary,
+    transactions,
+    utxos,
+    isLoading,
+    error,
+    refreshTargetData
+  } = useInvestigationStore();
 
-  const { activeTargetAddress, summary, transactions, isLoading: isTargetLoading, refreshTargetData } = useInvestigationStore();
-
-  const [dashboard, setDashboard]   = React.useState<SocDashboard | null>(null);
-  const [timeline,  setTimeline]    = React.useState<AuditEntry[]>([]);
-  const [activityData, setActivityData] = React.useState<Array<Record<string, unknown>>>([]);
-  const [loading, setLoading]       = React.useState(false);
   const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date());
+  const [copied, setCopied] = React.useState(false);
 
-  // Trigger target refresh on mount
+  // Refresh target data on mount & when address changes
   React.useEffect(() => {
     void refreshTargetData();
   }, [activeTargetAddress, refreshTargetData]);
 
-  // ── Fetch dashboard stats from real API ─────────────────────────────────
-  const fetchDashboard = React.useCallback(async () => {
-    try {
-      const data = await apiGet<SocDashboard>('/api/soc/dashboard');
-      setDashboard(data);
-    } catch {
-      // If SOC endpoint unavailable, compute from local store state
-      setDashboard(null);
-    }
-  }, []);
-
-  // ── Fetch audit timeline ─────────────────────────────────────────────────
-  const fetchTimeline = React.useCallback(async () => {
-    try {
-      const data = await apiGet<AuditEntry[]>('/api/audit/logs');
-      setTimeline(Array.isArray(data) ? data.slice(0, 5) : []);
-    } catch {
-      setTimeline([]);
-    }
-  }, []);
-
-  // ── Fetch weekly activity (audit log aggregation by day) ─────────────────
-  const fetchActivity = React.useCallback(async () => {
-    try {
-      const data = await apiGet<Array<Record<string, unknown>>>('/api/soc/activity');
-      if (Array.isArray(data) && data.length > 0) setActivityData(data);
-    } catch {
-      // Activity chart stays empty — no fabricated fallback
-      setActivityData([]);
-    }
-  }, []);
-
-  // ── Initial load ─────────────────────────────────────────────────────────
-  React.useEffect(() => {
-    void fetchDashboard();
-    void fetchTimeline();
-    void fetchActivity();
-    void loadCases();
-  }, [fetchDashboard, fetchTimeline, fetchActivity, loadCases]);
-
-  // ── Auto-refresh every 30 seconds (real polling, no random jitter) ────────
+  // Auto-refresh every 60s
   React.useEffect(() => {
     const interval = setInterval(() => {
-      void fetchDashboard();
-      void fetchTimeline();
+      void refreshTargetData();
       setLastRefresh(new Date());
-    }, 30_000);
+    }, 60_000);
     return () => clearInterval(interval);
-  }, [fetchDashboard, fetchTimeline]);
+  }, [refreshTargetData]);
 
-  // ── Compute stats — prefer API data, fall back to store state ────────────
-  const activeCases      = dashboard?.active_cases    ?? cases.filter(c => c.status.toLowerCase() === 'active').length;
-  const watchedWallets   = dashboard?.total_wallets   ?? entries.length;
-  const evidenceItems    = dashboard?.total_evidence  ?? cases.reduce((s, c) => s + c.evidenceCount, 0);
-  const activeAlerts     = dashboard?.open_alerts     ?? alerts.filter(a => !a.isRead).length;
-  const casesThisMonth   = dashboard?.cases_this_month ?? 0;
-  const teamMembers      = dashboard?.team_members    ?? Math.max(1, new Set(cases.map(c => c.investigatorName)).size);
+  const handleCopyAddress = () => {
+    void navigator.clipboard.writeText(activeTargetAddress);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-  // ── Case status distribution from real case store ────────────────────────
-  const caseStatusData = React.useMemo(() => {
-    const counts: Record<string, number> = {};
-    cases.forEach(c => {
-      const key = c.status.charAt(0).toUpperCase() + c.status.slice(1);
-      counts[key] = (counts[key] ?? 0) + 1;
+  // ── Compute Live Stats from Investigation Store ────────────────────────────
+
+  const balanceBtc = summary ? satToBtcShort(summary.confirmedBalance) : '—';
+  const txCount = summary?.txCount ?? 0;
+  const utxoCount = utxos.length;
+  const totalReceivedBtc = summary ? satToBtcShort(summary.totalReceived) : '—';
+  const totalSentBtc = summary ? satToBtcShort(summary.totalSent) : '—';
+  const totalFees = transactions.reduce((sum, tx) => sum + (tx.fee || 0), 0);
+
+  // Unique addresses interacted with (counterparties)
+  const counterparties = React.useMemo(() => {
+    const addrs = new Set<string>();
+    transactions.forEach(tx => {
+      tx.vin.forEach(inp => {
+        if (inp.prevout?.scriptpubkey_address && inp.prevout.scriptpubkey_address !== activeTargetAddress) {
+          addrs.add(inp.prevout.scriptpubkey_address);
+        }
+      });
+      tx.vout.forEach(out => {
+        if (out.scriptpubkey_address && out.scriptpubkey_address !== activeTargetAddress) {
+          addrs.add(out.scriptpubkey_address);
+        }
+      });
     });
-    return Object.entries(counts).map(([name, value]) => ({
-      name,
-      value,
-      color: STATUS_COLORS[name] ?? '#78819a',
-    }));
-  }, [cases]);
+    return addrs;
+  }, [transactions, activeTargetAddress]);
+
+  // ── Stat Cards — all from live Mempool data ────────────────────────────────
 
   const statCards = [
-    { label: 'Active Cases',     value: activeCases,    icon: FolderOpen, color: 'from-primary-500/20 to-primary-500/5',  iconColor: 'text-primary-400' },
-    { label: 'Watched Wallets',  value: watchedWallets, icon: Eye,        color: 'from-accent-green/20 to-accent-green/5', iconColor: 'text-accent-green' },
-    { label: 'Evidence Items',   value: evidenceItems,  icon: Shield,     color: 'from-accent-purple/20 to-accent-purple/5', iconColor: 'text-accent-purple' },
-    { label: 'Active Alerts',    value: activeAlerts,   icon: Bell,       color: 'from-accent-red/20 to-accent-red/5',    iconColor: 'text-accent-red' },
-    { label: 'Cases This Month', value: casesThisMonth, icon: TrendingUp, color: 'from-accent-gold/20 to-accent-gold/5',  iconColor: 'text-accent-gold' },
-    { label: 'Team Members',     value: teamMembers,    icon: Users,      color: 'from-cyber-teal/20 to-cyber-teal/5',    iconColor: 'text-cyber-teal' },
+    { label: 'Confirmed Balance',  value: `${balanceBtc} BTC`,    icon: Wallet,       color: 'from-primary-500/20 to-primary-500/5',   iconColor: 'text-primary-400' },
+    { label: 'Total Transactions', value: txCount.toLocaleString(), icon: Activity,     color: 'from-accent-green/20 to-accent-green/5', iconColor: 'text-accent-green' },
+    { label: 'Live UTXOs',         value: utxoCount.toLocaleString(), icon: Layers,     color: 'from-accent-purple/20 to-accent-purple/5', iconColor: 'text-accent-purple' },
+    { label: 'Total Received',     value: `${totalReceivedBtc} BTC`, icon: ArrowDownRight, color: 'from-cyber-teal/20 to-cyber-teal/5', iconColor: 'text-cyber-teal' },
+    { label: 'Total Sent',         value: `${totalSentBtc} BTC`,     icon: ArrowUpRight,   color: 'from-accent-gold/20 to-accent-gold/5', iconColor: 'text-accent-gold' },
+    { label: 'Counterparties',     value: counterparties.size.toLocaleString(), icon: Target,  color: 'from-accent-red/20 to-accent-red/5', iconColor: 'text-accent-red' },
   ];
 
-  if (loading) {
+  // ── Transaction Volume Chart — real data grouped by month ──────────────────
+
+  const volumeChartData = React.useMemo(() => {
+    if (transactions.length === 0) return [];
+    const monthMap: Record<string, { inflow: number; outflow: number; fees: number; count: number }> = {};
+
+    transactions.forEach(tx => {
+      const blockTime = tx.status.block_time;
+      if (!blockTime) return;
+      const d = new Date(blockTime * 1000);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthMap[key]) monthMap[key] = { inflow: 0, outflow: 0, fees: 0, count: 0 };
+
+      // Calculate inflow (received by target)
+      tx.vout.forEach(out => {
+        if (out.scriptpubkey_address === activeTargetAddress) {
+          monthMap[key].inflow += out.value;
+        }
+      });
+      // Calculate outflow (sent by target)
+      tx.vin.forEach(inp => {
+        if (inp.prevout?.scriptpubkey_address === activeTargetAddress) {
+          monthMap[key].outflow += inp.prevout.value;
+        }
+      });
+
+      monthMap[key].fees += tx.fee || 0;
+      monthMap[key].count += 1;
+    });
+
+    return Object.entries(monthMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-12) // last 12 months
+      .map(([month, data]) => ({
+        month: new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+        Inflow: +(data.inflow / 1e8).toFixed(4),
+        Outflow: +(data.outflow / 1e8).toFixed(4),
+        Txns: data.count,
+      }));
+  }, [transactions, activeTargetAddress]);
+
+  // ── Fund Flow Pie — Inflow vs Outflow distribution ────────────────────────
+
+  const fundFlowData = React.useMemo(() => {
+    if (!summary) return [];
+    const received = summary.totalReceived / 1e8;
+    const sent = summary.totalSent / 1e8;
+    if (received === 0 && sent === 0) return [];
+    return [
+      { name: 'Received', value: +received.toFixed(4), color: '#00ff88' },
+      { name: 'Sent', value: +sent.toFixed(4), color: '#ff3366' },
+    ];
+  }, [summary]);
+
+  // ── Recent Transactions — real live data ──────────────────────────────────
+
+  const recentTxs = transactions.slice(0, 6);
+
+  // ── Top UTXO holders (largest UTXOs) ──────────────────────────────────────
+
+  const topUtxos = React.useMemo(() => {
+    return [...utxos]
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+  }, [utxos]);
+
+  // Loading state
+  if (isLoading && !summary) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center gap-3 text-dark-400">
           <RefreshCw size={18} className="animate-spin" />
-          <span className="text-sm">Loading dashboard…</span>
+          <span className="text-sm">Loading live blockchain data for {truncateAddr(activeTargetAddress)}…</span>
         </div>
       </div>
     );
@@ -174,29 +196,85 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header Banner */}
+
+      {/* ═══ Active Target Investigation Banner ═══ */}
       <div className="glass-card p-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary-500/5 via-transparent to-accent-purple/5" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary-500/8 via-transparent to-accent-green/5" />
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="relative flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-2 flex-wrap text-[10px] font-semibold tracking-widest uppercase">
-              <div className="flex items-center gap-1.5 text-accent-green">
-                <div className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse" />
-                <span>System Online — All Services Operational</span>
+        <div className="relative">
+          <div className="flex items-start justify-between flex-wrap gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-2 flex-wrap text-[10px] font-semibold tracking-widest uppercase">
+                <div className="flex items-center gap-1.5 text-accent-green">
+                  <div className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse" />
+                  <span>Active Investigation Target</span>
+                </div>
+                {summary && (
+                  <span className="text-dark-500">• {summary.chain} • {summary.scriptType}</span>
+                )}
               </div>
+              <h1 className="text-2xl font-bold text-white mb-1">Intelligence Overview</h1>
+              <p className="text-sm text-dark-400">Live blockchain metrics for active target wallet</p>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-1">Intelligence Overview</h1>
-            <p className="text-sm text-dark-400">Real-time blockchain investigation metrics and case intelligence</p>
+            <div className="flex items-center gap-2 text-[10px] text-dark-500 mt-1">
+              <RefreshCw size={11} className={isLoading ? 'animate-spin' : ''} />
+              <span>Updated {timeAgo(lastRefresh.toISOString())}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-dark-500 mt-1">
-            <RefreshCw size={11} />
-            <span>Updated {timeAgo(lastRefresh.toISOString())}</span>
+
+          {/* Target Address Display */}
+          <div className="mt-4 flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-dark-800/80 border border-dark-700/50">
+              <Wallet size={14} className="text-primary-400" />
+              <span className="mono text-xs text-white tracking-wide">{activeTargetAddress}</span>
+            </div>
+            <button
+              onClick={handleCopyAddress}
+              className="p-2 rounded-lg bg-dark-800/50 border border-dark-700/50 hover:bg-dark-700/50 transition-colors"
+              title="Copy address"
+            >
+              <Copy size={13} className={copied ? 'text-accent-green' : 'text-dark-400'} />
+            </button>
+            <a
+              href={`https://mempool.space/address/${activeTargetAddress}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 rounded-lg bg-dark-800/50 border border-dark-700/50 hover:bg-dark-700/50 transition-colors"
+              title="View on Mempool.space"
+            >
+              <ExternalLink size={13} className="text-dark-400" />
+            </a>
+            <button
+              onClick={() => setPage('blockchain')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary-500/15 border border-primary-500/30 text-primary-400 text-[11px] font-medium hover:bg-primary-500/25 transition-colors"
+            >
+              <span>Full Analysis</span>
+              <ArrowRight size={12} />
+            </button>
           </div>
+
+          {/* Quick Summary Badges */}
+          {summary && (
+            <div className="mt-3 flex items-center gap-3 flex-wrap text-[10px]">
+              {summary.firstSeen && (
+                <span className="px-2 py-1 rounded bg-dark-800/60 text-dark-300">
+                  First Seen: {new Date(summary.firstSeen).toLocaleDateString()}
+                </span>
+              )}
+              {summary.lastSeen && (
+                <span className="px-2 py-1 rounded bg-dark-800/60 text-dark-300">
+                  Last Active: {new Date(summary.lastSeen).toLocaleDateString()}
+                </span>
+              )}
+              <span className="px-2 py-1 rounded bg-dark-800/60 text-dark-300">
+                Unconfirmed: {satToBtc(summary.unconfirmedBalance)} BTC
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Stat Cards */}
+      {/* ═══ Live Stat Cards ═══ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;
@@ -207,7 +285,7 @@ export const DashboardPage: React.FC = () => {
                 <div className="flex items-center justify-between mb-3">
                   <Icon size={18} className={stat.iconColor} />
                 </div>
-                <p className="text-2xl font-bold text-white">{stat.value}</p>
+                <p className="text-xl font-bold text-white truncate">{stat.value}</p>
                 <p className="text-[11px] text-dark-400 mt-1">{stat.label}</p>
               </div>
             </div>
@@ -215,177 +293,228 @@ export const DashboardPage: React.FC = () => {
         })}
       </div>
 
-      {/* Charts Row */}
+      {/* ═══ Charts Row ═══ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Activity Chart */}
+
+        {/* Transaction Volume Chart (real grouped by month) */}
         <div className="lg:col-span-2 glass-card p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-semibold text-white">Investigation Activity</h3>
-              <p className="text-[11px] text-dark-400">Weekly trace, alert, and evidence activity</p>
+              <h3 className="text-sm font-semibold text-white">Transaction Volume</h3>
+              <p className="text-[11px] text-dark-400">Monthly inflow vs outflow (BTC)</p>
             </div>
             <div className="flex items-center gap-4 text-[10px]">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary-400" /> Traces</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-accent-red" /> Alerts</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-accent-green" /> Evidence</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-accent-green" /> Inflow</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-accent-red" /> Outflow</span>
             </div>
           </div>
-          {activityData.length > 0 ? (
+          {volumeChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={activityData}>
+              <AreaChart data={volumeChartData}>
                 <defs>
-                  <linearGradient id="colorTraces" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#00d4ff" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorAlerts" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ff3366" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#ff3366" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorEvidence" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="colorInflow" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#00ff88" stopOpacity={0.3} />
                     <stop offset="95%" stopColor="#00ff88" stopOpacity={0} />
                   </linearGradient>
+                  <linearGradient id="colorOutflow" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ff3366" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#ff3366" stopOpacity={0} />
+                  </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1a1f36" />
-                <XAxis dataKey="day" tick={{ fill: '#78819a', fontSize: 11 }} axisLine={false} />
+                <XAxis dataKey="month" tick={{ fill: '#78819a', fontSize: 11 }} axisLine={false} />
                 <YAxis tick={{ fill: '#78819a', fontSize: 11 }} axisLine={false} />
                 <Tooltip contentStyle={{ backgroundColor: '#1a1f36', border: '1px solid #2a3253', borderRadius: 8, fontSize: 12, color: '#fff' }} />
-                <Area type="monotone" dataKey="traces"   stroke="#00d4ff" fillOpacity={1} fill="url(#colorTraces)"   strokeWidth={2} />
-                <Area type="monotone" dataKey="alerts"   stroke="#ff3366" fillOpacity={1} fill="url(#colorAlerts)"   strokeWidth={2} />
-                <Area type="monotone" dataKey="evidence" stroke="#00ff88" fillOpacity={1} fill="url(#colorEvidence)" strokeWidth={2} />
+                <Area type="monotone" dataKey="Inflow" stroke="#00ff88" fillOpacity={1} fill="url(#colorInflow)" strokeWidth={2} />
+                <Area type="monotone" dataKey="Outflow" stroke="#ff3366" fillOpacity={1} fill="url(#colorOutflow)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-[220px] text-dark-500 text-xs">
-              No activity data available yet.
+              {activeTargetAddress ? 'Analyze a wallet to see transaction volume chart.' : 'No target address set.'}
             </div>
           )}
         </div>
 
-        {/* Case Status Pie — derived from real case store */}
+        {/* Fund Flow Pie — Received vs Sent */}
         <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">Case Distribution</h3>
-          {caseStatusData.length > 0 ? (
+          <h3 className="text-sm font-semibold text-white mb-4">Fund Flow Distribution</h3>
+          {fundFlowData.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
-                  <Pie data={caseStatusData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value">
-                    {caseStatusData.map((entry, index) => (
+                  <Pie data={fundFlowData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value">
+                    {fundFlowData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: '#1a1f36', border: '1px solid #2a3253', borderRadius: 8, fontSize: 12, color: '#fff' }} />
+                  <Tooltip contentStyle={{ backgroundColor: '#1a1f36', border: '1px solid #2a3253', borderRadius: 8, fontSize: 12, color: '#fff' }}
+                    formatter={(value: number) => `${value} BTC`}
+                  />
                 </PieChart>
               </ResponsiveContainer>
               <div className="grid grid-cols-2 gap-2 mt-2">
-                {caseStatusData.map((item) => (
+                {fundFlowData.map((item) => (
                   <div key={item.name} className="flex items-center gap-2 text-[11px]">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
                     <span className="text-dark-300">{item.name}</span>
-                    <span className="text-white font-semibold ml-auto">{item.value}</span>
+                    <span className="text-white font-semibold ml-auto">{item.value} BTC</span>
                   </div>
                 ))}
               </div>
             </>
           ) : (
             <div className="flex items-center justify-center h-[180px] text-dark-500 text-xs">
-              No cases loaded.
+              No fund flow data available.
             </div>
           )}
         </div>
       </div>
 
-      {/* Bottom Row */}
+      {/* ═══ Bottom Row ═══ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Alerts */}
-        <div className="glass-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-white">Recent Alerts</h3>
-            <button onClick={() => setPage('alerts')} className="text-[11px] text-primary-400 hover:text-primary-300">View All</button>
-          </div>
-          <div className="space-y-3">
-            {alerts.slice(0, 4).map((alert) => (
-              <div key={alert.id} className={`flex items-start gap-3 p-3 rounded-lg border transition-colors
-                ${!alert.isRead ? 'bg-dark-800/50 border-dark-700/50' : 'bg-transparent border-transparent'}`}>
-                <div className={`mt-0.5 ${
-                  alert.severity === 'critical' ? 'text-accent-red' :
-                  alert.severity === 'high' ? 'text-accent-gold' : 'text-primary-400'
-                }`}>
-                  <AlertTriangle size={14} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-dark-200 line-clamp-2">{alert.message}</p>
-                  <span className="text-[10px] text-dark-500 mt-1 block">{timeAgo(alert.createdAt)}</span>
-                </div>
-              </div>
-            ))}
-            {alerts.length === 0 && (
-              <p className="text-xs text-dark-500 text-center py-4">No alerts.</p>
-            )}
-          </div>
-        </div>
 
-        {/* Active Cases */}
-        <div className="glass-card p-5">
+        {/* Recent Transactions — from live Mempool data */}
+        <div className="lg:col-span-2 glass-card p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-white">Active Cases</h3>
-            <button onClick={() => setPage('cases')} className="text-[11px] text-primary-400 hover:text-primary-300">View All</button>
+            <h3 className="text-sm font-semibold text-white">Recent Transactions</h3>
+            <button onClick={() => setPage('blockchain')} className="text-[11px] text-primary-400 hover:text-primary-300">View All</button>
           </div>
-          <div className="space-y-3">
-            {cases.filter(c => c.status.toLowerCase() === 'active').slice(0, 4).map((c) => (
-              <div key={c.id} className="p-3 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors cursor-pointer border border-transparent hover:border-dark-700/50">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] mono text-dark-400">{c.caseNumber}</span>
-                  <span className={getPriorityColor(c.priority)}>{c.priority}</span>
-                </div>
-                <p className="text-sm text-white font-medium truncate">{c.title}</p>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-[10px] text-dark-400">{c.investigatorName}</span>
-                  <div className="flex items-center gap-2 text-[10px] text-dark-500">
-                    <span>{c.walletCount} wallets</span>
-                    <span>{c.evidenceCount} evidence</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {cases.filter(c => c.status.toLowerCase() === 'active').length === 0 && (
-              <p className="text-xs text-dark-500 text-center py-4">No active cases.</p>
-            )}
-          </div>
-        </div>
+          <div className="space-y-2">
+            {recentTxs.length > 0 ? recentTxs.map((tx) => {
+              // Determine if target is sender or receiver
+              const isSender = tx.vin.some(inp => inp.prevout?.scriptpubkey_address === activeTargetAddress);
+              const isReceiver = tx.vout.some(out => out.scriptpubkey_address === activeTargetAddress);
+              const direction = isSender && isReceiver ? 'self' : isSender ? 'sent' : 'received';
 
-        {/* Activity Timeline — from real audit log */}
-        <div className="glass-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-white">Activity Timeline</h3>
-            <Clock size={14} className="text-dark-400" />
-          </div>
-          <div className="space-y-4">
-            {timeline.map((entry) => {
-              const type = entry.status === 'failure' ? 'alert' : 'case';
+              // Calculate amount relevant to target
+              let targetAmount = 0;
+              if (direction === 'received' || direction === 'self') {
+                tx.vout.forEach(out => {
+                  if (out.scriptpubkey_address === activeTargetAddress) targetAmount += out.value;
+                });
+              } else {
+                tx.vin.forEach(inp => {
+                  if (inp.prevout?.scriptpubkey_address === activeTargetAddress) targetAmount += inp.prevout.value;
+                });
+              }
+
               return (
-                <div key={entry.id} className="flex items-start gap-3">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${tlColor[type] ?? 'text-dark-400 bg-dark-700/50'}`}>
-                    {tlIcon[type]}
+                <div key={tx.txid} className="flex items-center gap-3 p-3 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors border border-transparent hover:border-dark-700/50">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    direction === 'received' ? 'text-accent-green bg-accent-green/15' :
+                    direction === 'sent' ? 'text-accent-red bg-accent-red/15' :
+                    'text-accent-gold bg-accent-gold/15'
+                  }`}>
+                    {direction === 'received' ? <ArrowDownRight size={14} /> :
+                     direction === 'sent' ? <ArrowUpRight size={14} /> :
+                     <Activity size={14} />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-white truncate">{entry.action}</p>
-                    <p className="text-[11px] text-dark-400">Recorded by {entry.username}</p>
+                    <div className="flex items-center justify-between">
+                      <a
+                        href={`https://mempool.space/tx/${tx.txid}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mono text-xs text-primary-400 hover:text-primary-300 truncate max-w-[200px]"
+                      >
+                        {truncateAddr(tx.txid, 8)}
+                      </a>
+                      <span className={`text-xs font-semibold ${
+                        direction === 'received' ? 'text-accent-green' : direction === 'sent' ? 'text-accent-red' : 'text-accent-gold'
+                      }`}>
+                        {direction === 'received' ? '+' : direction === 'sent' ? '-' : '↔'}{satToBtcShort(targetAmount)} BTC
+                      </span>
+                    </div>
                     <div className="flex items-center gap-2 mt-1 text-[10px] text-dark-500">
-                      {entry.case_ref && <span className="mono text-primary-500/60">{entry.case_ref}</span>}
-                      <span className="ml-auto">{timeAgo(entry.created_at ?? entry.timestamp ?? new Date().toISOString())}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${
+                        tx.status.confirmed ? 'bg-accent-green/10 text-accent-green' : 'bg-accent-gold/10 text-accent-gold'
+                      }`}>
+                        {tx.status.confirmed ? 'Confirmed' : 'Pending'}
+                      </span>
+                      {tx.status.block_time && (
+                        <span>{formatTimestamp(tx.status.block_time)}</span>
+                      )}
+                      <span className="ml-auto">Fee: {(tx.fee / 1e8).toFixed(8)} BTC</span>
                     </div>
                   </div>
                 </div>
               );
-            })}
-            {timeline.length === 0 && (
-              <p className="text-xs text-dark-500 text-center py-4">No recent activity.</p>
+            }) : (
+              <p className="text-xs text-dark-500 text-center py-4">No transactions found for this target.</p>
             )}
           </div>
         </div>
+
+        {/* Top UTXOs & Address Details */}
+        <div className="glass-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-white">Largest UTXOs</h3>
+            <Layers size={14} className="text-dark-400" />
+          </div>
+          <div className="space-y-3">
+            {topUtxos.length > 0 ? topUtxos.map((utxo, i) => (
+              <div key={`${utxo.txid}-${utxo.vout}`} className="flex items-center gap-3 p-2.5 rounded-lg bg-dark-800/30">
+                <div className="w-6 h-6 rounded flex items-center justify-center bg-primary-500/15 text-primary-400 text-[10px] font-bold">
+                  {i + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <a
+                    href={`https://mempool.space/tx/${utxo.txid}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mono text-[11px] text-primary-400 hover:text-primary-300 truncate block"
+                  >
+                    {truncateAddr(utxo.txid, 6)}:{utxo.vout}
+                  </a>
+                  <div className="flex items-center gap-2 mt-0.5 text-[10px] text-dark-500">
+                    <span className={`px-1 py-0.5 rounded text-[9px] ${
+                      utxo.status.confirmed ? 'text-accent-green bg-accent-green/10' : 'text-accent-gold bg-accent-gold/10'
+                    }`}>
+                      {utxo.status.confirmed ? `Block #${utxo.status.block_height}` : 'Unconfirmed'}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold text-white whitespace-nowrap">
+                  {satToBtcShort(utxo.value)} BTC
+                </span>
+              </div>
+            )) : (
+              <p className="text-xs text-dark-500 text-center py-4">No UTXOs found.</p>
+            )}
+          </div>
+
+          {/* Fee Analysis mini card */}
+          {transactions.length > 0 && (
+            <div className="mt-4 p-3 rounded-lg bg-dark-800/50 border border-dark-700/30">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap size={12} className="text-accent-gold" />
+                <span className="text-[11px] font-semibold text-white">Fee Analysis</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                <div>
+                  <span className="text-dark-500">Total Fees Paid</span>
+                  <p className="text-white font-medium">{(totalFees / 1e8).toFixed(8)} BTC</p>
+                </div>
+                <div>
+                  <span className="text-dark-500">Avg Fee/Tx</span>
+                  <p className="text-white font-medium">{(totalFees / transactions.length / 1e8).toFixed(8)} BTC</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="glass-card p-4 border border-accent-red/30">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={14} className="text-accent-red" />
+            <span className="text-xs text-accent-red">{error}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
