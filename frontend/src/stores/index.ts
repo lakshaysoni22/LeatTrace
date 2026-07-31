@@ -50,6 +50,20 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     const cleanEmail = email.trim();
     const cleanPassword = _password.trim();
 
+    // Instant Fast-Path for static/Vercel/demo mode
+    const mockUser: User = {
+      id: `usr-${Date.now()}`,
+      email: cleanEmail || 'lakshaysoni@cybercrime.gov.in',
+      username: cleanEmail.split('@')[0] || (isOAuth ? 'oauth_officer' : 'lakshaysoni'),
+      role: "admin",
+      isActive: true,
+      mfaEnabled: true,
+      createdAt: new Date().toISOString()
+    };
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 600);
+
     try {
       const formData = new URLSearchParams();
       formData.append('username', cleanEmail);
@@ -58,8 +72,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData
+        body: formData,
+        signal: controller.signal
       });
+      clearTimeout(timer);
 
       if (response.ok) {
         const data = await response.json();
@@ -88,9 +104,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           mfaEnabled: data.user.mfa_enabled,
           createdAt: data.user.created_at
         };
-        localStorage.setItem('token', data.access_token);
-        localStorage.setItem('refresh_token', data.refresh_token);
-        localStorage.setItem('user', JSON.stringify(loggedUser));
+        sessionStorage.setItem('token', data.access_token);
+        sessionStorage.setItem('refresh_token', data.refresh_token);
+        sessionStorage.setItem('user', JSON.stringify(loggedUser));
         set({ 
           user: loggedUser, 
           isAuthenticated: true, 
@@ -99,24 +115,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         });
         return true;
       }
-    } catch (err) {
-      console.warn('Backend API unavailable, using resilient auth engine:', err);
+    } catch {
+      clearTimeout(timer);
     }
 
-    // --- RESILIENT FALLBACK / OFFLINE AUTH ENGINE ---
-    // Direct credentials trigger OTP verification screen
+    // --- INSTANT RESILIENT FALLBACK FOR VERCEL DEPLOYMENTS ---
     if (cleanEmail || isOAuth) {
-      const username = cleanEmail.split('@')[0] || (isOAuth ? 'oauth_officer' : 'lakshaysoni');
-      const mockUser: User = {
-        id: `usr-${Date.now()}`,
-        email: cleanEmail || 'lakshaysoni@cybercrime.gov.in',
-        username: username,
-        role: "admin",
-        isActive: true,
-        mfaEnabled: true,
-        createdAt: new Date().toISOString()
-      };
-
       set({
         mfaPendingUser: mockUser,
         tempMfaToken: "mock-mfa-token-xyz"
@@ -147,12 +151,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         return true;
       }
 
+      const mfaController = new AbortController();
+      const mfaTimer = setTimeout(() => mfaController.abort(), 600);
+
       try {
         const response = await fetch(`${API_BASE}/api/auth/mfa/verify?temp_token=${tempToken}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: code })
+          body: JSON.stringify({ code: code }),
+          signal: mfaController.signal
         });
+        clearTimeout(mfaTimer);
+
         if (response.ok) {
           const data = await response.json();
           const loggedUser: User = {
@@ -177,8 +187,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           });
           return true;
         }
-      } catch (err) {
-        console.error('MFA verification failed:', err);
+      } catch {
+        clearTimeout(mfaTimer);
       }
 
       // Resilient fallback for MFA
