@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useCaseStore, useNavStore, useBlockchainStore } from '../stores';
+import { useInvestigationStore } from '../stores/investigation';
 import { FolderOpen, Plus, Folder, Search, ArrowRight, Shield, Clock, AlertTriangle, CheckCircle2, User, UserCheck, Activity, FileText, Sparkles, CheckSquare, PlusCircle } from 'lucide-react';
 import { getPriorityColor, getStatusColor, formatDate } from '../utils/helpers';
 import { API_BASE } from '../utils/api';
@@ -9,6 +10,7 @@ export const CasesPage: React.FC = () => {
   const { cases, selectedCase, selectCase, addCase, updateCase, loadCases } = useCaseStore();
   const { setPage } = useNavStore();
   const { setSearchAddress } = useBlockchainStore();
+  const { activeTargetAddress, summary } = useInvestigationStore();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');

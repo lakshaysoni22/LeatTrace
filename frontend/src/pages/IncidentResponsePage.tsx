@@ -4,6 +4,7 @@ import {
   Terminal, Shield, FileText, CheckCircle, Clock, Zap 
 } from 'lucide-react';
 import { useAlertStore, useCaseStore, useWatchlistStore } from '../stores';
+import { useInvestigationStore } from '../stores/investigation';
 import { API_BASE } from '../utils/api';
 
 interface PrioritizedCase {
@@ -31,10 +32,19 @@ export const IncidentResponsePage: React.FC = () => {
   const [recentThreats, setRecentThreats] = useState<any[]>([]);
   const [prioritizedCases, setPrioritizedCases] = useState<PrioritizedCase[]>([]);
   
+  const { activeTargetAddress } = useInvestigationStore();
+
   // Form states
-  const [lockAddress, setLockAddress] = useState('');
+  const [lockAddress, setLockAddress] = useState(activeTargetAddress || '');
   const [lockChain, setLockChain] = useState('BTC');
   const [lockNotes, setLockNotes] = useState('');
+
+  useEffect(() => {
+    if (activeTargetAddress) {
+      setLockAddress(activeTargetAddress);
+      setLockNotes(`Emergency containment protocol initiated for active investigation target ${activeTargetAddress}.`);
+    }
+  }, [activeTargetAddress]);
   
   // Animation / Action states
   const [isCalibrating, setIsCalibrating] = useState(false);

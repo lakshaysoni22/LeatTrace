@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore, useBlockchainStore, useCaseStore } from '../stores';
+import { useInvestigationStore } from '../stores/investigation';
 import { 
   MessageSquare, Send, Sparkles, AlertTriangle, ShieldCheck, Clock, 
   ListTodo, Activity, FileText, CheckCircle2, ChevronRight, Bookmark, Database, LayoutGrid, Info, Globe
@@ -12,6 +13,7 @@ export const AIWorkspacePage: React.FC = () => {
   const { user } = useAuthStore();
   const { searchAddress } = useBlockchainStore();
   const { selectedCase, cases } = useCaseStore();
+  const { activeTargetAddress, summary } = useInvestigationStore();
 
   // Left panel active context mode
   const [contextMode, setContextMode] = useState<'investigation' | 'wallet' | 'transaction' | 'evidence' | 'timeline' | 'report'>('investigation');

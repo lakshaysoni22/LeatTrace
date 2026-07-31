@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useInvestigationStore } from '../stores/investigation';
 import { 
   ShieldAlert, ShieldCheck, Activity, Users, Clock, AlertOctagon, Terminal, Play, 
   Search, RefreshCw, Layers, CheckCircle2, AlertTriangle, AlertCircle, HelpCircle, UserCheck

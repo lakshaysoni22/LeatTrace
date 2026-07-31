@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useInvestigationStore } from '../stores/investigation';
 import { ClipboardList, Shield, Filter, Search, ShieldAlert, CheckCircle, RefreshCw, AlertOctagon, WifiOff } from 'lucide-react';
 import { formatDate } from '../utils/helpers';
 import { apiGet, API_BASE } from '../utils/api';
