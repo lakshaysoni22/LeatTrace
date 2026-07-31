@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavStore, useAlertStore, useAuthStore, useBlockchainStore, useCaseStore } from '../../stores';
-import { Bell, Search, Wifi, Shield, X, FolderPlus, FileUp, Sparkles, Keyboard, Menu } from 'lucide-react';
+import { useInvestigationStore } from '../../stores/investigation';
+import { Bell, Search, Wifi, Shield, X, FolderPlus, FileUp, Sparkles, Keyboard, Menu, Target } from 'lucide-react';
 import { timeAgo, getSeverityColor } from '../../utils/helpers';
 
 export const Header: React.FC = () => {
   const { sidebarOpen, currentPage, toggleSidebar, setPage, showShortcuts, setShowShortcuts } = useNavStore();
   const { alerts, markRead, markAllRead } = useAlertStore();
   const { user } = useAuthStore();
+  const { activeTargetAddress } = useInvestigationStore();
   const { setSearchAddress } = useBlockchainStore();
   const { cases, selectCase } = useCaseStore();
 
@@ -63,18 +65,18 @@ export const Header: React.FC = () => {
       )
     : [];
 
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    useInvestigationStore.getState().setActiveTarget(searchQuery.trim());
+    setSearchQuery('');
+    setShowSuggestions(false);
+  };
+
   const handleSuggestionClick = (item: any) => {
     setSearchQuery('');
     setShowSuggestions(false);
-    
-    if (item.type === 'case') {
-      const c = cases.find(x => x.id === item.id);
-      if (c) selectCase(c);
-      setPage('cases');
-    } else {
-      setSearchAddress(item.target);
-      setPage('blockchain');
-    }
+    useInvestigationStore.getState().setActiveTarget(item.target);
   };
 
   return (
@@ -91,7 +93,13 @@ export const Header: React.FC = () => {
           <Menu size={16} />
         </button>
         <div>
-          <h2 className="text-base md:text-lg font-semibold text-white truncate max-w-[160px] md:max-w-none">{pageTitle[currentPage] || 'Dashboard'}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base md:text-lg font-semibold text-white truncate max-w-[160px] md:max-w-none">{pageTitle[currentPage] || 'Dashboard'}</h2>
+            <div className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary-500/10 border border-primary-500/30 text-[11px] font-mono text-primary-300">
+              <Target size={11} className="text-primary-400 animate-pulse" />
+              <span>TARGET: {activeTargetAddress.slice(0, 8)}...{activeTargetAddress.slice(-6)}</span>
+            </div>
+          </div>
           <div className="hidden sm:flex items-center gap-2 text-[10px] text-dark-400">
             <span className="flex items-center gap-1"><Wifi size={10} className="text-accent-green" /> CONNECTED</span>
             <span>•</span>
@@ -102,31 +110,32 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Center — Search Suggestions */}
+      {/* Center — Target Address Search Bar */}
       <div className="flex-1 max-w-md mx-2 sm:mx-8 relative" ref={searchRef}>
-        <div className="relative">
+        <form onSubmit={handleSearchSubmit} className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
           <input
             id="global-search-input"
             type="text"
-            placeholder="Search wallets, cases, evidence..."
+            placeholder="Enter target BTC/Crypto address (e.g. 1A1zP1...)..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
               setShowSuggestions(true);
             }}
             onFocus={() => setShowSuggestions(true)}
-            className="input-field pl-9 pr-7 py-1.5 sm:py-2 text-xs sm:text-sm w-full"
+            className="input-field pl-9 pr-7 py-1.5 sm:py-2 text-xs sm:text-sm w-full font-mono"
           />
           {searchQuery && (
             <button 
+              type="button"
               onClick={() => setSearchQuery('')}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-dark-400 hover:text-white p-1"
             >
               <X size={14} />
             </button>
           )}
-        </div>
+        </form>
 
         {/* Suggestions Dropdown */}
         {showSuggestions && suggestions.length > 0 && (

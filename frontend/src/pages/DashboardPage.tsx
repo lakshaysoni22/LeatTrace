@@ -8,6 +8,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 import { useNavStore, useAlertStore, useCaseStore, useWatchlistStore } from '../stores';
+import { useInvestigationStore } from '../stores/investigation';
 import { timeAgo, getPriorityColor } from '../utils/helpers';
 import { apiGet } from '../utils/api';
 
@@ -66,11 +67,18 @@ export const DashboardPage: React.FC = () => {
   const { cases, loadCases } = useCaseStore();
   const { entries }   = useWatchlistStore();
 
+  const { activeTargetAddress, summary, transactions, isLoading: isTargetLoading, refreshTargetData } = useInvestigationStore();
+
   const [dashboard, setDashboard]   = React.useState<SocDashboard | null>(null);
   const [timeline,  setTimeline]    = React.useState<AuditEntry[]>([]);
   const [activityData, setActivityData] = React.useState<Array<Record<string, unknown>>>([]);
   const [loading, setLoading]       = React.useState(false);
   const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date());
+
+  // Trigger target refresh on mount
+  React.useEffect(() => {
+    void refreshTargetData();
+  }, [activeTargetAddress, refreshTargetData]);
 
   // ── Fetch dashboard stats from real API ─────────────────────────────────
   const fetchDashboard = React.useCallback(async () => {
