@@ -12,7 +12,7 @@ from .routers import auth, cases, wallets, graph, evidence, audit, ai, real_ecos
 
 logger = logging.getLogger("leatrace.main")
 
-DEMO_DATA_ENABLED = os.getenv("LEATrace_DEMO_DATA", "true").lower() in {"1", "true", "yes", "on"}
+DEMO_DATA_ENABLED = os.getenv("LEATrace_DEMO_DATA", "false").lower() in {"1", "true", "yes", "on"}
 BACKGROUND_TASKS_ENABLED = os.getenv("LEATrace_BACKGROUND_TASKS", "true").lower() in {"1", "true", "yes", "on"}
 
 

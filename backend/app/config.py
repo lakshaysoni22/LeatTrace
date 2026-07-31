@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = "production"
     DEBUG: bool = False
+    DEMO_DATA_ENABLED: bool = False
 
     # Security & Tokens
     SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "LEATrace_enterprise_production_secret_key_2026_x99_sec")
