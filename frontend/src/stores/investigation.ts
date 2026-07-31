@@ -69,6 +69,16 @@ interface InvestigationStore {
 
 const DEFAULT_TARGET = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'; // Genesis / Satoshi Address
 
+interface CachedAddressData {
+  summary: LiveAddressSummary;
+  transactions: LiveTransaction[];
+  utxos: LiveUtxo[];
+  cachedAt: number;
+}
+
+const addressCacheMap = new Map<string, CachedAddressData>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes in-memory cache
+
 export const useInvestigationStore = create<InvestigationStore>((set, get) => ({
   activeTargetAddress: DEFAULT_TARGET,
   summary: null,
@@ -80,13 +90,41 @@ export const useInvestigationStore = create<InvestigationStore>((set, get) => ({
   setActiveTarget: async (address: string) => {
     const cleanAddr = address.trim();
     if (!cleanAddr) return;
-    set({ activeTargetAddress: cleanAddr, isLoading: true, error: null });
+    set({ activeTargetAddress: cleanAddr, error: null });
+
+    // 0ms Cache Fast-Path
+    const cached = addressCacheMap.get(cleanAddr);
+    if (cached && (Date.now() - cached.cachedAt < CACHE_TTL_MS)) {
+      set({
+        summary: cached.summary,
+        transactions: cached.transactions,
+        utxos: cached.utxos,
+        isLoading: false,
+        error: null,
+      });
+      return;
+    }
+
+    set({ isLoading: true });
     await get().refreshTargetData();
   },
 
   refreshTargetData: async () => {
     const target = get().activeTargetAddress;
     if (!target) return;
+
+    // Check Cache first
+    const cached = addressCacheMap.get(target);
+    if (cached && (Date.now() - cached.cachedAt < CACHE_TTL_MS) && get().summary) {
+      set({
+        summary: cached.summary,
+        transactions: cached.transactions,
+        utxos: cached.utxos,
+        isLoading: false,
+        error: null,
+      });
+      return;
+    }
 
     set({ isLoading: true, error: null });
 
@@ -160,6 +198,14 @@ export const useInvestigationStore = create<InvestigationStore>((set, get) => ({
         lastSeen: lastSeenStr,
         scriptType,
       };
+
+      // Save to 0ms in-memory cache
+      addressCacheMap.set(target, {
+        summary,
+        transactions: txs,
+        utxos: utxosList,
+        cachedAt: Date.now(),
+      });
 
       set({
         summary,
