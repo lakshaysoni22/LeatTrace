@@ -65,8 +65,18 @@ const txVolumeData = [
 export const BlockchainPage: React.FC = () => {
   const { searchAddress, setSearchAddress } = useBlockchainStore();
   const { setPage } = useNavStore();
+  const { activeTargetAddress } = useInvestigationStore();
 
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState(activeTargetAddress || searchAddress || '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28');
+
+  // Keep BlockchainPage synced with global activeTargetAddress
+  useEffect(() => {
+    if (activeTargetAddress && activeTargetAddress !== searchAddress) {
+      setAddress(activeTargetAddress);
+      setSearchAddress(activeTargetAddress);
+    }
+  }, [activeTargetAddress, searchAddress, setSearchAddress]);
+
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [wallet, setWallet] = useState<any | null>(null);
   const detected = wallet ? detectBlockchainFromAddress(wallet.address) : null;
@@ -403,8 +413,8 @@ export const BlockchainPage: React.FC = () => {
       return;
     }
     setIsAnalyzing(true);
-    await new Promise((r) => setTimeout(r, 50));
     setSearchAddress(cleanAddr);
+    await useInvestigationStore.getState().setActiveTarget(cleanAddr);
     setIsAnalyzing(false);
   };
 

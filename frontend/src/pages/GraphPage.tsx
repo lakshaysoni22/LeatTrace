@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import cytoscape from 'cytoscape';
+import { useInvestigationStore } from '../stores/investigation';
 import {
   ZoomIn, ZoomOut, Maximize, RotateCcw, Download, Search, Filter, Info,
   AlertTriangle, Eye, Activity, Play, Pause, FastForward, Building, Link, Shield, Cpu, X, PlusCircle, Bookmark
@@ -48,15 +49,96 @@ export const GraphPage: React.FC = () => {
   // Active right-side tab
   const [activeRightTab, setActiveRightTab] = useState<'inspector' | 'crosschain' | 'notes'>('inspector');
 
+  const { activeTargetAddress, summary, transactions } = useInvestigationStore();
+
   // Dynamic Search Graph State
-  const [searchAddress, setSearchAddress] = useState('');
+  const [searchAddress, setSearchAddress] = useState(activeTargetAddress);
   const [isSearching, setIsSearching] = useState(false);
   const [graphElements, setGraphElements] = useState<any[]>([]);
 
-  // Graph starts empty — populated by user search
+  // Automatically build live Cytoscape graph nodes from activeTargetAddress & live transactions
   useEffect(() => {
-    setGraphElements([]);
-  }, []);
+    if (!activeTargetAddress) return;
+    setSearchAddress(activeTargetAddress);
+
+    const newNodes: any[] = [];
+    const newEdges: any[] = [];
+    const nodeSet = new Set<string>();
+
+    // Central Target Node
+    newNodes.push({
+      data: {
+        id: activeTargetAddress,
+        label: `${activeTargetAddress.slice(0, 8)}... (${summary?.scriptType || 'TARGET'})`,
+        type: 'wallet',
+        risk: 85,
+        balance: summary ? `${(summary.confirmedBalance / 1e8).toFixed(4)} BTC` : 'Target'
+      },
+      classes: 'wallet'
+    });
+    nodeSet.add(activeTargetAddress);
+
+    // Build real inputs and outputs from live transactions
+    transactions.slice(0, 8).forEach((tx, idx) => {
+      // Inputs
+      tx.vin?.forEach((vinItem, vinIdx) => {
+        const inAddr = vinItem.prevout?.scriptpubkey_address;
+        if (inAddr && !nodeSet.has(inAddr)) {
+          nodeSet.add(inAddr);
+          newNodes.push({
+            data: {
+              id: inAddr,
+              label: `${inAddr.slice(0, 8)}... (IN)`,
+              type: 'wallet',
+              risk: 30,
+              balance: vinItem.prevout?.value ? `${(vinItem.prevout.value / 1e8).toFixed(4)} BTC` : ''
+            },
+            classes: 'wallet'
+          });
+        }
+        if (inAddr) {
+          newEdges.push({
+            data: {
+              id: `edge-in-${tx.txid.slice(0, 6)}-${vinIdx}`,
+              source: inAddr,
+              target: activeTargetAddress,
+              value: vinItem.prevout?.value ? `${(vinItem.prevout.value / 1e8).toFixed(4)} BTC` : 'Transfer'
+            }
+          });
+        }
+      });
+
+      // Outputs
+      tx.vout?.forEach((voutItem, voutIdx) => {
+        const outAddr = voutItem.scriptpubkey_address;
+        if (outAddr && !nodeSet.has(outAddr)) {
+          nodeSet.add(outAddr);
+          newNodes.push({
+            data: {
+              id: outAddr,
+              label: `${outAddr.slice(0, 8)}... (OUT)`,
+              type: 'wallet',
+              risk: 45,
+              balance: `${(voutItem.value / 1e8).toFixed(4)} BTC`
+            },
+            classes: 'wallet'
+          });
+        }
+        if (outAddr) {
+          newEdges.push({
+            data: {
+              id: `edge-out-${tx.txid.slice(0, 6)}-${voutIdx}`,
+              source: activeTargetAddress,
+              target: outAddr,
+              value: `${(voutItem.value / 1e8).toFixed(4)} BTC`
+            }
+          });
+        }
+      });
+    });
+
+    setGraphElements([...newNodes, ...newEdges]);
+  }, [activeTargetAddress, summary, transactions]);
 
   // Search backend for address network
   const handleSearchGraph = async () => {

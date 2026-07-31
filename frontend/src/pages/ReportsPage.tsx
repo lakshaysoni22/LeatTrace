@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useCaseStore } from '../stores';
+import { useInvestigationStore } from '../stores/investigation';
 import { FileText, FileDown, CheckCircle2, ShieldAlert, FileCheck, ArrowRight, Loader2, WifiOff } from 'lucide-react';
 import { formatDate } from '../utils/helpers';
 import { apiGet, apiPost } from '../utils/api';
@@ -16,12 +17,22 @@ interface GeneratedReport {
 
 export const ReportsPage: React.FC = () => {
   const { cases, selectedCase, selectCase } = useCaseStore();
+  const { activeTargetAddress, summary: liveSummary } = useInvestigationStore();
+
   const [targetCaseId, setTargetCaseId] = useState(selectedCase?.id || cases[0]?.id || '');
   const [reportTitle, setReportTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [conclusions, setConclusions] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState('');
+
+  useEffect(() => {
+    if (activeTargetAddress) {
+      setReportTitle(`Forensic Blockchain Intelligence Report: ${activeTargetAddress.slice(0, 12)}...`);
+      setSummary(`Official law enforcement forensic analysis for target address ${activeTargetAddress}. Confirmed balance: ${((liveSummary?.confirmedBalance || 0) / 1e8).toFixed(4)} BTC across ${liveSummary?.txCount || 0} transactions on ${liveSummary?.chain || 'Bitcoin Mainnet'}.`);
+      setConclusions(`Target address ${activeTargetAddress} analyzed via Mempool.space on-chain graph. Script type: ${liveSummary?.scriptType || 'P2PKH'}. Recommending continuous watchlist monitoring.`);
+    }
+  }, [activeTargetAddress, liveSummary]);
 
   React.useEffect(() => {
     if (selectedCase) {
