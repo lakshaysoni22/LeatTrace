@@ -182,17 +182,7 @@ export const DashboardPage: React.FC = () => {
       .slice(0, 5);
   }, [utxos]);
 
-  // Loading state
-  if (isLoading && !summary) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex items-center gap-3 text-dark-400">
-          <RefreshCw size={18} className="animate-spin" />
-          <span className="text-sm">Loading live blockchain data for {truncateAddr(activeTargetAddress)}…</span>
-        </div>
-      </div>
-    );
-  }
+  // No full-page blocker — always render the dashboard layout
 
   return (
     <div className="space-y-6 animate-fade-in">

@@ -92,9 +92,9 @@ export const useInvestigationStore = create<InvestigationStore>((set, get) => ({
     if (!cleanAddr) return;
     set({ activeTargetAddress: cleanAddr, error: null });
 
-    // 0ms Cache Fast-Path
+    // 0ms Cache Fast-Path — show cached data instantly
     const cached = addressCacheMap.get(cleanAddr);
-    if (cached && (Date.now() - cached.cachedAt < CACHE_TTL_MS)) {
+    if (cached) {
       set({
         summary: cached.summary,
         transactions: cached.transactions,
@@ -102,10 +102,12 @@ export const useInvestigationStore = create<InvestigationStore>((set, get) => ({
         isLoading: false,
         error: null,
       });
-      return;
+      // If cache is still fresh, skip network
+      if (Date.now() - cached.cachedAt < CACHE_TTL_MS) return;
     }
 
-    set({ isLoading: true });
+    // Background refresh — don't block UI
+    set({ isLoading: !cached }); // only show loading if no cached data at all
     await get().refreshTargetData();
   },
 
@@ -113,9 +115,10 @@ export const useInvestigationStore = create<InvestigationStore>((set, get) => ({
     const target = get().activeTargetAddress;
     if (!target) return;
 
-    // Check Cache first
+    // Check Cache first — address must match
     const cached = addressCacheMap.get(target);
-    if (cached && (Date.now() - cached.cachedAt < CACHE_TTL_MS) && get().summary) {
+    const currentSummary = get().summary;
+    if (cached && (Date.now() - cached.cachedAt < CACHE_TTL_MS) && currentSummary?.address === target) {
       set({
         summary: cached.summary,
         transactions: cached.transactions,
@@ -126,15 +129,27 @@ export const useInvestigationStore = create<InvestigationStore>((set, get) => ({
       return;
     }
 
-    set({ isLoading: true, error: null });
+    // Only show loading spinner if we have zero data for this address
+    if (!currentSummary || currentSummary.address !== target) {
+      set({ isLoading: true, error: null });
+    }
 
     try {
-      // 1. Fetch live address summary from Mempool.space API
-      const statsRes = await fetch(`https://mempool.space/api/address/${target}`);
-      if (!statsRes.ok) {
+      // Parallel fetch — all 3 APIs at once for maximum speed
+      const [statsResult, txResult, utxoResult] = await Promise.allSettled([
+        fetch(`https://mempool.space/api/address/${target}`),
+        fetch(`https://mempool.space/api/address/${target}/txs`),
+        fetch(`https://mempool.space/api/address/${target}/utxo`),
+      ]);
+
+      // Abort if target changed while fetching
+      if (get().activeTargetAddress !== target) return;
+
+      // 1. Parse address summary
+      if (statsResult.status !== 'fulfilled' || !statsResult.value.ok) {
         throw new Error(`Failed to fetch live address details for ${target}`);
       }
-      const statsData = await statsRes.json();
+      const statsData = await statsResult.value.json();
 
       const chainStats = statsData.chain_stats || { funded_txo_sum: 0, spent_txo_sum: 0, tx_count: 0 };
       const mempoolStats = statsData.mempool_stats || { funded_txo_sum: 0, spent_txo_sum: 0, tx_count: 0 };
@@ -148,26 +163,16 @@ export const useInvestigationStore = create<InvestigationStore>((set, get) => ({
       else if (target.startsWith('bc1q')) scriptType = 'P2WPKH (Native SegWit)';
       else if (target.startsWith('bc1p')) scriptType = 'P2TR (Taproot)';
 
-      // 2. Fetch live transactions
+      // 2. Parse transactions
       let txs: LiveTransaction[] = [];
-      try {
-        const txRes = await fetch(`https://mempool.space/api/address/${target}/txs`);
-        if (txRes.ok) {
-          txs = await txRes.json();
-        }
-      } catch (err) {
-        console.warn('Mempool transactions fetch fallback:', err);
+      if (txResult.status === 'fulfilled' && txResult.value.ok) {
+        try { txs = await txResult.value.json(); } catch { /* skip */ }
       }
 
-      // 3. Fetch live UTXOs
+      // 3. Parse UTXOs
       let utxosList: LiveUtxo[] = [];
-      try {
-        const utxoRes = await fetch(`https://mempool.space/api/address/${target}/utxo`);
-        if (utxoRes.ok) {
-          utxosList = await utxoRes.json();
-        }
-      } catch (err) {
-        console.warn('Mempool UTXOs fetch fallback:', err);
+      if (utxoResult.status === 'fulfilled' && utxoResult.value.ok) {
+        try { utxosList = await utxoResult.value.json(); } catch { /* skip */ }
       }
 
       // Calculate first and last seen timestamps from txs
