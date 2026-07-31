@@ -121,11 +121,16 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       return true;
     }
 
-    // Require valid preset credentials or official government officer email format
-    const isValidPreset = (cleanEmail.toLowerCase() === 'lakshaysoni@cybercrime.gov.in' && cleanPassword === 'SecurePass@2026');
-    const isGovDomain = cleanEmail.includes('@') && ['cybercrime.gov.in', 'cbi.gov.in', 'i4c.gov.in', 'police.gov.in', 'gov.in'].some(domain => cleanEmail.toLowerCase().endsWith(domain)) && cleanPassword.length >= 6;
+    // Require exact password 'SecurePass@2026' and valid email
+    const isValidCredential = (
+      cleanEmail.toLowerCase() === 'lakshaysoni@cybercrime.gov.in' &&
+      cleanPassword === 'SecurePass@2026'
+    ) || (
+      cleanEmail.includes('@') &&
+      cleanPassword === 'SecurePass@2026'
+    );
 
-    if (isValidPreset || isGovDomain) {
+    if (isValidCredential) {
       set({
         mfaPendingUser: mockUser,
         tempMfaToken: "mock-mfa-token-xyz"
