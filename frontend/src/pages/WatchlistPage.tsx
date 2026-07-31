@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useWatchlistStore, useAlertStore, useBlockchainStore, useNavStore } from '../stores';
+import { useInvestigationStore } from '../stores/investigation';
 import { Eye, Plus, Trash2, ShieldAlert, Activity, Play, EyeOff, Search, WifiOff } from 'lucide-react';
 import { formatAddress, formatDate, getRiskColor } from '../utils/helpers';
 import type { WatchlistEntry } from '../types';
@@ -10,6 +11,7 @@ export const WatchlistPage: React.FC = () => {
   const { alerts, markAllRead } = useAlertStore();
   const { setSearchAddress } = useBlockchainStore();
   const { setPage } = useNavStore();
+  const { activeTargetAddress, summary } = useInvestigationStore();
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [address, setAddress] = useState('');

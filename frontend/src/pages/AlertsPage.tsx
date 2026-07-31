@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAlertStore, useBlockchainStore, useNavStore } from '../stores';
+import { useInvestigationStore } from '../stores/investigation';
 import { Bell, Check, Trash2, ShieldAlert, ArrowRight, Filter, Eye, AlertTriangle } from 'lucide-react';
 import { formatDate, getSeverityColor } from '../utils/helpers';
 
@@ -7,6 +8,7 @@ export const AlertsPage: React.FC = () => {
   const { alerts, markRead, markAllRead } = useAlertStore();
   const { setSearchAddress } = useBlockchainStore();
   const { setPage } = useNavStore();
+  const { activeTargetAddress, summary, transactions } = useInvestigationStore();
   const [severityFilter, setSeverityFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
 

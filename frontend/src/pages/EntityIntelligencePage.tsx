@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useInvestigationStore } from '../stores/investigation';
 import { Shield, ShieldAlert, ShieldCheck, Globe, Search, ArrowRight, Building, Link, AlertTriangle, Cpu } from 'lucide-react';
 import { getRiskColor } from '../utils/helpers';
 
@@ -16,10 +17,23 @@ interface EntityProfile {
 }
 
 export const EntityIntelligencePage: React.FC = () => {
+  const { activeTargetAddress, summary } = useInvestigationStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
 
   const entities: EntityProfile[] = [
+    {
+      name: `Active Target Node (${activeTargetAddress.slice(0, 10)}...)`,
+      category: 'Sanctioned Entity',
+      verificationLevel: 'Analyst Flagged',
+      website: 'mempool.space',
+      knownWalletsCount: summary?.txCount || 1,
+      associatedCasesCount: 1,
+      riskScore: 85,
+      confidence: 'High',
+      supportingData: `Target On-Chain Address: ${activeTargetAddress}. Script Type: ${summary?.scriptType || 'P2PKH'}. Total Balance: ${((summary?.confirmedBalance || 0) / 1e8).toFixed(4)} BTC.`,
+      addressList: [activeTargetAddress],
+    },
     {
       name: 'Garantex Exchange',
       category: 'Exchange',
