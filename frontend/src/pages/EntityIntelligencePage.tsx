@@ -107,8 +107,8 @@ export const EntityIntelligencePage: React.FC = () => {
       {/* Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Total Received', value: summary ? `${(summary.totalReceived / 1e8).toFixed(2)} BTC` : '—', icon: ArrowDownRight, color: 'text-accent-green' },
-          { label: 'Total Sent', value: summary ? `${(summary.totalSent / 1e8).toFixed(2)} BTC` : '—', icon: ArrowUpRight, color: 'text-accent-red' },
+          { label: 'Total Received', value: summary ? `${(summary.formattedReceived ?? (summary.totalReceived / 1e8)).toLocaleString()} ${summary.coinSymbol || 'BTC'}` : '—', icon: ArrowDownRight, color: 'text-accent-green' },
+          { label: 'Total Sent', value: summary ? `${(summary.formattedSent ?? (summary.totalSent / 1e8)).toLocaleString()} ${summary.coinSymbol || 'BTC'}` : '—', icon: ArrowUpRight, color: 'text-accent-red' },
           { label: 'Counterparties', value: counterparties.length.toString(), icon: Globe, color: 'text-primary-400' },
           { label: 'Live UTXOs', value: utxos.length.toString(), icon: Activity, color: 'text-accent-gold' },
         ].map(m => (
