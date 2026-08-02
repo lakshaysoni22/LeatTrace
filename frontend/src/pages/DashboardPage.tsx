@@ -90,6 +90,7 @@ export const DashboardPage: React.FC = () => {
   const totalSentStr = summary ? `${sentNum.toLocaleString()} ${coinSymbol}` : '—';
   const txCount = summary?.txCount ?? 0;
   const utxoCount = utxos.length;
+  const totalFees = transactions.reduce((sum, tx) => sum + (tx.fee || 0), 0);
 
   // Unique addresses interacted with (counterparties)
   const counterparties = React.useMemo(() => {

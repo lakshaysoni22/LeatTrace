@@ -15,8 +15,8 @@ export const API_BASE = (import.meta.env.VITE_API_URL as string) || 'http://127.
 // WebSocket URL derived from API_BASE (http→ws, https→wss)
 export const WS_BASE = API_BASE.replace(/^http/, 'ws');
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-const MAX_RETRIES = 2;
+const DEFAULT_TIMEOUT_MS = 3000;
+const MAX_RETRIES = 1;
 
 export class ApiError extends Error {
   constructor(
@@ -31,7 +31,7 @@ export class ApiError extends Error {
 
 /** Returns the stored JWT token, or null if not present */
 export function getToken(): string | null {
-  return localStorage.getItem('token');
+  return sessionStorage.getItem('token') || localStorage.getItem('token');
 }
 
 /** Returns auth headers if a token is present */
@@ -45,8 +45,8 @@ function authHeaders(): Record<string, string> {
  * Returns true if refresh succeeded (and new tokens stored), false otherwise.
  */
 async function refreshAccessToken(): Promise<boolean> {
-  const refresh = localStorage.getItem('refresh_token');
-  if (!refresh) return false;
+  const refresh = sessionStorage.getItem('refresh_token') || localStorage.getItem('refresh_token');
+  if (!refresh || refresh === 'mock-jwt-token-refresh') return false;
 
   try {
     const res = await fetch(`${API_BASE}/api/auth/refresh`, {
@@ -57,8 +57,8 @@ async function refreshAccessToken(): Promise<boolean> {
     if (!res.ok) return false;
     const data = await res.json();
     if (data.access_token) {
-      localStorage.setItem('token', data.access_token);
-      if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token);
+      sessionStorage.setItem('token', data.access_token);
+      if (data.refresh_token) sessionStorage.setItem('refresh_token', data.refresh_token);
       return true;
     }
   } catch {
@@ -106,10 +106,13 @@ export async function apiFetch<T = unknown>(
       if (refreshed) {
         return apiFetch<T>(path, { ...options, _retryCount: _retryCount + 1 });
       }
-      // Refresh failed — clear session and redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('refresh_token');
-      window.location.href = '/';
+      const token = getToken();
+      if (token && token !== 'mock-jwt-token-access') {
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('refresh_token');
+        sessionStorage.removeItem('user');
+        window.location.href = '/';
+      }
       throw new ApiError(401, 'Unauthorized', null);
     }
 
