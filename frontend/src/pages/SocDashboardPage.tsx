@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useInvestigationStore } from '../stores/investigation';
+import { useNavStore } from '../stores';
 import { 
   ShieldAlert, ShieldCheck, Activity, Clock, AlertOctagon, Terminal, 
-  Search, RefreshCw, CheckCircle2, AlertTriangle, AlertCircle, Wallet, Database, Cpu
+  Search, RefreshCw, CheckCircle2, AlertTriangle, AlertCircle, Wallet, Database, Cpu, ArrowUpRight
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
 
 export const SocDashboardPage: React.FC = () => {
   const { activeTargetAddress, summary, transactions, alerts, riskScore, riskLevel, counterparties, evidenceItems, auditLog, isLoading, refreshTargetData } = useInvestigationStore();
+  const { setPage } = useNavStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -80,22 +82,30 @@ export const SocDashboardPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Stat Cards */}
+      {/* Stat Cards — All Active & Interactive */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
         {[
-          { label: 'Total Alerts', value: alerts.length, icon: AlertTriangle, color: 'text-accent-gold', bg: 'bg-accent-gold/10' },
-          { label: 'Unread', value: unreadAlerts, icon: AlertCircle, color: 'text-accent-red', bg: 'bg-accent-red/10' },
-          { label: 'Counterparties', value: counterparties.length, icon: Activity, color: 'text-primary-400', bg: 'bg-primary-500/10' },
-          { label: 'Evidence Items', value: evidenceItems.length, icon: Database, color: 'text-accent-green', bg: 'bg-accent-green/10' },
-          { label: 'Transactions', value: summary?.txCount || 0, icon: Terminal, color: 'text-primary-400', bg: 'bg-primary-500/10' },
-          { label: 'Audit Events', value: auditLog.length, icon: Clock, color: 'text-dark-300', bg: 'bg-dark-700/50' },
+          { label: 'Total Alerts', value: alerts.length, icon: AlertTriangle, color: 'text-accent-gold', bg: 'bg-accent-gold/10 hover:bg-accent-gold/20 border-accent-gold/30', page: 'alerts' },
+          { label: 'Unread', value: unreadAlerts, icon: AlertCircle, color: 'text-accent-red', bg: 'bg-accent-red/10 hover:bg-accent-red/20 border-accent-red/30', page: 'alerts' },
+          { label: 'Counterparties', value: counterparties.length, icon: Activity, color: 'text-primary-400', bg: 'bg-primary-500/10 hover:bg-primary-500/20 border-primary-500/30', page: 'blockchain' },
+          { label: 'Evidence Items', value: evidenceItems.length, icon: Database, color: 'text-accent-green', bg: 'bg-accent-green/10 hover:bg-accent-green/20 border-accent-green/30', page: 'evidence' },
+          { label: 'Transactions', value: summary?.txCount || 0, icon: Terminal, color: 'text-primary-400', bg: 'bg-primary-500/10 hover:bg-primary-500/20 border-primary-500/30', page: 'blockchain' },
+          { label: 'Audit Events', value: auditLog.length, icon: Clock, color: 'text-dark-300', bg: 'bg-dark-700/50 hover:bg-dark-700 border-dark-600', page: 'audit' },
         ].map(stat => (
-          <div key={stat.label} className={`glass-card p-3 ${stat.bg} rounded-xl`}>
-            <div className="flex items-center gap-1.5 mb-1">
-              <stat.icon size={12} className={stat.color} />
-              <span className="text-[9px] text-dark-400 uppercase font-semibold">{stat.label}</span>
+          <div
+            key={stat.label}
+            onClick={() => setPage(stat.page as any)}
+            className={`glass-card p-3.5 ${stat.bg} rounded-xl border transition-all cursor-pointer hover:scale-[1.03] active:scale-95 group relative overflow-hidden`}
+            title={`Click to view ${stat.label}`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5">
+                <stat.icon size={12} className={stat.color} />
+                <span className="text-[9px] text-dark-300 uppercase font-semibold tracking-wider group-hover:text-white transition-colors">{stat.label}</span>
+              </div>
+              <ArrowUpRight size={10} className="text-dark-500 group-hover:text-white transition-colors" />
             </div>
-            <div className="text-xl font-bold text-white">{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</div>
+            <div className="text-xl font-bold text-white tracking-tight">{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</div>
           </div>
         ))}
       </div>
