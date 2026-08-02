@@ -388,9 +388,16 @@ export const BlockchainPage: React.FC = () => {
       return;
     }
     setIsAnalyzing(true);
-    setSearchAddress(cleanAddr);
-    await useInvestigationStore.getState().setActiveTarget(cleanAddr);
-    setIsAnalyzing(false);
+    setWalletError(null);
+    try {
+      setSearchAddress(cleanAddr);
+      await useInvestigationStore.getState().setActiveTarget(cleanAddr);
+      setShowProfile(true);
+    } catch (err) {
+      console.error('Analysis failed:', err);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleDecodeEventLog = async () => {

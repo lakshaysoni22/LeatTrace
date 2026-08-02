@@ -341,9 +341,6 @@ export const useBlockchainStore = create<BlockchainStore>((set) => ({
   setSearchAddress: (addr) => {
     const clean = addr.trim();
     set({ searchAddress: clean });
-    if (clean) {
-      void useInvestigationStore.getState().setActiveTarget(clean);
-    }
   },
   setAnalyzing: (v) => set({ isAnalyzing: v }),
 }));

@@ -80,12 +80,16 @@ export const DashboardPage: React.FC = () => {
 
   // ── Compute Live Stats from Investigation Store ────────────────────────────
 
-  const balanceBtc = summary ? satToBtcShort(summary.confirmedBalance) : '—';
+  const coinSymbol = summary?.coinSymbol || 'BTC';
+  const balanceNum = summary?.formattedBalance ?? (summary ? summary.confirmedBalance / 1e8 : 0);
+  const receivedNum = summary?.formattedReceived ?? (summary ? summary.totalReceived / 1e8 : 0);
+  const sentNum = summary?.formattedSent ?? (summary ? summary.totalSent / 1e8 : 0);
+
+  const balanceStr = summary ? `${balanceNum.toLocaleString()} ${coinSymbol}` : '—';
+  const totalReceivedStr = summary ? `${receivedNum.toLocaleString()} ${coinSymbol}` : '—';
+  const totalSentStr = summary ? `${sentNum.toLocaleString()} ${coinSymbol}` : '—';
   const txCount = summary?.txCount ?? 0;
   const utxoCount = utxos.length;
-  const totalReceivedBtc = summary ? satToBtcShort(summary.totalReceived) : '—';
-  const totalSentBtc = summary ? satToBtcShort(summary.totalSent) : '—';
-  const totalFees = transactions.reduce((sum, tx) => sum + (tx.fee || 0), 0);
 
   // Unique addresses interacted with (counterparties)
   const counterparties = React.useMemo(() => {
@@ -105,14 +109,14 @@ export const DashboardPage: React.FC = () => {
     return addrs;
   }, [transactions, activeTargetAddress]);
 
-  // ── Stat Cards — all from live Mempool data ────────────────────────────────
+  // ── Stat Cards — all from live Mempool / Investigation Store ──────────────
 
   const statCards = [
-    { label: 'Confirmed Balance',  value: `${balanceBtc} BTC`,    icon: Wallet,       color: 'from-primary-500/20 to-primary-500/5',   iconColor: 'text-primary-400' },
+    { label: 'Confirmed Balance',  value: balanceStr,          icon: Wallet,       color: 'from-primary-500/20 to-primary-500/5',   iconColor: 'text-primary-400' },
     { label: 'Total Transactions', value: txCount.toLocaleString(), icon: Activity,     color: 'from-accent-green/20 to-accent-green/5', iconColor: 'text-accent-green' },
     { label: 'Live UTXOs',         value: utxoCount.toLocaleString(), icon: Layers,     color: 'from-accent-purple/20 to-accent-purple/5', iconColor: 'text-accent-purple' },
-    { label: 'Total Received',     value: `${totalReceivedBtc} BTC`, icon: ArrowDownRight, color: 'from-cyber-teal/20 to-cyber-teal/5', iconColor: 'text-cyber-teal' },
-    { label: 'Total Sent',         value: `${totalSentBtc} BTC`,     icon: ArrowUpRight,   color: 'from-accent-gold/20 to-accent-gold/5', iconColor: 'text-accent-gold' },
+    { label: 'Total Received',     value: totalReceivedStr,    icon: ArrowDownRight, color: 'from-cyber-teal/20 to-cyber-teal/5', iconColor: 'text-cyber-teal' },
+    { label: 'Total Sent',         value: totalSentStr,        icon: ArrowUpRight,   color: 'from-accent-gold/20 to-accent-gold/5', iconColor: 'text-accent-gold' },
     { label: 'Counterparties',     value: counterparties.size.toLocaleString(), icon: Target,  color: 'from-accent-red/20 to-accent-red/5', iconColor: 'text-accent-red' },
   ];
 
@@ -161,12 +165,12 @@ export const DashboardPage: React.FC = () => {
 
   const fundFlowData = React.useMemo(() => {
     if (!summary) return [];
-    const received = summary.totalReceived / 1e8;
-    const sent = summary.totalSent / 1e8;
-    if (received === 0 && sent === 0) return [];
+    const received = summary.formattedReceived ?? (summary.totalReceived / 1e8);
+    const sent = summary.formattedSent ?? (summary.totalSent / 1e8);
+    if (!received && !sent) return [];
     return [
-      { name: 'Received', value: +received.toFixed(4), color: '#00ff88' },
-      { name: 'Sent', value: +sent.toFixed(4), color: '#ff3366' },
+      { name: 'Received', value: +(received || 0).toFixed(4), color: '#00ff88' },
+      { name: 'Sent', value: +(sent || 0).toFixed(4), color: '#ff3366' },
     ];
   }, [summary]);
 
@@ -291,7 +295,7 @@ export const DashboardPage: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-semibold text-white">Transaction Volume</h3>
-              <p className="text-[11px] text-dark-400">Monthly inflow vs outflow (BTC)</p>
+              <p className="text-[11px] text-dark-400">Monthly inflow vs outflow ({coinSymbol})</p>
             </div>
             <div className="flex items-center gap-4 text-[10px]">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-accent-green" /> Inflow</span>
@@ -339,7 +343,7 @@ export const DashboardPage: React.FC = () => {
                     ))}
                   </Pie>
                   <Tooltip contentStyle={{ backgroundColor: '#1a1f36', border: '1px solid #2a3253', borderRadius: 8, fontSize: 12, color: '#fff' }}
-                    formatter={(value: number) => `${value} BTC`}
+                    formatter={(value: number) => `${value} ${coinSymbol}`}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -348,7 +352,7 @@ export const DashboardPage: React.FC = () => {
                   <div key={item.name} className="flex items-center gap-2 text-[11px]">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
                     <span className="text-dark-300">{item.name}</span>
-                    <span className="text-white font-semibold ml-auto">{item.value} BTC</span>
+                    <span className="text-white font-semibold ml-auto">{item.value} {coinSymbol}</span>
                   </div>
                 ))}
               </div>
