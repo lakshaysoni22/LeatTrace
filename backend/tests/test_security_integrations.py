@@ -4,10 +4,10 @@ from pathlib import Path
 
 from app.core.encryption_engine import EncryptionManager, EncryptionKey
 from app.core.sso_federation import SSOProviderRegistry, LocalSSOProvider
-from app.cloud.secret_adapter import CloudSecretAdapter
+from app.infra.cloud.secret_adapter import CloudSecretAdapter
 from app.core.session_manager import SessionManager
-from app.intel.siem_exporter import SIEMIntegrationService
-from app.risk.compliance_engine import ComplianceAutomation
+from app.services.intel.siem_exporter import SIEMIntegrationService
+from app.services.risk.compliance_engine import ComplianceAutomation
 
 
 def test_encryption_stack_round_trip():

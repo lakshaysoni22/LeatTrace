@@ -1,7 +1,7 @@
 import time
 from app.core.totp_service import totp_service
 from app.core.policy_engine import policy_engine
-from app.blockchain.blockchain_classifier import blockchain_classifier
+from app.services.blockchain.blockchain_classifier import blockchain_classifier
 
 def test_totp_secret_generation():
     enrollment = totp_service.generate_totp_secret()

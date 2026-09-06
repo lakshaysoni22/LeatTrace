@@ -5,8 +5,8 @@ Tests for risk scoring, laundering detection, and AML analysis.
 """
 
 import pytest
-from app.risk.risk_engine import BlockchainRiskEngine
-from app.blockchain.laundering_engine import LaunderingDetectionEngine
+from app.services.risk.risk_engine import BlockchainRiskEngine
+from app.services.blockchain.laundering_engine import LaunderingDetectionEngine
 
 
 class TestWalletRiskScoring:

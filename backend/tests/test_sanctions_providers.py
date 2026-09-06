@@ -9,8 +9,8 @@ import unittest
 from unittest.mock import MagicMock, patch
 import time
 
-from app.providers.sanctions_provider_base import SanctionsProvider, SanctionsProviderStatus
-from app.providers.sanctions_provider_manager import (
+from app.services.sanctions.providers.base import SanctionsProvider, SanctionsProviderStatus
+from app.services.sanctions.providers.manager import (
     SanctionsProviderManager, SanctionsProviderRegistry,
 )
 

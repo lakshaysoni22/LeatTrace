@@ -1,5 +1,5 @@
 import time
-from app.blockchain.blockchain_classifier import blockchain_classifier
+from app.services.blockchain.blockchain_classifier import blockchain_classifier
 
 def test_address_classifier_latency_benchmark():
     addresses = [

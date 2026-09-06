@@ -6,7 +6,7 @@ relationship resolution, and wallet extraction.
 """
 
 import pytest
-from app.intel.stix_engine import stix_engine, STIXValidationError, STIXBundleError, STIX_TYPES
+from app.services.intel.stix_engine import stix_engine, STIXValidationError, STIXBundleError, STIX_TYPES
 
 
 class TestSTIXObjectCreation:

@@ -29,12 +29,12 @@ class TestThreatFeedSchedulerConfigured:
         sources = json.dumps([{"type": "OFAC_SDN"}])
         with patch.dict(os.environ, {"SANCTIONS_SOURCES": sources}, clear=False):
             # _parse_sources() reads os.getenv dynamically now
-            from app.intel.feed_scheduler import _parse_sources
+            from app.services.intel.feed_scheduler import _parse_sources
             assert bool(_parse_sources()) is True
 
     def test_status_shows_providers(self):
         import json
-        from app.intel.feed_scheduler import ThreatFeedScheduler
+        from app.services.intel.feed_scheduler import ThreatFeedScheduler
         sources = json.dumps([{"type": "OFAC_SDN"}])
         with patch.dict(os.environ, {"SANCTIONS_SOURCES": sources}, clear=False):
             s = ThreatFeedScheduler()

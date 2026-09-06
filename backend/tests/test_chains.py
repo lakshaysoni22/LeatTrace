@@ -6,13 +6,13 @@ and chain detection across all 11 supported chains.
 """
 
 import pytest
-from app.chains.base import ChainInterface, EVMAddressValidator
-from app.chains.evm import EVMChain, EVM_CHAIN_METADATA
-from app.chains.bitcoin import BitcoinChain
-from app.chains.solana import SolanaChain
-from app.chains.litecoin import LitecoinChain
-from app.chains.dogecoin import DogecoinChain
-from app.chains.registry import ChainRegistry
+from app.services.chains.base import ChainInterface, EVMAddressValidator
+from app.services.chains.evm import EVMChain, EVM_CHAIN_METADATA
+from app.services.chains.bitcoin import BitcoinChain
+from app.services.chains.solana import SolanaChain
+from app.services.chains.litecoin import LitecoinChain
+from app.services.chains.dogecoin import DogecoinChain
+from app.services.chains.registry import ChainRegistry
 
 
 class TestEVMAddressValidator:

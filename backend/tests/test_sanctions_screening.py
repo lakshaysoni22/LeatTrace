@@ -14,7 +14,7 @@ Tests the sanctions screening engine for:
 import unittest
 from unittest.mock import MagicMock, patch, PropertyMock
 
-from app.sanctions.sanctions_screening_engine import SanctionsScreeningEngine
+from app.services.sanctions.screening_engine import SanctionsScreeningEngine
 
 
 class TestSanctionsScreeningWallet(unittest.TestCase):
@@ -34,9 +34,9 @@ class TestSanctionsScreeningWallet(unittest.TestCase):
         result = self.engine.screen_wallet("   ", db, checked_by="test")
         self.assertFalse(result["matched"])
 
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._check_cache", return_value=None)
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._set_cache")
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._record_metric")
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._check_cache", return_value=None)
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._set_cache")
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._record_metric")
     def test_wallet_miss_returns_structured_result(self, mock_metric, mock_set_cache, mock_check_cache):
         db = MagicMock()
         db.query.return_value.join.return_value.filter.return_value.first.return_value = None
@@ -51,9 +51,9 @@ class TestSanctionsScreeningWallet(unittest.TestCase):
         self.assertIn("screened_at", result)
         self.assertIn("response_time_ms", result)
 
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._check_cache", return_value=None)
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._set_cache")
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._record_metric")
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._check_cache", return_value=None)
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._set_cache")
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._record_metric")
     def test_wallet_hit_returns_entity_details(self, mock_metric, mock_set_cache, mock_check_cache):
         db = MagicMock()
 
@@ -109,9 +109,9 @@ class TestSanctionsScreeningEntity(unittest.TestCase):
         self.assertFalse(result["matched"])
         self.assertEqual(result["query_type"], "entity_name")
 
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._check_cache", return_value=None)
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._set_cache")
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._record_metric")
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._check_cache", return_value=None)
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._set_cache")
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._record_metric")
     def test_exact_name_match(self, mock_metric, mock_set_cache, mock_check_cache):
         db = MagicMock()
 
@@ -134,9 +134,9 @@ class TestSanctionsScreeningEntity(unittest.TestCase):
         self.assertEqual(result["match_score"], 1.0)
         self.assertEqual(result["match_method"], "exact")
 
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._check_cache", return_value=None)
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._set_cache")
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._record_metric")
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._check_cache", return_value=None)
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._set_cache")
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._record_metric")
     def test_no_match_returns_clean(self, mock_metric, mock_set_cache, mock_check_cache):
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = None
@@ -203,7 +203,7 @@ class TestSanctionsScreeningBatch(unittest.TestCase):
         self.assertFalse(result["matched"])
         self.assertEqual(result["total"], 0)
 
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._record_metric")
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._record_metric")
     def test_batch_with_no_matches(self, mock_metric):
         db = MagicMock()
         db.query.return_value.join.return_value.filter.return_value.all.return_value = []
@@ -253,9 +253,9 @@ class TestAuditLogging(unittest.TestCase):
     def setUp(self):
         self.engine = SanctionsScreeningEngine()
 
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._check_cache", return_value=None)
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._set_cache")
-    @patch("app.sanctions_screening_engine.SanctionsScreeningEngine._record_metric")
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._check_cache", return_value=None)
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._set_cache")
+    @patch("app.services.sanctions.screening_engine.SanctionsScreeningEngine._record_metric")
     def test_screening_creates_audit_log(self, mock_metric, mock_set_cache, mock_check_cache):
         db = MagicMock()
         db.query.return_value.join.return_value.filter.return_value.first.return_value = None

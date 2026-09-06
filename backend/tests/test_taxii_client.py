@@ -5,8 +5,8 @@ collection listing with mock server, and validation.
 """
 import pytest
 from unittest.mock import patch, MagicMock
-from app.intel.taxii_client import TAXIIClient, NOT_CONFIGURED, TAXIIAuthError, TAXIIConnectionError
-from app.intel.stix_engine import STIXEngine, STIXValidationError
+from app.services.intel.taxii_client import TAXIIClient, NOT_CONFIGURED, TAXIIAuthError, TAXIIConnectionError
+from app.services.intel.stix_engine import STIXEngine, STIXValidationError
 
 
 # ─── TAXIIClient ─────────────────────────────────────────────────────────────
@@ -49,14 +49,14 @@ class TestTAXIIClientHTTP:
     def test_auth_error_on_401(self):
         client = TAXIIClient(server_url="https://taxii.example.com")
         import urllib.error
-        with patch("app.taxii_client._http_get") as mock_get:
+        with patch("app.services.intel.taxii_client._http_get") as mock_get:
             mock_get.side_effect = TAXIIAuthError("401")
             result = client.discover()
             assert result["status"] == "error"
 
     def test_connection_error_on_retry_exhaustion(self):
         client = TAXIIClient(server_url="https://taxii.example.com")
-        with patch("app.taxii_client._http_get") as mock_get:
+        with patch("app.services.intel.taxii_client._http_get") as mock_get:
             mock_get.side_effect = TAXIIConnectionError("all retries failed")
             result = client.discover()
             assert result["status"] == "error"
@@ -69,7 +69,7 @@ class TestTAXIIClientHTTP:
             "versions": ["taxii-2.1"],
             "api_roots": ["https://taxii.example.com/api/v21/"],
         }
-        with patch("app.taxii_client._http_get", return_value=mock_response):
+        with patch("app.services.intel.taxii_client._http_get", return_value=mock_response):
             result = client.discover()
             assert result["title"] == "Test TAXII Server"
             assert "taxii-2.1" in result["versions"]
@@ -81,7 +81,7 @@ class TestTAXIIClientHTTP:
             "versions": ["taxii-2.1"],
             "api_roots": ["https://taxii.example.com/api/"],
         }
-        with patch("app.taxii_client._http_get", return_value=mock_response):
+        with patch("app.services.intel.taxii_client._http_get", return_value=mock_response):
             result = client.health_check()
             assert result["configured"] is True
             assert result["status"] == "healthy"

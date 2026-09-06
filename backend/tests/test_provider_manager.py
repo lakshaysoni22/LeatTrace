@@ -6,8 +6,8 @@ Tests multi-provider registration, sync orchestration, failover, and health.
 
 import pytest
 from unittest.mock import MagicMock
-from app.threat_intel.provider_base import ThreatIntelProvider, ProviderStatus
-from app.threat_intel.provider_manager import ProviderManager, ProviderRegistry
+from app.services.threat_intel.provider_base import ThreatIntelProvider, ProviderStatus
+from app.services.threat_intel.provider_manager import ProviderManager, ProviderRegistry
 
 
 class MockProvider(ThreatIntelProvider):

@@ -1,6 +1,6 @@
 import pytest
-from app.intel.correlation_engine import siem_correlation
-from app.intel.attack_chain_engine import attack_chain
+from app.services.intel.correlation_engine import siem_correlation
+from app.services.intel.attack_chain_engine import attack_chain
 
 def test_siem_failed_logins_and_download_correlation():
     events = [
