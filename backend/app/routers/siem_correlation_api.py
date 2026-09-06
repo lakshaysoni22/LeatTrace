@@ -5,7 +5,7 @@ Correlation engine, attack chain reconstruction, and risk history.
 
 PRODUCTION INVARIANTS:
 - No random.randint() in risk scores.
-- Mock events pool retained for default test stream but clearly labeled.
+- Events must be provided by the caller — no hardcoded fallback data.
 - Risk history from real database alert data.
 """
 
@@ -15,35 +15,28 @@ from fastapi import APIRouter, HTTPException, Query, Body, Depends
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 
-from ..correlation_engine import siem_correlation
-from ..attack_chain_engine import attack_chain
+from ..intel.correlation_engine import siem_correlation
+from ..intel.attack_chain_engine import attack_chain
 from ..database import get_db
-from .. import models, security
+from .. import models
+from ..core import security
 
 logger = logging.getLogger("leatrace.routers.siem")
 
 router = APIRouter(prefix="/api/correlation", tags=["SIEM Correlation & Attack Reconstruction"])
 
-# Default event stream for testing (clearly labeled as sample data)
-SAMPLE_EVENTS = [
-    {"event_type": "auth_fail", "timestamp": 1782720000, "description": "Failed investigator login from untrusted IP"},
-    {"event_type": "auth_fail", "timestamp": 1782720010, "description": "Failed investigator login from untrusted IP"},
-    {"event_type": "auth_fail", "timestamp": 1782720020, "description": "Failed investigator login from untrusted IP"},
-    {"event_type": "evidence_download", "timestamp": 1782720050, "description": "Investigator downloaded evidence case logs"},
-    {"event_type": "large_transfer", "timestamp": 1782720100, "description": "Large transfer to mixer contract detected"},
-]
-
 
 @router.post("/run")
-def run_correlation_stream(events: Optional[List[Dict[str, Any]]] = Body(None)):
-    """Runs SIEM correlation on a provided event stream or sample data."""
-    stream = events if events else SAMPLE_EVENTS
-    alerts = siem_correlation.correlate_event_stream(stream)
+def run_correlation_stream(events: List[Dict[str, Any]] = Body(...)):
+    """Runs SIEM correlation on a provided event stream."""
+    if not events:
+        raise HTTPException(status_code=400, detail="Event stream must not be empty")
+    alerts = siem_correlation.correlate_event_stream(events)
     return {
         "status": "completed",
         "alerts_triggered": len(alerts),
         "alerts": alerts,
-        "data_source": "user_provided" if events else "sample_events",
+        "data_source": "user_provided",
     }
 
 
@@ -54,9 +47,12 @@ def get_soc_alerts():
 
 
 @router.get("/attack-chain")
-def get_reconstructed_chain(correlation_id: str = Query(...)):
+def get_reconstructed_chain(
+    correlation_id: str = Query(...),
+    events: List[Dict[str, Any]] = Body(...)
+):
     """Reconstructs attack chain timeline from correlation data."""
-    return attack_chain.reconstruct_incident_chain(correlation_id, SAMPLE_EVENTS)
+    return attack_chain.reconstruct_incident_chain(correlation_id, events)
 
 
 @router.get("/risk/history")

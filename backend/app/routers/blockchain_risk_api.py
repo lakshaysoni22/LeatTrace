@@ -9,12 +9,12 @@ from fastapi import APIRouter, HTTPException, Query, Body
 from typing import List, Optional
 from pydantic import BaseModel as PydanticModel
 
-from ..risk_engine import risk_engine
-from ..risk_patterns import risk_pattern_engine
-from ..blockchain_service import BlockchainService
-from ..mixer_detector import mixer_detector
-from ..laundering_engine import laundering_engine
-from ..entity_resolution import entity_resolution
+from ..risk.risk_engine import risk_engine
+from ..risk.risk_patterns import risk_pattern_engine
+from ..blockchain.blockchain_service import BlockchainService
+from ..blockchain.mixer_detector import mixer_detector
+from ..blockchain.laundering_engine import laundering_engine
+from ..intel.entity_resolution import entity_resolution
 
 
 router = APIRouter(prefix="/api/blockchain/risk", tags=["Blockchain Risk Intelligence"])

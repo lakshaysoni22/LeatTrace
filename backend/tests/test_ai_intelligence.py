@@ -1,8 +1,8 @@
 import pytest
 import os
-from app.ml_engine import ml_engine
-from app.vector_service import vector_service
-from app.model_server import model_server
+from app.infra.ml_engine import ml_engine
+from app.infra.vector_service import vector_service
+from app.infra.model_server import model_server
 
 def test_ml_model_training_and_inference():
     # 1. Dummy wallet features matrix: [tx_count, total_value, is_mixer_connected, is_sanctioned]

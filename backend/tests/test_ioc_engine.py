@@ -10,7 +10,7 @@ import uuid
 import pytest
 from unittest.mock import MagicMock, patch
 
-from app.ioc_engine import ioc_engine, IOCType, IOCStatus, IOCSeverity
+from app.intel.ioc_engine import ioc_engine, IOCType, IOCStatus, IOCSeverity
 
 
 class TestIOCNormalization:
@@ -146,13 +146,13 @@ class TestIOCEngineNoHardcodedData:
 
     def test_no_ioc_database_list(self):
         """The old IOC_DATABASE global list must not exist."""
-        import app.ioc_engine as module
+        import app.intel.ioc_engine as module
         assert not hasattr(module, "IOC_DATABASE"), \
             "IOC_DATABASE in-memory list must be removed"
 
     def test_no_fabricated_ioc_functions(self):
         """No mock/fake/demo data generation functions."""
-        import app.ioc_engine as module
+        import app.intel.ioc_engine as module
         members = dir(module)
         forbidden = [m for m in members if any(
             p in m.lower() for p in ["mock_", "fake_", "demo_", "sample_", "dummy_"]

@@ -50,4 +50,6 @@ htmlcov/
 /backend/app/logs/
 docker/nginx/certs/
 *.db-journal
+backend/.env
+*.env.local
 

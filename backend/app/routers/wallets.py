@@ -19,8 +19,9 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from ..database import get_db
-from .. import models, schemas, security
-from ..blockchain_service import BlockchainService
+from .. import models, schemas
+from ..core import security
+from ..blockchain.blockchain_service import BlockchainService
 
 logger = logging.getLogger("leatrace.routers.wallets")
 
@@ -443,7 +444,7 @@ def get_fraud_probability_scoring(
     current_user: models.User = Depends(security.get_current_user),
 ):
     """Calculates fraud probability based on real blockchain indicators."""
-    from .. import anomaly_detector
+    from ..risk import anomaly_detector
     profile = resolve_wallet_profile(address, "ethereum")
     sanctions = _get_blockchain_svc().get_threat_intelligence(address)
     mixer = _get_blockchain_svc().check_mixer_exposure(address)

@@ -21,7 +21,8 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 
 from ..database import get_db, get_mongo_db, get_redis_client
-from .. import models, schemas, security
+from .. import models, schemas
+from ..core import security
 
 logger = logging.getLogger("leatrace.routers.ecosystem")
 
@@ -203,7 +204,7 @@ def trace_blockchain(request: dict):
     if not address or len(address) < 10:
         raise HTTPException(status_code=400, detail="Invalid address")
 
-    from ..blockchain_service import BlockchainService
+    from ..blockchain.blockchain_service import BlockchainService
     svc = BlockchainService()
 
     txs = svc.fetch_real_transactions(address, "ethereum")
@@ -431,7 +432,7 @@ def generate_forensic_report(request: ForensicReportRequest, db: Session = Depen
     wallets = db.query(models.Wallet).filter(models.Wallet.case_id == case.id).all()
 
     # Get blockchain data for the requested wallet
-    from ..blockchain_service import BlockchainService
+    from ..blockchain.blockchain_service import BlockchainService
     svc = BlockchainService()
     threat = svc.get_threat_intelligence(request.wallet_address)
     mixer = svc.check_mixer_exposure(request.wallet_address)
@@ -463,7 +464,7 @@ def generate_forensic_report(request: ForensicReportRequest, db: Session = Depen
 @router.get("/health/indexer")
 def get_indexer_health_status(db: Session = Depends(get_db)):
     """Returns real indexer health status from RPC and database checkpoints."""
-    from ..blockchain_service import BlockchainService
+    from ..blockchain.blockchain_service import BlockchainService
 
     checkpoints = db.query(models.BlockIndexCheckpoint).all()
     checkpoint_map = {cp.chain: cp.block_number for cp in checkpoints}

@@ -5,7 +5,8 @@ from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from ..database import get_db
-from .. import models, security
+from .. import models
+from ..core import security
 from ..event_broker import broker
 
 router = APIRouter(prefix="/api/incident", tags=["Incident Response System"])

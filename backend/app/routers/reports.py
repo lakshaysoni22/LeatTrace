@@ -20,7 +20,8 @@ from pydantic import BaseModel
 from typing import Optional, List
 
 from ..database import get_db
-from .. import models, security
+from .. import models
+from ..core import security
 
 logger = logging.getLogger("leatrace.routers.reports")
 

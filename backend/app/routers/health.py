@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..observability import get_metrics_output, get_content_type, PROMETHEUS_ENABLED
+from ..infra.observability import get_metrics_output, get_content_type, PROMETHEUS_ENABLED
 
 logger = logging.getLogger("leatrace.routers.health")
 
@@ -121,8 +121,8 @@ def health_detail(db: Session = Depends(get_db)) -> Dict[str, Any]:
     Includes DB stats, feature flags, and integration status.
     """
     from .. import models
-    from ..taxii_client import taxii_client
-    from ..feed_scheduler import feed_scheduler
+    from ..intel.taxii_client import taxii_client
+    from ..intel.feed_scheduler import feed_scheduler
 
     db_stats: Dict[str, Any] = {}
     try:

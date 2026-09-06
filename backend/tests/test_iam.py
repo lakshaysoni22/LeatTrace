@@ -1,11 +1,10 @@
 import pytest
-from app.oauth_server import oauth_server
-from app.oidc_provider import oidc_provider
-from app.refresh_service import refresh_service
-from app.device_manager import device_manager
-from app.session_manager import session_manager
-from app.rbac_engine import rbac_engine
-from app.abac_engine import abac_engine
+from app.core.oauth_server import oauth_server
+from app.core.oidc_provider import oidc_provider
+from app.core.refresh_service import refresh_service
+from app.infra.device_manager import device_manager
+from app.core.session_manager import session_manager
+from app.core.access_control import rbac_engine, abac_engine
 
 def test_oauth_pkce_validation():
     import base64, hashlib, secrets as _secrets

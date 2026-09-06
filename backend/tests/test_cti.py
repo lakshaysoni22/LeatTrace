@@ -1,10 +1,10 @@
 import pytest
-from app.stix_engine import stix_engine
-from app.taxii_client import taxii_client
-from app.sigma_engine import sigma_engine
-from app.yara_engine import yara_engine
-from app.attack_engine import attack_engine
-from app.ioc_engine import ioc_engine
+from app.intel.stix_engine import stix_engine
+from app.intel.taxii_client import taxii_client
+from app.intel.sigma_engine import sigma_engine
+from app.intel.yara_engine import yara_engine
+from app.intel.attack_engine import attack_engine
+from app.intel.ioc_engine import ioc_engine
 
 def test_stix_object_creation():
     ind = stix_engine.create_indicator("Scam Wallet", "[cryptocurrency-address:value = '0x123']")

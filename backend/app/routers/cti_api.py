@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Query, Body, UploadFile, File
 from typing import List, Dict, Any, Optional
-from ..stix_engine import stix_engine
-from ..taxii_client import taxii_client
-from ..sigma_engine import sigma_engine
-from ..yara_engine import yara_engine
-from ..attack_engine import attack_engine
-from ..ioc_engine import ioc_engine
+from ..intel.stix_engine import stix_engine
+from ..intel.taxii_client import taxii_client
+from ..intel.sigma_engine import sigma_engine
+from ..intel.yara_engine import yara_engine
+from ..intel.attack_engine import attack_engine
+from ..intel.ioc_engine import ioc_engine
 
 router = APIRouter(prefix="/api/threat", tags=["Cyber Threat Intelligence (CTI)"])
 

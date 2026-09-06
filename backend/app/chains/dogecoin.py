@@ -11,7 +11,7 @@ import logging
 from typing import List, Dict, Any, Optional
 
 from .base import ChainInterface
-from ..connection_pool import connection_pool
+from ..infra.connection_pool import connection_pool
 
 logger = logging.getLogger("leatrace.chains.dogecoin")
 

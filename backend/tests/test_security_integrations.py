@@ -2,12 +2,12 @@ import os
 import tempfile
 from pathlib import Path
 
-from app.encryption_engine import EncryptionManager, EncryptionKey
-from app.sso_federation import SSOProviderRegistry, LocalSSOProvider
-from app.secret_manager import SecretManagerRegistry, LocalSecretProvider
-from app.redis_session_manager import RedisSessionStore
-from app.siem_integrations import SIEMIntegrationService
-from app.compliance_engine import ComplianceAutomation
+from app.core.encryption_engine import EncryptionManager, EncryptionKey
+from app.core.sso_federation import SSOProviderRegistry, LocalSSOProvider
+from app.cloud.secret_adapter import CloudSecretAdapter
+from app.core.session_manager import SessionManager
+from app.intel.siem_exporter import SIEMIntegrationService
+from app.risk.compliance_engine import ComplianceAutomation
 
 
 def test_encryption_stack_round_trip():
@@ -30,24 +30,24 @@ def test_sso_provider_authentication_and_registry():
     assert registry.get_provider("local") is provider
 
 
-def test_secret_provider_resolution():
-    registry = SecretManagerRegistry()
-    provider = LocalSecretProvider(name="local", values={"db.password": "s3cr3t"})
-    registry.register(provider)
+def test_cloud_secret_adapter_env_fallback():
+    adapter = CloudSecretAdapter()
+    # Should fall back to env vars when no cloud provider configured
+    os.environ["TEST_SECRET_KEY"] = "test_secret_value"
+    result = adapter.get_secret("TEST_SECRET_KEY")
+    assert result == "test_secret_value"
+    del os.environ["TEST_SECRET_KEY"]
 
-    resolved = registry.resolve("local", "db.password")
-    assert resolved == "s3cr3t"
 
+def test_session_manager_create_and_revoke():
+    mgr = SessionManager(use_redis=False)
+    session = mgr.create_session("sess-test-1", "user-1", "Test Device", "127.0.0.1")
+    assert session is not None
+    assert session["user_id"] == "user-1"
 
-def test_redis_session_store_rotation_and_revoke():
-    store = RedisSessionStore(use_redis=False)
-    session_id = store.create_session("user-1", "device-1", refresh_token="token-1")
-    assert session_id
-
-    assert store.get_session(session_id)["refresh_token"] == "token-1"
-    new_token = store.rotate_refresh_token(session_id, "token-2")
-    assert new_token == "token-2"
-    assert store.revoke_session(session_id) is True
+    retrieved = mgr.get_session("sess-test-1")
+    assert retrieved is not None
+    assert mgr.terminate_session("sess-test-1") is True
 
 
 def test_siem_integration_service_accepts_events():

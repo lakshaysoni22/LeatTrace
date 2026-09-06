@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query, Body
 from typing import List, Dict, Any, Optional
-from ..elasticsearch_client import es_client
+from ..infra.elasticsearch_client import es_client
 
 router = APIRouter(prefix="/api/elasticsearch", tags=["Elasticsearch & Kibana SIEM Aggregation"])
 

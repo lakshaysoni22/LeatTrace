@@ -1,15 +1,10 @@
 from fastapi import APIRouter, HTTPException, Query, Body
 from typing import List, Dict, Any, Optional
-from ..ml_engine import ml_engine
-from ..vector_service import vector_service
-from ..model_server import model_server
+from ..infra.ml_engine import ml_engine
+from ..infra.vector_service import vector_service
+from ..infra.model_server import model_server
 
 router = APIRouter(prefix="/api/ai", tags=["AI/ML Forensics Intelligence"])
-
-# Seed some mock documents for semantic searches on startup
-vector_service.add_document("doc_001", "Tornado Cash mixer contract laundering alerts", {"source": "threat_intel"})
-vector_service.add_document("doc_002", "Investigator logs downloaded evidence for cases in department 4", {"source": "audit"})
-vector_service.add_document("doc_003", "Phishing email link compromised investigator session key", {"source": "incident"})
 
 @router.post("/predict")
 def predict_wallet_risk(features: List[float] = Body(..., description="[tx_count, total_value, is_mixer_connected, is_sanctioned]")):
@@ -40,12 +35,10 @@ def get_ai_copilot_explain(
     topic: str = Body(...),
     context: str = Body(...)
 ):
-    # Simulated explainable AI summaries using configured prompt mappings
-    return {
-        "topic": topic,
-        "ai_explanation": f"AI Copilot analysis for: {topic}. Under given context {context}, this wallet matches mixer laundering heuristics with high risk weight.",
-        "confidence": 98.4
-    }
+    raise HTTPException(
+        status_code=501,
+        detail="AI Copilot explain endpoint requires a configured LLM provider. Set GEMINI_API_KEY in environment."
+    )
 
 @router.post("/models/promote")
 def promote_registry_model(model_id: str = Query(...)):

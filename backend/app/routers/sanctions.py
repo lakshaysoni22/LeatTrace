@@ -26,10 +26,11 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from .. import models, security
-from ..feed_scheduler import feed_scheduler
-from ..threat_database import threat_db
-from ..sanctions_screening_engine import sanctions_screening_engine
+from .. import models
+from ..core import security
+from ..intel.feed_scheduler import feed_scheduler
+from ..intel.threat_database import threat_db
+from ..sanctions.sanctions_screening_engine import sanctions_screening_engine
 from ..providers.sanctions_provider_manager import sanctions_provider_manager
 
 logger = logging.getLogger("leatrace.routers.sanctions")
@@ -162,7 +163,7 @@ def get_scheduler_status(
     current_user: models.User = Depends(security.get_current_user),
 ) -> Dict[str, Any]:
     """Returns background scheduler status and configuration."""
-    from ..sanctions_scheduler import sanctions_scheduler
+    from ..sanctions.sanctions_scheduler import sanctions_scheduler
     return sanctions_scheduler.get_scheduler_status()
 
 
@@ -192,7 +193,7 @@ def check_address_sanctions(
     stix_hit = threat_db.check_stix_indicator(address, db=db)
 
     # Get DB entry count for context
-    from ..sanctions_models import SanctionsListEntity
+    from ..sanctions.sanctions_models import SanctionsListEntity
     total_entities = db.query(SanctionsListEntity).filter(
         SanctionsListEntity.status == "active",
         SanctionsListEntity.is_deleted == False,  # noqa: E712
@@ -290,7 +291,7 @@ def list_sanctions_entries(
     current_user: models.User = Depends(security.get_current_user),
 ) -> Dict[str, Any]:
     """Paginated list of sanctioned entities from the normalized database."""
-    from ..sanctions_models import SanctionsListEntity
+    from ..sanctions.sanctions_models import SanctionsListEntity
 
     query = db.query(SanctionsListEntity).filter(
         SanctionsListEntity.is_deleted == False,  # noqa: E712
@@ -350,7 +351,7 @@ def list_versions(
     current_user: models.User = Depends(security.get_current_user),
 ) -> Dict[str, Any]:
     """Paginated version history of sanctions data syncs."""
-    from ..sanctions_models import SanctionsVersionHistory
+    from ..sanctions.sanctions_models import SanctionsVersionHistory
 
     query = db.query(SanctionsVersionHistory)
     if provider_id:
@@ -394,7 +395,7 @@ def list_changes(
     current_user: models.User = Depends(security.get_current_user),
 ) -> Dict[str, Any]:
     """Paginated change history for sanctions data mutations."""
-    from ..sanctions_models import SanctionsChangeHistory
+    from ..sanctions.sanctions_models import SanctionsChangeHistory
 
     query = db.query(SanctionsChangeHistory)
     if provider_id:
@@ -436,7 +437,7 @@ def list_integrity_reports(
     current_user: models.User = Depends(security.get_current_user),
 ) -> Dict[str, Any]:
     """Paginated list of sync integrity validation reports."""
-    from ..sanctions_models import SanctionsSyncIntegrityReport
+    from ..sanctions.sanctions_models import SanctionsSyncIntegrityReport
 
     query = db.query(SanctionsSyncIntegrityReport)
     if provider_id:
@@ -480,7 +481,7 @@ def list_screening_logs(
     current_user: models.User = Depends(security.get_current_user),
 ) -> Dict[str, Any]:
     """Paginated, immutable audit log of all sanctions screening events."""
-    from ..sanctions_models import SanctionsScreeningLog
+    from ..sanctions.sanctions_models import SanctionsScreeningLog
 
     query = db.query(SanctionsScreeningLog)
     if query_type:

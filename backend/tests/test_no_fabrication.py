@@ -122,22 +122,22 @@ class TestProviderNotConfiguredBehavior:
     """Verifies providers return structured status when not configured."""
 
     def test_ioc_engine_no_db_returns_status(self):
-        from app.ioc_engine import ioc_engine
+        from app.intel.ioc_engine import ioc_engine
         result = ioc_engine.check_ioc("1.2.3.4", db=None)
         assert result.get("flagged") is False
         assert "db_unavailable" in result.get("status", "")
 
     def test_ioc_engine_list_no_db_returns_status(self):
-        from app.ioc_engine import ioc_engine
+        from app.intel.ioc_engine import ioc_engine
         result = ioc_engine.list_iocs(db=None)
         assert "db_unavailable" in result.get("status", "")
 
     def test_enrichment_no_db_returns_status(self):
-        from app.enrichment_engine import enrichment_engine
+        from app.intel.enrichment_engine import enrichment_engine
         result = enrichment_engine.enrich_ioc("fake-id", db=None)
         assert result.get("status") == "db_unavailable"
 
     def test_confidence_recalc_no_db_returns_status(self):
-        from app.confidence_engine import confidence_engine
+        from app.risk.confidence_engine import confidence_engine
         result = confidence_engine.recalculate_ioc_confidence("fake-id", db=None)
         assert result.get("status") == "db_unavailable"

@@ -20,9 +20,10 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from .. import models, security
-from ..taxii_client import taxii_client, NOT_CONFIGURED, TAXIIError
-from ..stix_engine import stix_engine
+from .. import models
+from ..core import security
+from ..intel.taxii_client import taxii_client, NOT_CONFIGURED, TAXIIError
+from ..intel.stix_engine import stix_engine
 
 logger = logging.getLogger("leatrace.routers.taxii")
 

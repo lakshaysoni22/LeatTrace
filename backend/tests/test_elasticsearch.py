@@ -1,5 +1,5 @@
 import pytest
-from app.elasticsearch_client import es_client
+from app.infra.elasticsearch_client import es_client
 
 def test_elasticsearch_cluster_health():
     health = es_client.get_cluster_health()

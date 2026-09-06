@@ -1,6 +1,6 @@
 import pytest
-from app.rbac_engine import rbac_engine
-from app.policy_engine import policy_engine
+from app.core.access_control import rbac_engine
+from app.core.policy_engine import policy_engine
 
 def test_sql_injection_defense():
     # Simulate SQL injection payload checks

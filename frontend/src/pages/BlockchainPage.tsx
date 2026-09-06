@@ -153,132 +153,45 @@ export const BlockchainPage: React.FC = () => {
     }
   ]);
 
-  // Helper to hash string for deterministic mock values
-  const hashString = (str: string) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return hash;
-  };
-
   // Sync address input with store searchAddress
   useEffect(() => {
     if (searchAddress) {
       setAddress(searchAddress);
 
-      // Auto scoring mock recalculations on search
-      const isSuspect = searchAddress.toLowerCase().startsWith('0x71c') || searchAddress === '1LbcPeel5s9zARansom993vX78cDf';
-
-      const addrHash = Math.abs(hashString(searchAddress));
-
-      // Calculate dynamic parameters based on searched address
-      const dynamicBalance = isSuspect ? 145.832 : (addrHash % 450) + (addrHash % 100) / 100 + 0.05;
-      const dynamicTxs = isSuspect ? 1247 : (addrHash % 1500) + 32;
-      const dynamicInflow = isSuspect ? 12450.5 : dynamicBalance * 1.5 + (addrHash % 3000) + 120;
-      const dynamicOutflow = isSuspect ? 12304.768 : Math.max(0, dynamicInflow - dynamicBalance - (addrHash % 10));
-      const dynamicRiskScore = isSuspect ? 78 : (addrHash % 60) + 15;
-      const dynamicDecentralization = isSuspect ? 89 : (addrHash % 25) + 70;
-
-      // Generate dynamic risk factors checklist
-      let dynamicIndicators = [];
-      if (dynamicRiskScore >= 70) {
-        dynamicIndicators = [
-          { type: 'high_velocity', severity: 'high' as const, description: 'High transaction velocity — 47 txns in last 24h', score: 25 },
-          { type: 'fan_out', severity: 'critical' as const, description: 'Fan-out pattern — funds distributed to multiple wallets in rapid succession', score: 30 },
-          { type: 'mixer_interaction', severity: 'high' as const, description: 'Interaction with known mixing service addresses', score: 8 }
-        ];
-      } else if (dynamicRiskScore >= 40) {
-        dynamicIndicators = [
-          { type: 'large_concentration', severity: 'medium' as const, description: 'Moderate transaction concentration — 65% volume in 5 transactions', score: 15 },
-          { type: 'recent_spike', severity: 'medium' as const, description: 'Recent transaction spike in the last 48 hours', score: 10 }
-        ];
-      } else {
-        dynamicIndicators = [
-          { type: 'contract_interaction', severity: 'low' as const, description: 'Normal interaction with standard smart contracts', score: 5 }
-        ];
-      }
-
       const detected = detectBlockchainFromAddress(searchAddress);
-      const coinPrice = detected.coin === 'BTC' ? 65000 : 3500;
 
+      // Set minimal wallet info — real data comes from API fetch below
       setWallet({
         address: searchAddress,
         chain: detected.chain,
-        balance: dynamicBalance,
-        balanceUSD: dynamicBalance * coinPrice,
-        totalTransactions: dynamicTxs,
-        incomingTxns: Math.round(dynamicTxs * 0.49),
-        outgoingTxns: Math.round(dynamicTxs * 0.51),
-        firstActivity: '2023-08-15T10:23:00Z',
-        lastActivity: '2026-06-18T14:05:00Z',
-        totalVolumeIn: dynamicInflow,
-        totalVolumeOut: dynamicOutflow,
-        riskScore: dynamicRiskScore,
-        riskIndicators: dynamicIndicators,
-        tags: dynamicRiskScore >= 70 ? ['suspect', 'ponzi-linked', 'high-risk'] : ['active', 'standard'],
+        balance: 0,
+        balanceUSD: 0,
+        totalTransactions: 0,
+        incomingTxns: 0,
+        outgoingTxns: 0,
+        firstActivity: '',
+        lastActivity: '',
+        totalVolumeIn: 0,
+        totalVolumeOut: 0,
+        riskScore: 0,
+        riskIndicators: [],
+        tags: [],
         isContract: false,
-        label: isSuspect ? 'Primary Suspect Wallet' : 'Target Monitored Wallet',
-        decentralizationLevel: dynamicDecentralization
+        label: 'Target Wallet',
+        decentralizationLevel: 0
       });
 
-      // Update custom clusters & mixers mock data dynamically
-      setClusterData({
-        confidence: isSuspect ? 'High' : 'Medium',
-        type: isSuspect ? 'Multi-Input Heuristics & Common Co-Deposit Tags' : 'Co-Spending Associated Transactions',
-        size: isSuspect ? 4 : 3,
-        wallets: isSuspect ? [
-          '0x71c20e241775e5332f143715df332f143789a71b',
-          '0xab5801a7d398351b8be11c439e05c5b3259aec9b',
-          '0x3f5ce5fbfe3e9af3971dd833d26ba9b5c936f0be',
-          '0x53d2b273e51111111a4cf13e8f8f8f8f8f8f8f8f'
-        ] : [
-          searchAddress,
-          searchAddress.substring(0, 8) + '8be11c439e05c5b3259aec9b',
-          searchAddress.substring(0, 8) + 'e9af3971dd833d26ba9b5c936'
-        ],
-        exchanges: isSuspect ? ['Binance (Deposit Tag: 90218)', 'Kraken'] : ['Unknown']
-      });
-
-      setMixerData({
-        exposurePercentage: isSuspect ? 85.5 : addrHash % 25,
-        volumeUSD: isSuspect ? 4971750.00 : (addrHash % 5) * 12500,
-        rating: isSuspect ? 'Critical' : 'Low',
-        involvedPools: ['Tornado.Cash: Proxy Router', 'Tornado.Cash: 1.0 ETH Pool'],
-        interactions: isSuspect ? [
-          { hash: '0xfe3b5928d11c439e05c5b3259aec9be5fbfe3e9af3971dd833d26ba9b5c936f', time: '2026-06-20T10:00:00Z', action: 'DEPOSIT', amount: 10.0, pool: 'Tornado.Cash 10 ETH' },
-          { hash: '0x53d2b273e5a3f5ce5fbfe3e9af3971dd833d26ba9b5c936f0be1a4cf13e8f8f', time: '2026-06-18T14:32:10Z', action: 'WITHDRAWAL', amount: 10.0, pool: 'Tornado.Cash 10 ETH' }
-        ] : []
-      });
-
-      // Default high-fidelity local simulation profiles
-      setTokenApprovals(isSuspect ? [
-        { token: 'USDT', spender: 'Uniswap Router v3', allowance: 'Unlimited (2^256-1)', risk: 'Critical (Unlimited Approval)', tx_hash: '0xfe3b5928d11c439e05c5b3259aec9be5fbfe3e9af3971dd833d26ba9b5c936f' },
-        { token: 'USDC', spender: 'Tornado Cash Router', allowance: 'Unlimited (2^256-1)', risk: 'Critical (Sanctioned Spender)', tx_hash: '0xbc1d3a4b5b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b568a8e4e9bcda9d9e4' }
-      ] : [
-        { token: 'WETH', spender: 'Uniswap Router v3', allowance: '10.0 WETH', risk: 'Low Risk', tx_hash: '0x' + addrHash.toString(16) }
-      ]);
-
-      setDefiInteractions(isSuspect ? [
-        { protocol: 'Uniswap v3', action: 'Add Liquidity (WETH/USDT Pool)', value_usd: 150000.0, tx_hash: '0xfe3b5928d11c439e05c5b3259aec9be5fbfe3e9af3971dd833d26ba9b5c936f', timestamp: '2026-06-20T10:00:00Z', safety_rating: 'Monitored / High Risk' },
-        { protocol: 'Aave v3', action: 'Collateralized Borrow (USDC)', value_usd: 85000.0, tx_hash: '0xbc1d3a4b5b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b568a8e4e9bcda9d9e4', timestamp: '2026-06-20T10:18:45Z', safety_rating: 'Monitored / High Risk' }
-      ] : [
-        { protocol: 'Lido Finance', action: 'Stake ETH (Liquid Staking)', value_usd: 4500.0, tx_hash: '0x' + addrHash.toString(16), timestamp: '2026-06-25T14:30:00Z', safety_rating: 'Safe / Verified Protocol' }
-      ]);
-
-      setThreatIntel(isSuspect ? {
-        is_sanctioned: true,
-        details: { entity: 'Tornado.Cash Router Contract', list: 'OFAC Sanctions List', risk: 'Critical', actor: 'Lazarus Group' }
-      } : {
-        is_sanctioned: false,
-        details: { entity: 'Clean Address', list: 'None', risk: 'None', actor: 'None' }
-      });
-
+      // Clear analysis panels until real data loads
+      setClusterData({ confidence: '—', type: '—', size: 0, wallets: [], exchanges: [] });
+      setMixerData({ exposurePercentage: 0, volumeUSD: 0, rating: '—', involvedPools: [], interactions: [] });
+      setTokenApprovals([]);
+      setDefiInteractions([]);
+      setThreatIntel({ is_sanctioned: false, details: { entity: '—', list: 'None', risk: 'None', actor: 'None' } });
       setFraudScore({
         address: searchAddress,
-        fraud_probability_percent: isSuspect ? 92 : (addrHash % 40) + 5,
-        risk_classification: isSuspect ? 'Critical Threat' : (addrHash % 40) + 5 > 30 ? 'High Threat' : 'Standard Retail Account',
-        behavioral_anomalies: isSuspect ? ['Sanctioned list match (OFAC/UN/EU)', 'Critical mixer laundering exposure (>50% mixed volume)', 'Suspicious layering depth (4 hops)'] : ['None'],
+        fraud_probability_percent: 0,
+        risk_classification: 'Pending Analysis',
+        behavioral_anomalies: [],
         assessment_timestamp: new Date().toISOString()
       });
 

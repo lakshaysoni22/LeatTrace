@@ -20,7 +20,7 @@ import secrets
 import os
 import pytest
 from unittest.mock import MagicMock, patch
-from app.oauth_server import OAuthServer, _hash_secret, _verify_secret
+from app.core.oauth_server import OAuthServer, _hash_secret, _verify_secret
 
 
 class TestThreatFeedSchedulerConfigured:
@@ -29,12 +29,12 @@ class TestThreatFeedSchedulerConfigured:
         sources = json.dumps([{"type": "OFAC_SDN"}])
         with patch.dict(os.environ, {"SANCTIONS_SOURCES": sources}, clear=False):
             # _parse_sources() reads os.getenv dynamically now
-            from app.feed_scheduler import _parse_sources
+            from app.intel.feed_scheduler import _parse_sources
             assert bool(_parse_sources()) is True
 
     def test_status_shows_providers(self):
         import json
-        from app.feed_scheduler import ThreatFeedScheduler
+        from app.intel.feed_scheduler import ThreatFeedScheduler
         sources = json.dumps([{"type": "OFAC_SDN"}])
         with patch.dict(os.environ, {"SANCTIONS_SOURCES": sources}, clear=False):
             s = ThreatFeedScheduler()

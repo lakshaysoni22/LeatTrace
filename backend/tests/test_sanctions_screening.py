@@ -14,7 +14,7 @@ Tests the sanctions screening engine for:
 import unittest
 from unittest.mock import MagicMock, patch, PropertyMock
 
-from app.sanctions_screening_engine import SanctionsScreeningEngine
+from app.sanctions.sanctions_screening_engine import SanctionsScreeningEngine
 
 
 class TestSanctionsScreeningWallet(unittest.TestCase):

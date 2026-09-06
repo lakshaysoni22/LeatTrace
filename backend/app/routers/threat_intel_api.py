@@ -22,12 +22,13 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from .. import models, security
-from ..ioc_engine import ioc_engine
-from ..confidence_engine import confidence_engine
-from ..deduplication_engine import deduplication_engine
-from ..enrichment_engine import enrichment_engine
-from ..feed_priority_engine import feed_priority_engine
+from .. import models
+from ..core import security
+from ..intel.ioc_engine import ioc_engine
+from ..risk.confidence_engine import confidence_engine
+from ..intel.deduplication_engine import deduplication_engine
+from ..intel.enrichment_engine import enrichment_engine
+from ..intel.feed_priority_engine import feed_priority_engine
 from ..threat_intel.provider_manager import provider_manager
 
 logger = logging.getLogger("leatrace.routers.threat_intel")
@@ -379,7 +380,7 @@ def list_stix_objects(
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Lists STIX objects of a given type from the local database."""
-    from ..stix_models import STIX_TYPE_TO_MODEL
+    from ..intel.stix_models import STIX_TYPE_TO_MODEL
 
     model_cls = STIX_TYPE_TO_MODEL.get(stix_type)
     if not model_cls:
@@ -548,7 +549,7 @@ def get_sync_logs(
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Returns audit history of all TI sync operations."""
-    from ..stix_models import TISyncLog
+    from ..intel.stix_models import TISyncLog
 
     try:
         logs = (

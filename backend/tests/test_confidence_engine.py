@@ -6,7 +6,7 @@ Tests the weighted confidence scoring system.
 
 import datetime
 import pytest
-from app.confidence_engine import confidence_engine, ConfidenceEngine
+from app.risk.confidence_engine import confidence_engine, ConfidenceEngine
 
 
 class TestConfidenceComputation:

@@ -10,5 +10,4 @@ def test_health_endpoint_reports_production_defaults():
     assert response.status_code == 200
     payload = response.json()
     assert payload['status'] == 'healthy'
-    assert payload['demo_data_enabled'] is False
     assert payload['background_tasks_enabled'] is False

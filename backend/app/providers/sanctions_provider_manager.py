@@ -96,7 +96,7 @@ class SanctionsProviderManager:
         if not provider.is_configured():
             return {"status": "not_configured", "message": f"Provider '{provider_id}' is not configured."}
 
-        from ..sanctions_models import (
+        from ..sanctions.sanctions_models import (
             SanctionsProviderConfig, SanctionsVersionHistory, SanctionsChangeHistory,
             SanctionsListEntity, SanctionsListWallet, SanctionsAlias,
             SanctionsEntityCountry, SanctionsSyncIntegrityReport,

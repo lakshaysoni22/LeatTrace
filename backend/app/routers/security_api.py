@@ -1,16 +1,16 @@
-from fastapi import APIRouter, HTTPException, Query, Body
+from fastapi import APIRouter, HTTPException, Query, Body, Depends
 from typing import List, Dict, Any
-from ..totp_service import totp_service
-from ..policy_engine import policy_engine
+from ..core.totp_service import totp_service
+from ..core.policy_engine import policy_engine
+from ..core.session_manager import session_manager
+from ..core.security import create_access_token
+from ..database import get_db
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/auth", tags=["Identity & Security Operations"])
 
-# Local mock storage for keys/sessions
-ENROLLED_SECRETS = {} # username -> base32_secret
-ACTIVE_SESSIONS = [
-    {"session_id": "sess_001", "device_name": "Google Chrome (Windows)", "ip_address": "192.168.1.45", "last_active": "2026-06-29T12:00:00Z"},
-    {"session_id": "sess_002", "device_name": "Mozilla Firefox (Mac OS)", "ip_address": "192.168.5.12", "last_active": "2026-06-29T11:45:00Z"}
-]
+# Runtime storage for enrolled MFA secrets (per-user)
+ENROLLED_SECRETS = {}  # username -> base32_secret
 
 @router.post("/mfa/enroll")
 def enroll_mfa(username: str = Body(..., embed=True)):
@@ -40,29 +40,34 @@ def verify_mfa(
     is_valid = totp_service.verify_totp_token(secret, code)
     if is_valid:
         policy_engine.reset_failed_logins(username)
-        return {"status": "verified", "token_type": "bearer", "access_token": "mock-short-access-token-jwt"}
+        token = create_access_token(data={"sub": username, "mfa_verified": True})
+        return {"status": "verified", "token_type": "bearer", "access_token": token}
     else:
         policy_engine.record_failed_login(username)
         raise HTTPException(status_code=401, detail="Invalid verification code")
 
 @router.post("/refresh")
 def rotate_refresh_token(refresh_token: str = Body(..., embed=True)):
-    # Simulates Refresh Token Rotation (RTR)
-    return {
-        "access_token": "new-short-access-token-jwt",
-        "refresh_token": "rotated-refresh-token-jwt"
-    }
+    from ..core.refresh_service import refresh_service
+    try:
+        new_ref, new_acc = refresh_service.rotate_token(refresh_token)
+        return {
+            "access_token": new_acc,
+            "refresh_token": new_ref,
+            "expires_in": 3600,
+            "token_type": "Bearer"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
 
 @router.get("/sessions")
-def get_active_sessions():
-    return ACTIVE_SESSIONS
+def get_active_sessions(user_id: str = Query(..., description="User ID to list sessions for")):
+    sessions = session_manager.list_user_sessions(user_id)
+    return {"sessions": sessions, "count": len(sessions)}
 
 @router.post("/sessions/revoke")
 def revoke_active_session(session_id: str = Body(..., embed=True)):
-    global ACTIVE_SESSIONS
-    original_len = len(ACTIVE_SESSIONS)
-    ACTIVE_SESSIONS = [s for s in ACTIVE_SESSIONS if s["session_id"] != session_id]
-    
-    if len(ACTIVE_SESSIONS) == original_len:
+    success = session_manager.terminate_session(session_id)
+    if not success:
         raise HTTPException(status_code=404, detail="Session token not found")
     return {"status": "revoked", "session_id": session_id}

@@ -2,7 +2,8 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
-from .. import models, security
+from .. import models
+from ..core import security
 
 router = APIRouter(prefix="/api/graph", tags=["Graph Analytics"])
 
@@ -105,7 +106,7 @@ def get_transaction_graph(chain: str, address: str, depth: int = 3, db: Session 
 # Graph Intelligence Endpoints
 # ===================================================================
 
-from ..neo4j_service import neo4j_graph
+from ..infra.neo4j_service import neo4j_graph
 
 
 @router.get("/centrality/degree")

@@ -9,19 +9,19 @@ and relationship analysis. No mock data.
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Dict, Any, Optional
 
-from ..blockchain_service import BlockchainService
-from ..wallet_cluster_engine import wallet_cluster
-from ..wallet_reputation import wallet_reputation
-from ..cross_chain_service import cross_chain_service
-from ..bridge_detector import bridge_detector
-from ..defi_decoder import defi_decoder
-from ..mixer_detector import mixer_detector
-from ..threat_feed_manager import threat_feed_manager
-from ..risk_engine import risk_engine
-from ..entity_resolution import entity_resolution
-from ..relationship_engine import relationship_engine
-from ..laundering_engine import laundering_engine
-from ..risk_patterns import risk_pattern_engine
+from ..blockchain.blockchain_service import BlockchainService
+from ..wallet.wallet_cluster_engine import wallet_cluster
+from ..wallet.wallet_reputation import wallet_reputation
+from ..blockchain.cross_chain_service import cross_chain_service
+from ..blockchain.bridge_detector import bridge_detector
+from ..blockchain.defi_decoder import defi_decoder
+from ..blockchain.mixer_detector import mixer_detector
+from ..intel.threat_feed_manager import threat_feed_manager
+from ..risk.risk_engine import risk_engine
+from ..intel.entity_resolution import entity_resolution
+from ..intel.relationship_engine import relationship_engine
+from ..blockchain.laundering_engine import laundering_engine
+from ..risk.risk_patterns import risk_pattern_engine
 
 router = APIRouter(prefix="/api", tags=["Advanced Blockchain Intelligence"])
 
@@ -120,7 +120,7 @@ def decode_defi_call(
 @router.get("/defi/protocols")
 def list_protocols(protocol_type: Optional[str] = Query(None, description="Filter by protocol type.")):
     """Lists all known DeFi protocols."""
-    from ..protocol_registry import protocol_registry
+    from ..blockchain.protocol_registry import protocol_registry
     if protocol_type:
         return {"protocols": protocol_registry.get_by_type(protocol_type)}
     return {"protocols": protocol_registry.get_all()}

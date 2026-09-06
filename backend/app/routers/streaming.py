@@ -15,7 +15,7 @@ async def verify_websocket_token(token: str) -> Optional[models.User]:
     try:
         db = SessionLocal()
         from jose import jwt
-        from ..security import SECRET_KEY, ALGORITHM
+        from ..core.security import SECRET_KEY, ALGORITHM
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         if not user_id:

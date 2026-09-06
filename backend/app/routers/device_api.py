@@ -13,8 +13,9 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from ..database import get_db
-from .. import models, security
-from ..device_manager import device_manager
+from .. import models
+from ..core import security
+from ..infra.device_manager import device_manager
 
 
 router = APIRouter(prefix="/api/auth/devices", tags=["Device Management"])

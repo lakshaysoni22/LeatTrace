@@ -16,7 +16,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from .. import models, security
+from .. import models
+from ..core import security
 
 logger = logging.getLogger("leatrace.routers.soc")
 

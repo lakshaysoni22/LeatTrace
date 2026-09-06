@@ -12,8 +12,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from ..database import SessionLocal
-from ..sanctions_models import SanctionsListWallet, SanctionsListEntity, SanctionsVersionHistory
-from ..sanctions_screening_engine import sanctions_screening_engine
+from ..sanctions.sanctions_models import SanctionsListWallet, SanctionsListEntity, SanctionsVersionHistory
+from ..sanctions.sanctions_screening_engine import sanctions_screening_engine
 
 logger = logging.getLogger("leatrace.providers.facade")
 

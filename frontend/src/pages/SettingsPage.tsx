@@ -35,28 +35,58 @@ export const SettingsPage: React.FC = () => {
     }
   }, [activeTab]);
 
-  // Session tracking state
-  const [sessions, setSessions] = useState([
-    { id: 'sess-1', device: 'Windows PC (Cyber-Cell Workstation #4)', ip: '10.0.1.45', browser: 'Chrome 126', os: 'Windows 11', lastActive: 'Active now', isCurrent: true },
-    { id: 'sess-2', device: 'MacBook Pro (Director Room)', ip: '192.168.1.103', browser: 'Safari 17.5', os: 'macOS Sonoma', lastActive: '12 minutes ago', isCurrent: false },
-    { id: 'sess-3', device: 'iPad Pro (Field Agent App)', ip: '172.20.10.2', browser: 'Safari Mobile', os: 'iOS 17.4', lastActive: '2 hours ago', isCurrent: false }
-  ]);
+  // Session tracking state — fetched from backend
+  const [sessions, setSessions] = useState<{id: string; device: string; ip: string; browser: string; os: string; lastActive: string; isCurrent: boolean}[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = sessionStorage.getItem('token') || localStorage.getItem('token') || '';
+        const res = await fetch(`${API_BASE}/api/iam/sessions`, { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setSessions(data);
+          }
+        }
+      } catch { /* API unavailable — show empty state */ }
+      setSessionsLoading(false);
+    })();
+  }, []);
 
   const handleRevokeSession = (id: string, deviceName: string) => {
     setSessions(prev => prev.filter(s => s.id !== id));
     alert(`Session terminated successfully for device: ${deviceName}. Token rotated.`);
   };
 
-  // User Management State (Mock)
-  const [usersList, setUsersList] = useState([
-    { id: 'usr-1', name: 'Lakshay Soni', email: 'lakshaysoni@cybercrime.gov.in', role: 'investigator', status: 'Active' },
-    { id: 'usr-2', name: 'Supervisor Rawat', email: 'super.rawat@cybercrime.gov.in', role: 'supervisor', status: 'Active' },
-    { id: 'usr-3', name: 'Analyst Singh', email: 'analyst.singh@cybercrime.gov.in', role: 'analyst', status: 'Active' },
-    { id: 'usr-4', name: 'Auditor Verma', email: 'auditor.verma@cybercrime.gov.in', role: 'auditor', status: 'Active' },
-    { id: 'usr-5', name: 'Officer Gupta', email: 'officer.gupta@cybercrime.gov.in', role: 'read-only', status: 'Deactivated' }
-  ]);
+  // User Management State — fetched from backend
+  const [usersList, setUsersList] = useState<{id: string; name: string; email: string; role: string; status: string}[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
 
-  const [allowedIpRanges, setAllowedIpRanges] = useState('10.0.0.0/8, 192.168.1.0/24');
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = sessionStorage.getItem('token') || localStorage.getItem('token') || '';
+        const res = await fetch(`${API_BASE}/api/iam/users`, { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setUsersList(data.map((u: any) => ({
+              id: u.id || u.user_id || `usr-${Math.random().toString(36).slice(2, 6)}`,
+              name: u.name || u.username || u.email?.split('@')[0] || 'Unknown',
+              email: u.email || '',
+              role: u.role || 'read-only',
+              status: u.is_active !== false ? 'Active' : 'Deactivated'
+            })));
+          }
+        }
+      } catch { /* API unavailable — show empty state */ }
+      setUsersLoading(false);
+    })();
+  }, []);
+
+  const [allowedIpRanges, setAllowedIpRanges] = useState('');
   const [sessionTimeout, setSessionTimeout] = useState('60');
 
   const toggleUserStatus = (id: string) => {

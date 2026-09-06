@@ -6,7 +6,7 @@ and request sanitization.
 """
 
 import pytest
-from app.rbac import (
+from app.core.rbac import (
     ROLE_HIERARCHY,
     get_required_level,
     check_role_access,

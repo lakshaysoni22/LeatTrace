@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from ..database import get_db
-from .. import models, schemas, security
+from .. import models, schemas
+from ..core import security
 
 router = APIRouter(prefix="/api/cases", tags=["Case Management"])
 

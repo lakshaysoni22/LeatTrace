@@ -2,17 +2,17 @@ from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Dict, Any, Optional
 import time
 
-from ..wallet_cluster_engine import wallet_cluster
-from ..wallet_reputation import wallet_reputation
-from ..cross_chain_service import cross_chain_service
-from ..bridge_detector import bridge_detector
-from ..defi_decoder import defi_decoder
-from ..mixer_detector import mixer_detector
-from ..threat_feed_manager import threat_feed_manager
-from ..risk_engine import risk_engine
-from ..entity_resolution import entity_resolution
-from ..neo4j_service import neo4j_graph
-from ..blockchain_classifier import blockchain_classifier
+from ..wallet.wallet_cluster_engine import wallet_cluster
+from ..wallet.wallet_reputation import wallet_reputation
+from ..blockchain.cross_chain_service import cross_chain_service
+from ..blockchain.bridge_detector import bridge_detector
+from ..blockchain.defi_decoder import defi_decoder
+from ..blockchain.mixer_detector import mixer_detector
+from ..intel.threat_feed_manager import threat_feed_manager
+from ..risk.risk_engine import risk_engine
+from ..intel.entity_resolution import entity_resolution
+from ..infra.neo4j_service import neo4j_graph
+from ..blockchain.blockchain_classifier import blockchain_classifier
 
 router = APIRouter(prefix="/api", tags=["Forensic Investigation APIs"])
 

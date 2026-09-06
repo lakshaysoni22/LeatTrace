@@ -5,8 +5,8 @@ collection listing with mock server, and validation.
 """
 import pytest
 from unittest.mock import patch, MagicMock
-from app.taxii_client import TAXIIClient, NOT_CONFIGURED, TAXIIAuthError, TAXIIConnectionError
-from app.stix_engine import STIXEngine, STIXValidationError
+from app.intel.taxii_client import TAXIIClient, NOT_CONFIGURED, TAXIIAuthError, TAXIIConnectionError
+from app.intel.stix_engine import STIXEngine, STIXValidationError
 
 
 # ─── TAXIIClient ─────────────────────────────────────────────────────────────

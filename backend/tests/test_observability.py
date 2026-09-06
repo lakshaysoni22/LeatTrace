@@ -4,48 +4,48 @@ Tests for production SIEM router: DB-backed incidents, IOC check, correlation.
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
-from app.observability import PROMETHEUS_ENABLED
+from app.infra.observability import PROMETHEUS_ENABLED
 
 
 class TestObservability:
     """Tests for the observability module — graceful degradation if deps missing."""
 
     def test_get_metrics_output_returns_bytes_or_none(self):
-        from app.observability import get_metrics_output
+        from app.infra.observability import get_metrics_output
         result = get_metrics_output()
         assert result is None or isinstance(result, bytes)
 
     def test_get_content_type_returns_string(self):
-        from app.observability import get_content_type
+        from app.infra.observability import get_content_type
         ct = get_content_type()
         assert isinstance(ct, str)
         assert len(ct) > 0
 
     def test_record_request_no_exception(self):
-        from app.observability import record_request
+        from app.infra.observability import record_request
         # Must not raise regardless of Prometheus state
         record_request("GET", "/api/test", 200, 0.05)
 
     def test_record_wallet_query_no_exception(self):
-        from app.observability import record_wallet_query
+        from app.infra.observability import record_wallet_query
         record_wallet_query("ethereum")
         record_wallet_query("bitcoin")
 
     def test_record_rpc_error_no_exception(self):
-        from app.observability import record_rpc_error
+        from app.infra.observability import record_rpc_error
         record_rpc_error("ethereum", "timeout")
 
     def test_record_sanctions_check_no_exception(self):
-        from app.observability import record_sanctions_check
+        from app.infra.observability import record_sanctions_check
         record_sanctions_check(hit=True)
         record_sanctions_check(hit=False)
 
     def test_record_auth_failure_no_exception(self):
-        from app.observability import record_auth_failure
+        from app.infra.observability import record_auth_failure
         record_auth_failure("invalid_password")
 
     def test_span_context_manager_no_exception(self):
-        from app.observability import span
+        from app.infra.observability import span
         with span("test.operation") as s:
             pass  # Should not raise
 

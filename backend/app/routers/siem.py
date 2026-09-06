@@ -30,8 +30,9 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from .. import models, security
-from ..threat_database import threat_db
+from .. import models
+from ..core import security
+from ..intel.threat_database import threat_db
 
 logger = logging.getLogger("leatrace.routers.siem")
 

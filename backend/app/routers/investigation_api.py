@@ -19,14 +19,15 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 from ..database import get_db
-from .. import models, security
+from .. import models
+from ..core import security
 from ..chains.registry import chain_registry
-from ..wallet_profiler import wallet_profiler
-from ..fund_tracer import fund_tracer
-from ..price_oracle import price_oracle
-from ..laundering_engine import laundering_engine
-from ..risk_engine import risk_engine
-from ..entity_resolution import entity_resolution
+from ..wallet.wallet_profiler import wallet_profiler
+from ..blockchain.fund_tracer import fund_tracer
+from ..blockchain.price_oracle import price_oracle
+from ..blockchain.laundering_engine import laundering_engine
+from ..risk.risk_engine import risk_engine
+from ..intel.entity_resolution import entity_resolution
 from ..providers.sanctions_provider import ofac_provider
 
 logger = logging.getLogger("leatrace.routers.investigation")

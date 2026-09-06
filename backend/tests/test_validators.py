@@ -6,7 +6,7 @@ injection detection, and sanitization.
 """
 
 import pytest
-from app.validators import (
+from app.core.validators import (
     validate_address,
     validate_tx_hash,
     validate_chain_id,

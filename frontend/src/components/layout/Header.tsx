@@ -49,16 +49,10 @@ export const Header: React.FC = () => {
     incident: 'Incident Response',
   };
 
-  // Hardcoded search targets for immediate suggestion
-  const searchTargets = [
-    { type: 'case', label: 'GainChain Network Ponzi', id: 'case-1', chain: 'ETH', target: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28' },
-    { type: 'case', label: 'MedLock Ransomware', id: 'case-2', chain: 'BTC', target: '1LbcPeel5s9zARansom993vX78cDf' },
-    { type: 'wallet', label: 'LockBit Ransomware Receiver (BTC)', target: '1LbcPeel5s9zARansom993vX78cDf', chain: 'BTC' },
-    { type: 'wallet', label: 'Tornado Cash Exploit Drainer (ETH)', target: '0x71c20e241775e5332f143715df332f143789a71b', chain: 'ETH' },
-    { type: 'wallet', label: 'GainChain Suspect (ETH)', target: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28', chain: 'ETH' }
-  ];
+  // Search suggestions derived from user input (no hardcoded addresses)
+  const searchTargets: { type: string; label: string; id?: string; chain: string; target: string }[] = [];
 
-  const suggestions = searchQuery.trim() 
+  const suggestions = searchQuery.trim().length >= 6
     ? searchTargets.filter(item => 
         item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.target.toLowerCase().includes(searchQuery.toLowerCase())

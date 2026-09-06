@@ -1,28 +1,18 @@
 from fastapi import APIRouter, HTTPException, Query, Header, Depends, Body
 from typing import List, Dict, Any, Optional
-from ..oauth_server import oauth_server
-from ..oidc_provider import oidc_provider
-from ..refresh_service import refresh_service
-from ..device_manager import device_manager
-from ..session_manager import session_manager
-from ..rbac_engine import rbac_engine
-from ..abac_engine import abac_engine
+from ..core.oauth_server import oauth_server
+from ..core.oidc_provider import oidc_provider
+from ..core.refresh_service import refresh_service
+from ..infra.device_manager import device_manager
+from ..core.session_manager import session_manager
+from ..core.access_control import rbac_engine, abac_engine
+from ..core.security import create_access_token
+from ..core.jwks_service import jwks_service
+from ..database import get_db
+from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["IAM & Authentication Services"])
 
-# Public JWKS Mock Key
-JWK_KEY = {
-    "keys": [
-        {
-            "kty": "RSA",
-            "use": "sig",
-            "alg": "RS256",
-            "kid": "LEAtTrace-key-v1",
-            "n": "u1W1x_x_mock_modulus_key_value_100",
-            "e": "AQAB"
-        }
-    ]
-}
 
 @router.get("/.well-known/openid-configuration")
 def get_oidc_config():
@@ -30,7 +20,7 @@ def get_oidc_config():
 
 @router.get("/jwks.json")
 def get_jwks():
-    return JWK_KEY
+    return jwks_service.get_jwks()
 
 @router.post("/oauth/token")
 def issue_oauth_token(
@@ -51,9 +41,11 @@ def issue_oauth_token(
             
         # Issue initial tokens
         family_id, new_refresh = refresh_service.create_family()
+        access_token = create_access_token(data={"sub": client_id, "grant": "authorization_code"})
+        id_token = oidc_provider.generate_id_token(client_id, "", "", "")
         return {
-            "access_token": "acc_initial_token_jwt",
-            "id_token": "id_token_jwt_placeholder",
+            "access_token": access_token,
+            "id_token": id_token,
             "refresh_token": new_refresh,
             "expires_in": 3600,
             "token_type": "Bearer"
@@ -74,8 +66,9 @@ def issue_oauth_token(
             raise HTTPException(status_code=400, detail=str(e))
             
     elif grant_type == "client_credentials":
+        access_token = create_access_token(data={"sub": client_id, "grant": "client_credentials"})
         return {
-            "access_token": "client_credentials_access_token_jwt",
+            "access_token": access_token,
             "expires_in": 3600,
             "token_type": "Bearer"
         }
@@ -83,22 +76,22 @@ def issue_oauth_token(
     raise HTTPException(status_code=400, detail="Unsupported grant type")
 
 @router.get("/userinfo")
-def get_userinfo(authorization: Optional[str] = Header(None)):
+def get_userinfo(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
-    return oidc_provider.generate_id_token("user_101", "lakshaysoni@cybercrime.gov.in", "investigator", "Cybercrime Unit")
+    # In production, decode the token to get user info
+    # For now return structured response indicating token required
+    return {"status": "requires_valid_token", "message": "Decode bearer token to retrieve user info"}
 
 @router.get("/auth/device")
 def get_device_history(user_agent: Optional[str] = Header(None)):
-    ua = user_agent or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0"
+    ua = user_agent or "Unknown"
     device_details = device_manager.parse_user_agent(ua)
-    risk_score = device_manager.evaluate_device_risk("192.168.1.5", ua, True)
+    risk_score = device_manager.evaluate_device_risk(None, ua, False)
     
     return {
         "device_details": device_details,
-        "ip_address": "192.168.1.5",
         "risk_score": risk_score,
-        "is_trusted": True
     }
 
 @router.post("/auth/session/revoke")

@@ -6,8 +6,8 @@ import json
 import os
 import pytest
 from unittest.mock import patch, MagicMock
-from app.feed_scheduler import ThreatFeedScheduler, NOT_CONFIGURED, _parse_ofac_sdn, _sha256
-from app.threat_database import ThreatIntelligenceDatabase
+from app.intel.feed_scheduler import ThreatFeedScheduler, NOT_CONFIGURED, _parse_ofac_sdn, _sha256
+from app.intel.threat_database import ThreatIntelligenceDatabase
 
 
 # ─── Scheduler ────────────────────────────────────────────────────────────────

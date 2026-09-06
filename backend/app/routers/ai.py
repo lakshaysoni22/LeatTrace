@@ -2,7 +2,8 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from ..database import get_db
-from .. import models, schemas, security
+from .. import models, schemas
+from ..core import security
 
 router = APIRouter(prefix="/api/ai", tags=["AI Investigation Assistant"])
 
