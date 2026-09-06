@@ -13,6 +13,11 @@ import time
 import uuid
 from typing import Any, Dict, List, Optional
 
+import os
+import json
+import hashlib
+import xml.etree.ElementTree as ET
+
 from ..sanctions.providers.manager import sanctions_provider_manager
 from ..sanctions.sanctions_models import SanctionsProviderConfig, SanctionsVersionHistory
 from ...db import models
@@ -20,6 +25,81 @@ from ...db import models
 logger = logging.getLogger("leatrace.sanctions.scheduler")
 
 SANCTIONS_SYNC_INTERVAL_HOURS: float = 24.0
+
+NOT_CONFIGURED = {
+    "status": "not_configured",
+    "message": "No sanctions sources configured via SANCTIONS_SOURCES environment variable.",
+}
+
+
+def _sha256(content: bytes) -> str:
+    """Calculates SHA-256 hex digest for content deduplication."""
+    return hashlib.sha256(content).hexdigest()
+
+
+def _parse_sources() -> list:
+    """Parses SANCTIONS_SOURCES environment variable dynamically."""
+    val = os.getenv("SANCTIONS_SOURCES")
+    if not val:
+        return []
+    try:
+        parsed = json.loads(val)
+        return parsed if isinstance(parsed, list) else []
+    except Exception:
+        return []
+
+
+def _parse_ofac_sdn(xml_bytes: bytes) -> list[dict]:
+    """Parses raw OFAC SDN XML and yields standardized sanctions dicts."""
+    try:
+        root = ET.fromstring(xml_bytes)
+    except Exception:
+        return []
+
+    entries = []
+    ns = ""
+    if root.tag.startswith("{"):
+        ns = root.tag.split("}")[0] + "}"
+
+    for entry in root.findall(f"{ns}sdnEntry"):
+        last_name_elem = entry.find(f"{ns}lastName")
+        first_name_elem = entry.find(f"{ns}firstName")
+        name = " ".join(filter(None, [
+            first_name_elem.text if first_name_elem is not None else None,
+            last_name_elem.text if last_name_elem is not None else None,
+        ])).strip()
+
+        programs = []
+        for prog in entry.findall(f"{ns}programList/{ns}program"):
+            if prog.text:
+                programs.append(prog.text.strip())
+        program_str = ", ".join(programs) if programs else ""
+
+        crypto_addrs = []
+        for id_elem in entry.findall(f"{ns}idList/{ns}id"):
+            id_type = id_elem.find(f"{ns}idType")
+            id_num = id_elem.find(f"{ns}idNumber")
+            if id_type is not None and id_num is not None and id_num.text:
+                type_str = id_type.text or ""
+                if "Digital Currency" in type_str or "Address" in type_str:
+                    crypto_addrs.append(id_num.text.strip())
+
+        if crypto_addrs:
+            for addr in crypto_addrs:
+                entries.append({
+                    "entity_name": name,
+                    "address": addr,
+                    "program": program_str,
+                    "list_type": "OFAC_SDN",
+                })
+        else:
+            entries.append({
+                "entity_name": name,
+                "address": None,
+                "program": program_str,
+                "list_type": "OFAC_SDN",
+            })
+    return entries
 
 
 class ThreatFeedScheduler:
@@ -33,21 +113,43 @@ class ThreatFeedScheduler:
 
     def is_configured(self) -> bool:
         """Returns True if any sanctions provider is configured and enabled."""
+        env_sources = os.getenv("SANCTIONS_SOURCES", None)
+        if env_sources is not None:
+            stripped = env_sources.strip()
+            if not stripped:
+                return False
+            try:
+                parsed = json.loads(stripped)
+                return bool(parsed)
+            except Exception:
+                return False
         providers = sanctions_provider_manager.registry.get_sorted_by_priority()
         return len(providers) > 0
 
     def get_status(self, db: Any = None) -> Dict[str, Any]:
         """Returns scheduler status and sync history from the new database models."""
-        providers = sanctions_provider_manager.registry.get_all()
-        if not providers:
-            return {
-                "status": "not_configured",
-                "message": "No sanctions providers configured.",
-            }
+        if not self.is_configured():
+            return NOT_CONFIGURED
+
+        env_sources = os.getenv("SANCTIONS_SOURCES", "")
+        providers_list = []
+        if env_sources:
+            try:
+                parsed = json.loads(env_sources)
+                if isinstance(parsed, list):
+                    for item in parsed:
+                        if isinstance(item, dict) and "type" in item:
+                            providers_list.append(item["type"])
+            except Exception:
+                pass
+
+        if not providers_list:
+            providers = sanctions_provider_manager.registry.get_all()
+            providers_list = [p.provider_id for p in providers]
 
         status: Dict[str, Any] = {
             "configured": True,
-            "providers": [p.provider_id for p in providers],
+            "providers": providers_list,
             "sync_interval_hours": SANCTIONS_SYNC_INTERVAL_HOURS,
             "last_sync_time": (
                 datetime.datetime.fromtimestamp(self.last_sync_time).isoformat() + "Z"
@@ -87,6 +189,9 @@ class ThreatFeedScheduler:
         Synchronizes all sanctions providers using the new provider manager.
         Also propagates data to legacy SanctionsEntry table for backward compatibility.
         """
+        if not self.is_configured():
+            return NOT_CONFIGURED
+
         if db is None:
             return {"status": "error", "message": "Database session required for sync."}
 

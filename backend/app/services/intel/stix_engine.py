@@ -99,7 +99,7 @@ class STIXValidationError(Exception):
     """Raised when a STIX object fails schema validation."""
 
 
-class STIXBundleError(Exception):
+class STIXBundleError(STIXValidationError):
     """Raised when a STIX bundle is malformed."""
 
 

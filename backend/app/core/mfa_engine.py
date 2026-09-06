@@ -165,7 +165,7 @@ class DeviceFingerprint(BaseModel):
 def calculate_device_fingerprint(
     user_agent: str,
     ip_address: str,
-    accept_language: str,
+    accept_language: str = "en-US",
     screen_resolution: Optional[str] = None,
     timezone: Optional[str] = None
 ) -> str:
@@ -363,7 +363,34 @@ DEFAULT_MFA_POLICIES = [
 
 class MFAEngine:
     """Main MFA Engine for LEAtTrace."""
-    
+
+    @staticmethod
+    def generate_totp_secret() -> str:
+        """Generate a cryptographically secure TOTP secret."""
+        return generate_totp_secret()
+
+    @staticmethod
+    def generate_backup_codes(count: int = 10) -> List[str]:
+        """Generate backup codes for account recovery."""
+        return generate_backup_codes(count)
+
+    @staticmethod
+    def calculate_device_fingerprint(
+        user_agent: str,
+        ip_address: str,
+        accept_language: str = "en-US",
+        screen_resolution: Optional[str] = None,
+        timezone: Optional[str] = None
+    ) -> str:
+        """Calculate device fingerprint from browser/device information."""
+        return calculate_device_fingerprint(
+            user_agent=user_agent,
+            ip_address=ip_address,
+            accept_language=accept_language,
+            screen_resolution=screen_resolution,
+            timezone=timezone,
+        )
+
     @staticmethod
     def setup_mfa_for_user(
         user_id: str,

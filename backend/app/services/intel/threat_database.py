@@ -86,7 +86,7 @@ class ThreatIntelligenceDatabase:
                     "source_id":   entry.source_id,
                     "entry_type":  entry.entry_type,
                     "severity":    "Critical",
-                    "data_source": "database_legacy",
+                    "data_source": "database",
                 }
             return None
 

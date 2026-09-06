@@ -317,14 +317,17 @@ for module, result, error in test_results:
     if error:
         print(f"         Error: {error[:100]}...")
 
-print("\n" + "=" * 70)
+def test_phase1_security_modules():
+    assert total > 0, "No phase 1 security tests were executed"
+    assert passed == total, f"{total - passed} security module(s) failed: {[m for m, r, e in test_results if not r]}"
 
-if passed == total:
-    print("🎉 ALL PHASE 1 SECURITY MODULES TESTED SUCCESSFULLY!")
-    print("\nStatus: ✅ PRODUCTION READY")
-    print("All 6 modules are functional and ready for integration.")
-    sys.exit(0)
-else:
-    print("⚠️ SOME TESTS FAILED - REVIEW ERRORS ABOVE")
-    print(f"\n{total - passed} module(s) need attention.")
-    sys.exit(1)
+if __name__ == "__main__":
+    if passed == total:
+        print("🎉 ALL PHASE 1 SECURITY MODULES TESTED SUCCESSFULLY!")
+        print("\nStatus: ✅ PRODUCTION READY")
+        print("All 6 modules are functional and ready for integration.")
+        sys.exit(0)
+    else:
+        print("⚠️ SOME TESTS FAILED - REVIEW ERRORS ABOVE")
+        print(f"\n{total - passed} module(s) need attention.")
+        sys.exit(1)
