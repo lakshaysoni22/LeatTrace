@@ -3,7 +3,7 @@ import { useNavStore, useAuthStore, useAlertStore } from '../../stores';
 import {
   LayoutDashboard, Search, FolderOpen, Shield, Eye, FileText, Bell, Settings,
   ClipboardList, LogOut, ChevronLeft, ChevronRight, Hexagon, Activity, Sparkles, Building,
-  ShieldAlert, ShieldCheck, X
+  ShieldAlert, ShieldCheck, X, Globe
 } from 'lucide-react';
 
 const navItems = [
@@ -105,6 +105,22 @@ export const Sidebar: React.FC = () => {
             </button>
           );
         })}
+
+        <div className="pt-2 mt-2 border-t border-dark-700/40">
+          <button
+            onClick={() => {
+              setPage('landing');
+              if (window.innerWidth < 768) {
+                useNavStore.setState({ sidebarOpen: false });
+              }
+            }}
+            className={`w-full nav-item ${currentPage === 'landing' ? 'active bg-primary-500/15 border-primary-500/30' : ''} ${!sidebarOpen ? 'justify-center px-0' : ''}`}
+            title={!sidebarOpen ? 'Public Portal' : undefined}
+          >
+            <Globe size={18} className="text-cyan-400" />
+            {sidebarOpen && <span className="text-cyan-300 font-medium">Public Portal</span>}
+          </button>
+        </div>
       </nav>
 
       {/* User Section */}

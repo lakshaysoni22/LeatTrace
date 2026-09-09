@@ -23,6 +23,7 @@ const AuditPage = lazy(() => import('./pages/AuditPage').then(m => ({ default: m
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const IncidentResponsePage = lazy(() => import('./pages/IncidentResponsePage').then(m => ({ default: m.IncidentResponsePage })));
 const SocDashboardPage = lazy(() => import('./pages/SocDashboardPage').then(m => ({ default: m.SocDashboardPage })));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 import { NotFoundPage } from './pages/NotFoundPage';
 
@@ -64,15 +65,29 @@ const PageLoader: React.FC = () => (
 );
 
 const App: React.FC = () => {
-  const { isAuthenticated, hydrateAuth } = useAuthStore();
+  const { user, isAuthenticated, hydrateAuth } = useAuthStore();
   const { currentPage, sidebarOpen, setPage, showShortcuts, setShowShortcuts } = useNavStore();
   const { alerts } = useAlertStore();
   const unreadCount = alerts.filter((a) => !a.isRead).length;
+  const [showLogin, setShowLogin] = React.useState<boolean>(() => typeof window !== 'undefined' && window.location.hash === '#login');
 
   // Hydrate authentication from localStorage on mount
   useEffect(() => {
     hydrateAuth();
   }, [hydrateAuth]);
+
+  // Sync route hashes for portal vs login
+  useEffect(() => {
+    const handleHash = () => {
+      if (window.location.hash === '#login') {
+        setShowLogin(true);
+      } else if (window.location.hash === '#portal' || window.location.hash === '#landing' || window.location.hash === '') {
+        setShowLogin(false);
+      }
+    };
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   // Background idle route preloader for 0ms tab navigation
   useEffect(() => {
@@ -215,7 +230,40 @@ const App: React.FC = () => {
   }, [isAuthenticated, setPage]);
 
   if (!isAuthenticated) {
-    return <LoginPage />;
+    if (showLogin) {
+      return (
+        <LoginPage
+          onBack={() => {
+            setShowLogin(false);
+            window.location.hash = '#portal';
+          }}
+        />
+      );
+    }
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <LandingPage
+          onLogin={() => {
+            setShowLogin(true);
+            window.location.hash = '#login';
+          }}
+          isOfficerLoggedIn={false}
+        />
+      </Suspense>
+    );
+  }
+
+  // Full immersion Landing Page view for authenticated officers
+  if (currentPage === 'landing') {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <LandingPage
+          isOfficerLoggedIn={true}
+          officerName={user?.username}
+          onReturnToConsole={() => setPage('dashboard')}
+        />
+      </Suspense>
+    );
   }
 
   // Page dispatcher mapping nav-ids to components

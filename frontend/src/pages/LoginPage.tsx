@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { useAuthStore } from '../stores';
 import { Hexagon, Shield, Eye, EyeOff, Lock, Mail, ArrowRight, AlertTriangle } from 'lucide-react';
 
-export const LoginPage: React.FC = () => {
+interface LoginPageProps {
+  onBack?: () => void;
+}
+
+export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
   const { login, verifyMFA, mfaPendingUser, setMfaPending } = useAuthStore();
   const [email, setEmail] = useState('lakshaysoni@cybercrime.gov.in');
   const [password, setPassword] = useState('SecurePass@2026');
@@ -128,6 +132,20 @@ export const LoginPage: React.FC = () => {
       </div>
 
       <div className="relative w-full max-w-md my-auto">
+        {onBack && (
+          <div className="mb-4 flex items-center justify-between animate-fade-in">
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex items-center gap-1.5 text-xs font-mono text-dark-300 hover:text-primary-400 transition-colors cursor-pointer px-3 py-1.5 rounded-lg bg-dark-900/80 border border-dark-700/60 hover:border-primary-500/40 backdrop-blur-md"
+            >
+              <span>←</span>
+              <span>Back to Public Portal</span>
+            </button>
+            <span className="text-[10px] font-mono text-dark-400 tracking-wider uppercase">Restricted Gateway</span>
+          </div>
+        )}
+
         {/* LEATrace Top Logo Header */}
         <div className="text-center mb-5 sm:mb-6 animate-slide-down">
           <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-primary-500 via-cyber-teal to-primary-600 flex items-center justify-center shadow-[0_0_25px_rgba(0,212,255,0.4)] border border-cyan-400/40">

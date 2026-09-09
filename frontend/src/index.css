@@ -1,6 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --color-base: #070b14;
+  --color-base2: #050810;
+  --color-surface: #0c1421;
+  --color-surface2: #111c2d;
+  --color-surface3: #17253a;
+  --color-line: #1d2a40;
+  --color-line2: #26364f;
+  --color-ink: #e7edf6;
+  --color-ink2: #b7c4d8;
+  --color-muted: #7f92ae;
+  --color-faint: #566783;
+  --color-accent: #22d3ee;
+  --color-accent2: #2dd4bf;
+  --color-accentdim: #0e7490;
+  --color-danger: #fb5a6f;
+  --color-warn: #f7b955;
+  --color-ok: #3ddc97;
+  --color-violet: #a78bfa;
+}
 
 @layer base {
   * {
@@ -359,5 +382,148 @@
   animation: pulseSlotGlow 1.8s infinite ease-in-out;
 }
 
+/* ===================================================================
+   LEATrace Landing Page Institutional Styles & Utilities
+   =================================================================== */
 
+.grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(29, 42, 64, 0.45) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(29, 42, 64, 0.45) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
 
+.text-glow {
+  text-shadow: 0 0 24px rgba(34, 211, 238, 0.45);
+}
+
+.panel {
+  background: linear-gradient(180deg, rgba(17, 28, 45, 0.95), #0c1421);
+  border: 1px solid #1d2a40;
+}
+
+.glass {
+  background: linear-gradient(180deg, rgba(17, 28, 45, 0.96), rgba(12, 20, 33, 0.96));
+  border: 1px solid #1d2a40;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.glass-hover {
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.28s, box-shadow 0.28s;
+}
+.glass-hover:hover {
+  transform: translateY(-2px);
+  border-color: #26364f;
+  box-shadow: inset 0 1px 0 rgba(34, 211, 238, 0.12), 0 12px 28px -18px rgba(0, 0, 0, 0.8);
+}
+
+.sheen {
+  position: relative;
+  overflow: hidden;
+}
+.sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.08) 48%, transparent 62%);
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.sheen:hover::after {
+  transform: translateX(120%);
+}
+
+.edge-accent {
+  position: relative;
+}
+.edge-accent::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 14px;
+  bottom: 14px;
+  width: 2px;
+  background: var(--color-accent);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.edge-accent:hover::before {
+  transform: scaleY(1);
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.shimmer-text {
+  background: linear-gradient(90deg, #e7edf6 0%, #22d3ee 30%, #2dd4bf 50%, #22d3ee 70%, #e7edf6 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer-text 6s linear infinite;
+}
+
+@keyframes shimmer-text {
+  to { background-position: 200% center; }
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee var(--marquee-dur, 42s) linear infinite;
+}
+.marquee-slow { --marquee-dur: 60s; }
+.marquee-group:hover .marquee { animation-play-state: paused; }
+
+.edge-fade-x {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+}
+
+.ring-hover {
+  position: relative;
+}
+.ring-hover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(140deg, rgba(34, 211, 238, 0.6), transparent 45%, rgba(45, 212, 191, 0.45));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.ring-hover:hover::after { opacity: 1; }
+
+.spotlight {
+  position: relative;
+}
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 0%), rgba(34, 211, 238, 0.15), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.spotlight:hover::before { opacity: 1; }
