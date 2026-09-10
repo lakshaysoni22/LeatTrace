@@ -157,6 +157,13 @@ export const apiPatch = <T>(path: string, body?: unknown, opts?: FetchOptions) =
     ...opts,
   });
 
+export const apiPut = <T>(path: string, body?: unknown, opts?: FetchOptions) =>
+  apiFetch<T>(path, {
+    method: 'PUT',
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+    ...opts,
+  });
+
 export const apiDelete = <T>(path: string, opts?: FetchOptions) =>
   apiFetch<T>(path, { method: 'DELETE', ...opts });
 

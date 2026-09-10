@@ -144,6 +144,7 @@ def resolve_wallet_profile(address: str, chain: str) -> dict:
         "isContract": is_contract,
         "label": threat["details"]["entity"] if threat.get("is_sanctioned") else f"Address ({chain})",
         "data_available": data_available,
+        "transactions": txs,
     }
 
 

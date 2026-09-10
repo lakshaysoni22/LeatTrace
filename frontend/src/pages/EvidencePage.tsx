@@ -185,20 +185,20 @@ export const EvidencePage: React.FC = () => {
                   <div className="mt-2 flex items-center gap-2">
                     <code className="text-[10px] text-dark-500 mono">{item.txid.slice(0, 24)}…</code>
                     <a
-                      href={`https://mempool.space/tx/${item.txid}`}
+                      href={item.txid.startsWith('0x') ? `https://etherscan.io/tx/${item.txid}` : `https://mempool.space/tx/${item.txid}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[10px] text-primary-400 hover:underline flex items-center gap-1"
                       onClick={e => e.stopPropagation()}
                     >
-                      View on Mempool <ExternalLink size={8} />
+                      View on {item.txid.startsWith('0x') ? 'Etherscan' : 'Mempool'} <ExternalLink size={8} />
                     </a>
                   </div>
                 )}
               </div>
               {'value' in item && item.value && (
                 <div className="text-right shrink-0">
-                  <div className="text-sm font-bold text-white">{((item.value as number) / 1e8).toFixed(4)} BTC</div>
+                  <div className="text-sm font-bold text-white">{((item.value as number) / 1e8).toFixed(4)} {summary?.coinSymbol || 'ETH'}</div>
                 </div>
               )}
             </div>
@@ -224,7 +224,7 @@ export const EvidencePage: React.FC = () => {
                 )}
                 {'txid' in item && item.txid && (
                   <a
-                    href={`https://mempool.space/tx/${item.txid}`}
+                    href={item.txid.startsWith('0x') ? `https://etherscan.io/tx/${item.txid}` : `https://mempool.space/tx/${item.txid}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-3 py-1 rounded text-[10px] font-bold bg-dark-800 text-dark-300 border border-dark-700 hover:border-dark-600 flex items-center gap-1"

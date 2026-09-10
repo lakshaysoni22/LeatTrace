@@ -1,20 +1,13 @@
 import { useState, type ReactNode } from "react"
+import { CyberShieldLogo } from "../CyberShieldLogo"
 
 /* ---------- Brand ---------- */
 export function Logo({ size = 34 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" aria-hidden>
-      <defs>
-        <linearGradient id="lt-g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#2dd4bf" />
-          <stop offset="1" stopColor="#22d3ee" />
-        </linearGradient>
-      </defs>
-      <path d="M20 3 34 11v18L20 37 6 29V11Z" fill="url(#lt-g)" opacity="0.14" />
-      <path d="M20 3 34 11v18L20 37 6 29V11Z" stroke="url(#lt-g)" strokeWidth="1.6" />
-      <path d="M20 11v10l7 4" stroke="url(#lt-g)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="20" cy="20" r="2.4" fill="#22d3ee" />
-    </svg>
+    <CyberShieldLogo
+      size={size}
+      className="drop-shadow-[0_0_12px_rgba(34,211,238,0.5)] transition-transform duration-200 hover:scale-105"
+    />
   )
 }
 

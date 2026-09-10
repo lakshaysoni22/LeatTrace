@@ -1,0 +1,91 @@
+<svg viewBox="0 0 400 440" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="shield-bg" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#0B1C33" stop-opacity="0.95" />
+      <stop offset="60%" stop-color="#060E1C" stop-opacity="0.98" />
+      <stop offset="100%" stop-color="#03070E" stop-opacity="0.99" />
+    </radialGradient>
+    <linearGradient id="cyan-purple" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#00D4FF" />
+      <stop offset="65%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#C026D3" />
+    </linearGradient>
+    <linearGradient id="cyan-border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#00E5FF" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer Radar Circle -->
+  <circle cx="200" cy="200" r="182" stroke="#00D4FF" stroke-width="1.5" stroke-dasharray="5 6" stroke-opacity="0.4" />
+  <line x1="10" y1="200" x2="35" y2="200" stroke="#00D4FF" stroke-width="1.5" stroke-opacity="0.5" />
+  <line x1="365" y1="200" x2="390" y2="200" stroke="#00D4FF" stroke-width="1.5" stroke-opacity="0.5" />
+
+  <!-- Outer Dashed Shield -->
+  <path d="M 68,64 L 100,42 L 200,32 L 300,42 L 332,64 L 332,228 C 332,295 272,360 200,402 C 128,360 68,295 68,228 Z" stroke="#00E5FF" stroke-width="2.2" stroke-dasharray="6 5" stroke-opacity="0.75" />
+
+  <!-- Main Shield Body -->
+  <path d="M 78,74 L 106,54 L 200,44 L 294,54 L 322,74 L 322,222 C 322,284 266,346 200,385 C 134,346 78,284 78,222 Z" fill="url(#shield-bg)" stroke="url(#cyan-border)" stroke-width="3.6" />
+
+  <!-- Inner Shield Line -->
+  <path d="M 88,84 L 112,66 L 200,56 L 288,66 L 312,84 L 312,216 C 312,274 260,332 200,369 C 140,332 88,274 88,216 Z" fill="none" stroke="#00D4FF" stroke-width="1.8" stroke-opacity="0.8" />
+
+  <!-- Horizontal Bus -->
+  <line x1="112" y1="138" x2="288" y2="138" stroke="#00D4FF" stroke-width="1.2" stroke-dasharray="4 4" stroke-opacity="0.35" />
+
+  <!-- Top Diagonal Traces & Nodes -->
+  <line x1="174" y1="96" x2="128" y2="76" stroke="#00E5FF" stroke-width="2.4" />
+  <circle cx="128" cy="76" r="9" stroke="#9333EA" stroke-width="2" fill="#070E1C" />
+  <circle cx="128" cy="76" r="4.5" fill="#00E5FF" />
+
+  <line x1="226" y1="96" x2="272" y2="76" stroke="#00E5FF" stroke-width="2.4" />
+  <circle cx="272" cy="76" r="9" stroke="#9333EA" stroke-width="2" fill="#070E1C" />
+  <circle cx="272" cy="76" r="4.5" fill="#00E5FF" />
+
+  <!-- Central Hexagon Core -->
+  <polygon points="200,76 242,100 242,148 200,172 158,148 158,100" fill="#081426" stroke="#00E5FF" stroke-width="3.2" />
+  <polygon points="200,88 232,106 232,142 200,160 168,142 168,106" fill="none" stroke="#A855F7" stroke-width="2" stroke-opacity="0.9" />
+
+  <!-- Central Target Rings -->
+  <circle cx="200" cy="124" r="17" stroke="#00E5FF" stroke-width="2.4" fill="#050C18" />
+  <circle cx="200" cy="124" r="11" stroke="#00E5FF" stroke-width="1.5" stroke-dasharray="2 2" fill="none" />
+  <circle cx="200" cy="124" r="5" fill="#00FFFF" />
+
+  <!-- Side Nodes -->
+  <path d="M 158,124 L 118,124 L 102,140 L 102,176" fill="none" stroke="#00E5FF" stroke-width="2" />
+  <circle cx="102" cy="140" r="5" stroke="#00E5FF" stroke-width="1.8" fill="#050C18" />
+  <circle cx="102" cy="176" r="5" stroke="#00E5FF" stroke-width="1.8" fill="#050C18" />
+  <circle cx="102" cy="140" r="2.2" fill="#00FFFF" />
+  <circle cx="102" cy="176" r="2.2" fill="#00FFFF" />
+
+  <path d="M 242,124 L 282,124 L 298,140 L 298,176" fill="none" stroke="#00E5FF" stroke-width="2" />
+  <circle cx="298" cy="140" r="5" stroke="#00E5FF" stroke-width="1.8" fill="#050C18" />
+  <circle cx="298" cy="176" r="5" stroke="#00E5FF" stroke-width="1.8" fill="#050C18" />
+  <circle cx="298" cy="140" r="2.2" fill="#00FFFF" />
+  <circle cx="298" cy="176" r="2.2" fill="#00FFFF" />
+
+  <!-- Bottom Circuit Tree -->
+  <line x1="200" y1="172" x2="200" y2="218" stroke="#00E5FF" stroke-width="3" />
+  <circle cx="200" cy="218" r="3.5" fill="#00E5FF" />
+
+  <!-- Left Main Branch (Cyan to Purple) -->
+  <path d="M 200,218 L 168,246 L 140,246 L 122,264" fill="none" stroke="url(#cyan-purple)" stroke-width="2.4" stroke-linecap="round" />
+  <circle cx="122" cy="264" r="8" stroke="#A855F7" stroke-width="2" fill="#070E1C" />
+  <circle cx="122" cy="264" r="3.5" fill="#D946EF" />
+
+  <!-- Left Low Branch (Cyan) -->
+  <path d="M 168,246 L 168,272" fill="none" stroke="#00E5FF" stroke-width="2.2" stroke-linecap="round" />
+  <circle cx="168" cy="272" r="6.5" stroke="#00E5FF" stroke-width="1.8" fill="#070E1C" />
+  <circle cx="168" cy="272" r="2.8" fill="#00FFFF" />
+
+  <!-- Right Main Branch (Cyan to Purple) -->
+  <path d="M 200,218 L 232,246 L 260,246 L 278,264" fill="none" stroke="url(#cyan-purple)" stroke-width="2.4" stroke-linecap="round" />
+  <circle cx="278" cy="264" r="8" stroke="#A855F7" stroke-width="2" fill="#070E1C" />
+  <circle cx="278" cy="264" r="3.5" fill="#D946EF" />
+
+  <!-- Right Low Branch (Cyan) -->
+  <path d="M 232,246 L 232,272" fill="none" stroke="#00E5FF" stroke-width="2.2" stroke-linecap="round" />
+  <circle cx="232" cy="272" r="6.5" stroke="#00E5FF" stroke-width="1.8" fill="#070E1C" />
+  <circle cx="232" cy="272" r="2.8" fill="#00FFFF" />
+</svg>

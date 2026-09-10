@@ -204,6 +204,15 @@ export const DashboardPage: React.FC = () => {
                   <div className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse" />
                   <span>Active Investigation Target</span>
                 </div>
+                {summary?.dataSource && (
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border tracking-wider uppercase ${
+                    summary.dataSource === 'live'
+                      ? 'bg-accent-green/20 text-accent-green border-accent-green/30'
+                      : 'bg-accent-gold/20 text-accent-gold border-accent-gold/30'
+                  }`}>
+                    {summary.dataSource === 'live' ? 'Live' : 'Fallback'}
+                  </span>
+                )}
                 {summary && (
                   <span className="text-dark-500">• {summary.chain} • {summary.scriptType}</span>
                 )}
@@ -231,11 +240,11 @@ export const DashboardPage: React.FC = () => {
               <Copy size={13} className={copied ? 'text-accent-green' : 'text-dark-400'} />
             </button>
             <a
-              href={`https://mempool.space/address/${activeTargetAddress}`}
+              href={activeTargetAddress.startsWith('0x') ? `https://etherscan.io/address/${activeTargetAddress}` : `https://mempool.space/address/${activeTargetAddress}`}
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-lg bg-dark-800/50 border border-dark-700/50 hover:bg-dark-700/50 transition-colors"
-              title="View on Mempool.space"
+              title={activeTargetAddress.startsWith('0x') ? "View on Etherscan" : "View on Mempool.space"}
             >
               <ExternalLink size={13} className="text-dark-400" />
             </a>
@@ -408,7 +417,7 @@ export const DashboardPage: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <a
-                        href={`https://mempool.space/tx/${tx.txid}`}
+                        href={tx.txid.startsWith('0x') ? `https://etherscan.io/tx/${tx.txid}` : `https://mempool.space/tx/${tx.txid}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="mono text-xs text-primary-400 hover:text-primary-300 truncate max-w-[200px]"
@@ -418,7 +427,7 @@ export const DashboardPage: React.FC = () => {
                       <span className={`text-xs font-semibold ${
                         direction === 'received' ? 'text-accent-green' : direction === 'sent' ? 'text-accent-red' : 'text-accent-gold'
                       }`}>
-                        {direction === 'received' ? '+' : direction === 'sent' ? '-' : '↔'}{satToBtcShort(targetAmount)} BTC
+                        {direction === 'received' ? '+' : direction === 'sent' ? '-' : '↔'}{satToBtcShort(targetAmount)} {coinSymbol}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-1 text-[10px] text-dark-500">
@@ -430,7 +439,7 @@ export const DashboardPage: React.FC = () => {
                       {tx.status.block_time && (
                         <span>{formatTimestamp(tx.status.block_time)}</span>
                       )}
-                      <span className="ml-auto">Fee: {(tx.fee / 1e8).toFixed(8)} BTC</span>
+                      <span className="ml-auto">Fee: {(tx.fee / 1e8).toFixed(6)} {coinSymbol}</span>
                     </div>
                   </div>
                 </div>
@@ -471,11 +480,11 @@ export const DashboardPage: React.FC = () => {
                   </div>
                 </div>
                 <span className="text-xs font-semibold text-white whitespace-nowrap">
-                  {satToBtcShort(utxo.value)} BTC
+                  {satToBtcShort(utxo.value)} {coinSymbol}
                 </span>
               </div>
             )) : (
-              <p className="text-xs text-dark-500 text-center py-4">No UTXOs found.</p>
+              <p className="text-xs text-dark-500 text-center py-4">{coinSymbol === 'ETH' ? 'Account-based architecture (No UTXOs).' : 'No UTXOs found.'}</p>
             )}
           </div>
 
@@ -489,11 +498,11 @@ export const DashboardPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-2 text-[10px]">
                 <div>
                   <span className="text-dark-500">Total Fees Paid</span>
-                  <p className="text-white font-medium">{(totalFees / 1e8).toFixed(8)} BTC</p>
+                  <p className="text-white font-medium">{(totalFees / 1e8).toFixed(6)} {coinSymbol}</p>
                 </div>
                 <div>
                   <span className="text-dark-500">Avg Fee/Tx</span>
-                  <p className="text-white font-medium">{(totalFees / transactions.length / 1e8).toFixed(8)} BTC</p>
+                  <p className="text-white font-medium">{(totalFees / transactions.length / 1e8).toFixed(6)} {coinSymbol}</p>
                 </div>
               </div>
             </div>

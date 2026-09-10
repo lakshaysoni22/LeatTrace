@@ -145,7 +145,6 @@ export const modules = [
   { key: "alerts", label: "Alerts", desc: "Automated risk detection and escalation." },
   { key: "reports", label: "Reports", desc: "Generate court-ready and intelligence reports." },
   { key: "workspace", label: "Cyber Workspace", desc: "Saved queries, tools and collaborative notes." },
-  { key: "entities", label: "Entity Intelligence", desc: "Attribute exchanges, mixers and threat actors." },
   { key: "incident", label: "Incident Response", desc: "Coordinate live seizures with SLA playbooks." },
   { key: "soc", label: "SOC Dashboard", desc: "Security operations monitoring for the platform." },
 ]

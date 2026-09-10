@@ -9,9 +9,15 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  envPrefix: ['VITE_', 'GEMINI_'],
   server: {
-    port: 3000,
+    port: 8080,
+    strictPort: true,
     open: false,
+  },
+  preview: {
+    port: 8080,
+    strictPort: true,
   },
   build: {
     chunkSizeWarningLimit: 800,

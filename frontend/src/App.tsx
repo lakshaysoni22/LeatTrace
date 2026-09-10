@@ -18,7 +18,6 @@ const WatchlistPage = lazy(() => import('./pages/WatchlistPage').then(m => ({ de
 const AlertsPage = lazy(() => import('./pages/AlertsPage').then(m => ({ default: m.AlertsPage })));
 const ReportsPage = lazy(() => import('./pages/ReportsPage').then(m => ({ default: m.ReportsPage })));
 const AIWorkspacePage = lazy(() => import('./pages/AIWorkspacePage').then(m => ({ default: m.AIWorkspacePage })));
-const EntityIntelligencePage = lazy(() => import('./pages/EntityIntelligencePage').then(m => ({ default: m.EntityIntelligencePage })));
 const AuditPage = lazy(() => import('./pages/AuditPage').then(m => ({ default: m.AuditPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const IncidentResponsePage = lazy(() => import('./pages/IncidentResponsePage').then(m => ({ default: m.IncidentResponsePage })));
@@ -101,7 +100,6 @@ const App: React.FC = () => {
       import('./pages/AlertsPage');
       import('./pages/ReportsPage');
       import('./pages/AIWorkspacePage');
-      import('./pages/EntityIntelligencePage');
       import('./pages/AuditPage');
       import('./pages/SettingsPage');
       import('./pages/IncidentResponsePage');
@@ -287,8 +285,6 @@ const App: React.FC = () => {
         return <ReportsPage />;
       case 'ai':
         return <AIWorkspacePage />;
-      case 'entities':
-        return <EntityIntelligencePage />;
       case 'audit':
         return <AuditPage />;
       case 'settings':

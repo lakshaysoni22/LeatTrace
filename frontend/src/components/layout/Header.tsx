@@ -1,14 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavStore, useAlertStore, useAuthStore, useBlockchainStore, useCaseStore } from '../../stores';
+import { useNavStore, useAuthStore, useBlockchainStore, useCaseStore } from '../../stores';
 import { useInvestigationStore } from '../../stores/investigation';
-import { Bell, Search, Wifi, Shield, X, FolderPlus, FileUp, Sparkles, Keyboard, Menu, Target } from 'lucide-react';
+import { Bell, Search, Wifi, Shield, X, FolderPlus, FileUp, Sparkles, Keyboard, Menu, Target, ExternalLink } from 'lucide-react';
 import { timeAgo, getSeverityColor } from '../../utils/helpers';
 
 export const Header: React.FC = () => {
   const { sidebarOpen, currentPage, toggleSidebar, setPage, showShortcuts, setShowShortcuts } = useNavStore();
-  const { alerts, markRead, markAllRead } = useAlertStore();
+  const { 
+    alerts, 
+    markAlertRead, 
+    markAllAlertsRead, 
+    activeTargetAddress, 
+    setActiveTarget 
+  } = useInvestigationStore();
   const { user } = useAuthStore();
-  const { activeTargetAddress } = useInvestigationStore();
   const { setSearchAddress } = useBlockchainStore();
   const { cases, selectCase } = useCaseStore();
 
@@ -43,7 +48,6 @@ export const Header: React.FC = () => {
     alerts: 'Alert Center',
     reports: 'Report Generation',
     ai: 'Cyber Analysis Workspace',
-    entities: 'Entity Intelligence',
     audit: 'Audit Trail',
     settings: 'Platform Settings',
     incident: 'Incident Response',
@@ -198,11 +202,12 @@ export const Header: React.FC = () => {
           <button
             onClick={() => setShowAlerts(!showAlerts)}
             className="relative p-2 rounded-lg hover:bg-dark-700/50 text-dark-300 hover:text-white transition-colors cursor-pointer"
+            title="Alert Notifications"
           >
             <Bell size={18} />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-accent-red rounded-full text-[10px] font-bold flex items-center justify-center text-white animate-pulse">
-                {unreadCount}
+              <span className="absolute -top-0.5 -right-0.5 min-w-[20px] h-5 px-1 bg-accent-red rounded-full text-[10px] font-bold flex items-center justify-center text-white animate-pulse">
+                {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
           </button>
@@ -210,49 +215,91 @@ export const Header: React.FC = () => {
           {/* Alert Dropdown */}
           {showAlerts && (
             <div className="absolute right-0 top-12 w-96 glass-card bg-dark-950/98 rounded-xl overflow-hidden animate-scale-in shadow-2xl z-[120] border border-dark-700/50">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-dark-700/50">
-                <h3 className="text-sm font-semibold text-white">Alerts</h3>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-dark-700/50 bg-dark-900/50">
                 <div className="flex items-center gap-2">
-                  <button onClick={markAllRead} className="text-[11px] text-primary-400 hover:text-primary-300">Mark all read</button>
-                  <button onClick={() => setShowAlerts(false)} className="p-1 rounded hover:bg-dark-700/50 text-dark-400">
+                  <h3 className="text-sm font-semibold text-white">Security Alerts</h3>
+                  {unreadCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-accent-red/20 text-accent-red border border-accent-red/30">
+                      {unreadCount} new
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {unreadCount > 0 && (
+                    <button 
+                      onClick={() => void markAllAlertsRead()} 
+                      className="text-[11px] text-primary-400 hover:text-primary-300 hover:underline cursor-pointer"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                  <button onClick={() => setShowAlerts(false)} className="p-1 rounded hover:bg-dark-700/50 text-dark-400 hover:text-white cursor-pointer">
                     <X size={14} />
                   </button>
                 </div>
               </div>
-              <div className="max-h-80 overflow-y-auto">
-                {alerts.slice(0, 5).map((alert) => (
-                  <button
-                    key={alert.id}
-                    onClick={() => {
-                      markRead(alert.id);
-                      if (alert.address) {
-                        handleSuggestionClick({ type: 'wallet', target: alert.address });
-                      }
-                      setShowAlerts(false);
-                    }}
-                    className={`w-full text-left px-4 py-3 border-b border-dark-800/50 hover:bg-dark-700/30 transition-colors
-                      ${!alert.isRead ? 'bg-dark-800/30' : ''}`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                        alert.severity === 'critical' ? 'bg-accent-red' :
-                        alert.severity === 'high' ? 'bg-accent-gold' :
-                        alert.severity === 'medium' ? 'bg-primary-400' : 'bg-accent-green'
-                      }`} />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-xs ${!alert.isRead ? 'text-white font-medium' : 'text-dark-300'}`}>
-                          {alert.message}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-[10px] font-semibold uppercase ${getSeverityColor(alert.severity)}`}>
-                            {alert.severity}
-                          </span>
-                          <span className="text-[10px] text-dark-500">{timeAgo(alert.createdAt)}</span>
+
+              <div className="max-h-80 overflow-y-auto divide-y divide-dark-800/60">
+                {alerts.length > 0 ? (
+                  alerts.slice(0, 6).map((alert) => (
+                    <button
+                      key={alert.id}
+                      onClick={() => {
+                        void markAlertRead(alert.id);
+                        const target = alert.flaggedAddress || alert.walletAddress;
+                        if (target) {
+                          void setActiveTarget(target);
+                        }
+                        setShowAlerts(false);
+                        setPage('alerts');
+                      }}
+                      className={`w-full text-left px-4 py-3 hover:bg-dark-800/60 transition-colors cursor-pointer block group
+                        ${!alert.isRead ? 'bg-dark-800/30' : ''}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                          alert.severity === 'critical' ? 'bg-accent-red animate-pulse' :
+                          alert.severity === 'high' ? 'bg-accent-gold' :
+                          alert.severity === 'medium' ? 'bg-primary-400' : 'bg-accent-green'
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs leading-snug line-clamp-2 ${!alert.isRead ? 'text-white font-medium' : 'text-dark-300'}`}>
+                            {alert.message}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border ${
+                              alert.severity === 'critical' ? 'bg-accent-red/20 text-accent-red border-accent-red/30' :
+                              alert.severity === 'high' ? 'bg-accent-gold/20 text-accent-gold border-accent-gold/30' :
+                              alert.severity === 'medium' ? 'bg-primary-500/20 text-primary-400 border-primary-500/30' :
+                              'bg-accent-green/20 text-accent-green border-accent-green/30'
+                            }`}>
+                              {alert.severity}
+                            </span>
+                            <span className="text-[10px] text-dark-500 font-mono">
+                              {timeAgo(alert.timestamp)}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  ))
+                ) : (
+                  <div className="p-6 text-center text-xs text-dark-500 italic">
+                    No security alerts generated for active investigation.
+                  </div>
+                )}
+              </div>
+
+              <div className="p-2.5 bg-dark-900/60 border-t border-dark-700/50 text-center">
+                <button
+                  onClick={() => {
+                    setShowAlerts(false);
+                    setPage('alerts');
+                  }}
+                  className="text-xs text-primary-400 hover:text-primary-300 font-semibold hover:underline flex items-center justify-center gap-1.5 w-full py-1 cursor-pointer"
+                >
+                  View All Alerts ({alerts.length}) <ExternalLink size={12} />
+                </button>
               </div>
             </div>
           )}

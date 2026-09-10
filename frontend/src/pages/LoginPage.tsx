@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../stores';
-import { Hexagon, Shield, Eye, EyeOff, Lock, Mail, ArrowRight, AlertTriangle } from 'lucide-react';
+import { CyberShieldLogo } from '../components/CyberShieldLogo';
+import { Shield, Eye, EyeOff, Lock, Mail, ArrowRight, AlertTriangle } from 'lucide-react';
 
 interface LoginPageProps {
   onBack?: () => void;
@@ -148,10 +149,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
 
         {/* LEATrace Top Logo Header */}
         <div className="text-center mb-5 sm:mb-6 animate-slide-down">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-primary-500 via-cyber-teal to-primary-600 flex items-center justify-center shadow-[0_0_25px_rgba(0,212,255,0.4)] border border-cyan-400/40">
-            <Hexagon size={32} className="text-white animate-pulse" />
+          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-3 flex items-center justify-center relative">
+            <div className="absolute inset-0 bg-primary-500/10 rounded-full blur-2xl -z-10" />
+            <CyberShieldLogo size={90} className="animate-pulse-slow drop-shadow-[0_0_25px_rgba(0,212,255,0.45)]" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">LEAtTrace</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            LE<span className="text-primary-400">At</span>Trace
+          </h1>
           <p className="text-xs text-dark-400 mt-1">National Cybercrime Investigation Platform (I4C & CBI)</p>
         </div>
 

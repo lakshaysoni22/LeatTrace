@@ -1,9 +1,11 @@
 import React from 'react';
-import { useNavStore, useAuthStore, useAlertStore } from '../../stores';
+import { useNavStore, useAuthStore } from '../../stores';
+import { useInvestigationStore } from '../../stores/investigation';
+import { CyberShieldLogo } from '../CyberShieldLogo';
 import {
   LayoutDashboard, Search, FolderOpen, Shield, Eye, FileText, Bell, Settings,
-  ClipboardList, LogOut, ChevronLeft, ChevronRight, Hexagon, Activity, Sparkles, Building,
-  ShieldAlert, ShieldCheck, X, Globe
+  ClipboardList, LogOut, ChevronLeft, ChevronRight, Activity, Sparkles,
+  ShieldAlert, ShieldCheck, X
 } from 'lucide-react';
 
 const navItems = [
@@ -16,7 +18,6 @@ const navItems = [
   { id: 'alerts', label: 'Alerts', icon: Bell },
   { id: 'reports', label: 'Reports', icon: FileText },
   { id: 'ai', label: 'Cyber Workspace', icon: Sparkles },
-  { id: 'entities', label: 'Entity Intelligence', icon: Building },
   { id: 'incident', label: 'Incident Response', icon: ShieldAlert },
   { id: 'soc', label: 'SOC Dashboard', icon: ShieldCheck },
   { id: 'audit', label: 'Audit Logs', icon: ClipboardList },
@@ -24,13 +25,13 @@ const navItems = [
 ];
 
 const rolePermissions: Record<string, string[]> = {
-  'super_admin': ['dashboard', 'cases', 'blockchain', 'graph', 'evidence', 'watchlist', 'alerts', 'reports', 'ai', 'entities', 'incident', 'soc', 'audit', 'settings'],
-  'admin': ['dashboard', 'cases', 'blockchain', 'graph', 'evidence', 'watchlist', 'alerts', 'reports', 'ai', 'entities', 'incident', 'soc', 'audit', 'settings'],
-  'investigator': ['dashboard', 'cases', 'blockchain', 'graph', 'evidence', 'watchlist', 'alerts', 'reports', 'ai', 'entities', 'soc', 'settings'],
-  'senior_investigator': ['dashboard', 'cases', 'blockchain', 'graph', 'evidence', 'watchlist', 'alerts', 'reports', 'ai', 'entities', 'incident', 'soc', 'settings'],
+  'super_admin': ['dashboard', 'cases', 'blockchain', 'graph', 'evidence', 'watchlist', 'alerts', 'reports', 'ai', 'incident', 'soc', 'audit', 'settings'],
+  'admin': ['dashboard', 'cases', 'blockchain', 'graph', 'evidence', 'watchlist', 'alerts', 'reports', 'ai', 'incident', 'soc', 'audit', 'settings'],
+  'investigator': ['dashboard', 'cases', 'blockchain', 'graph', 'evidence', 'watchlist', 'alerts', 'reports', 'ai', 'soc', 'settings'],
+  'senior_investigator': ['dashboard', 'cases', 'blockchain', 'graph', 'evidence', 'watchlist', 'alerts', 'reports', 'ai', 'incident', 'soc', 'settings'],
   'forensic_analyst': ['dashboard', 'cases', 'blockchain', 'graph', 'evidence', 'watchlist', 'alerts', 'reports', 'ai', 'soc', 'settings'],
   'blockchain_analyst': ['dashboard', 'blockchain', 'graph', 'watchlist', 'alerts', 'reports', 'ai', 'settings'],
-  'intelligence_officer': ['dashboard', 'blockchain', 'watchlist', 'alerts', 'reports', 'ai', 'entities', 'settings'],
+  'intelligence_officer': ['dashboard', 'blockchain', 'watchlist', 'alerts', 'reports', 'ai', 'settings'],
   'auditor': ['dashboard', 'audit', 'settings'],
   'read-only': ['dashboard', 'reports', 'settings'],
   'read_only_viewer': ['dashboard', 'reports', 'settings']
@@ -39,7 +40,7 @@ const rolePermissions: Record<string, string[]> = {
 export const Sidebar: React.FC = () => {
   const { sidebarOpen, currentPage, toggleSidebar, setPage } = useNavStore();
   const { user, logout } = useAuthStore();
-  const alerts = useAlertStore((s) => s.alerts);
+  const alerts = useInvestigationStore((s) => s.alerts);
   const unreadCount = alerts.filter((a) => !a.isRead).length;
 
   const userRole = user?.role || 'investigator';
@@ -55,14 +56,20 @@ export const Sidebar: React.FC = () => {
         ${sidebarOpen ? 'w-64 left-0' : 'w-[72px] -left-[72px] md:left-0'}`}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-dark-700/50">
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500 to-cyber-teal flex items-center justify-center flex-shrink-0">
-          <Hexagon size={20} className="text-white" />
+      <div 
+        onClick={() => setPage('dashboard')}
+        className="flex items-center gap-3 px-3.5 h-16 border-b border-dark-700/50 cursor-pointer hover:bg-dark-800/40 transition-colors group"
+        title="LEAtTrace Dashboard"
+      >
+        <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+          <CyberShieldLogo size={34} className="transition-transform duration-200 group-hover:scale-105 drop-shadow-[0_0_10px_rgba(0,212,255,0.45)]" />
         </div>
         {sidebarOpen && (
           <div className="animate-fade-in">
-            <h1 className="text-sm font-bold text-white tracking-wide">LEAtTrace</h1>
-            <p className="text-[9px] text-dark-400 tracking-wider uppercase font-semibold">CBI & I4C Portal</p>
+            <h1 className="text-sm font-bold text-white tracking-wide flex items-center">
+              LE<span className="text-primary-400">At</span>Trace
+            </h1>
+            <p className="text-[9px] text-primary-400/90 tracking-wider uppercase font-mono font-semibold">CBI & I4C Portal</p>
           </div>
         )}
         <button
@@ -106,21 +113,6 @@ export const Sidebar: React.FC = () => {
           );
         })}
 
-        <div className="pt-2 mt-2 border-t border-dark-700/40">
-          <button
-            onClick={() => {
-              setPage('landing');
-              if (window.innerWidth < 768) {
-                useNavStore.setState({ sidebarOpen: false });
-              }
-            }}
-            className={`w-full nav-item ${currentPage === 'landing' ? 'active bg-primary-500/15 border-primary-500/30' : ''} ${!sidebarOpen ? 'justify-center px-0' : ''}`}
-            title={!sidebarOpen ? 'Public Portal' : undefined}
-          >
-            <Globe size={18} className="text-cyan-400" />
-            {sidebarOpen && <span className="text-cyan-300 font-medium">Public Portal</span>}
-          </button>
-        </div>
       </nav>
 
       {/* User Section */}

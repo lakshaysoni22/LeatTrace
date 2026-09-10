@@ -11,20 +11,28 @@ import { apiGet, apiPost, API_BASE } from '../utils/api';
 export const BlockchainPage: React.FC = () => {
   const { searchAddress, setSearchAddress } = useBlockchainStore();
   const { setPage } = useNavStore();
-  const { activeTargetAddress, transactions: liveTxs } = useInvestigationStore();
+  const { activeTargetAddress, summary, transactions: liveTxs, counterparties } = useInvestigationStore();
+
+  const isEth = summary?.coinSymbol === 'ETH' || activeTargetAddress?.startsWith('0x');
+  const coinSymbol = summary?.coinSymbol || (isEth ? 'ETH' : 'BTC');
+  const unitPrice = isEth ? 3200 : (coinSymbol === 'BTC' ? 65000 : 1);
 
   // Derive ledger-compatible transaction list from live data
-  const liveTxForLedger = liveTxs.slice(0, 25).map(tx => ({
-    hash: tx.txid,
-    from: tx.vin[0]?.prevout?.scriptpubkey_address || 'Unknown',
-    to: tx.vout[0]?.scriptpubkey_address || 'Unknown',
-    value: tx.vout.reduce((s: number, o: any) => s + o.value, 0) / 1e8,
-    timestamp: tx.status.block_time ? new Date(tx.status.block_time * 1000).toISOString() : new Date().toISOString(),
-    status: tx.status.confirmed ? 'success' : 'pending',
-    blockNumber: tx.status.block_height || 0,
-    gasUsed: `${(tx.fee / 1e8).toFixed(6)} BTC`,
-    confirmations: tx.status.block_height ? Math.max(0, 850000 - tx.status.block_height) : 0,
-  }));
+  const liveTxForLedger = liveTxs.slice(0, 25).map(tx => {
+    const val = (tx.vout[0]?.value || 0) / 1e8;
+    return {
+      hash: tx.txid,
+      from: tx.vin[0]?.prevout?.scriptpubkey_address || 'Unknown',
+      to: tx.vout[0]?.scriptpubkey_address || 'Unknown',
+      value: val,
+      valueUSD: val * unitPrice,
+      timestamp: tx.status.block_time ? new Date(tx.status.block_time * 1000).toISOString() : new Date().toISOString(),
+      status: tx.status.confirmed ? 'success' : 'pending',
+      blockNumber: tx.status.block_height || 0,
+      gasUsed: `${(tx.fee / 1e8).toFixed(6)} ${coinSymbol}`,
+      confirmations: tx.status.block_height ? Math.max(1, 850000 - tx.status.block_height) : 0,
+    };
+  });
 
   // Compute monthly volume from live transactions
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -35,14 +43,15 @@ export const BlockchainPage: React.FC = () => {
     const d = new Date(bt * 1000);
     const key = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
     const entry = volumeMap.get(key) || { inflow: 0, outflow: 0 };
-    const isInbound = tx.vout.some(o => o.scriptpubkey_address === activeTargetAddress);
-    const val = tx.vout.reduce((s, o) => s + o.value, 0) / 1e8;
+    const targetClean = (activeTargetAddress || '').toLowerCase();
+    const isInbound = tx.vout.some(o => o.scriptpubkey_address?.toLowerCase() === targetClean);
+    const val = (tx.vout[0]?.value || 0) / 1e8;
     if (isInbound) entry.inflow += val; else entry.outflow += val;
     volumeMap.set(key, entry);
   });
   const txVolumeData = Array.from(volumeMap.entries()).map(([month, data]) => ({ month, ...data })).slice(-6);
 
-  const [address, setAddress] = useState(activeTargetAddress || searchAddress || '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28');
+  const [address, setAddress] = useState(activeTargetAddress || searchAddress || '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045');
 
   // Keep BlockchainPage synced with global activeTargetAddress
   useEffect(() => {
@@ -75,209 +84,169 @@ export const BlockchainPage: React.FC = () => {
   const [decodedResult, setDecodedResult] = useState<any | null>(null);
   const [decodingStatus, setDecodingStatus] = useState<'idle' | 'decoding' | 'error'>('idle');
 
-  // Address Clustering details
+  // Address Clustering details (derived from live counterparties)
   const [clusterData, setClusterData] = useState<any>({
-    confidence: 'High',
-    type: 'Multi-Input Heuristics & Common Co-Deposit Tags',
-    size: 4,
-    wallets: [
-      '0x71c20e241775e5332f143715df332f143789a71b',
-      '0xab5801a7d398351b8be11c439e05c5b3259aec9b',
-      '0x3f5ce5fbfe3e9af3971dd833d26ba9b5c936f0be',
-      '0x53d2b273e51111111a4cf13e8f8f8f8f8f8f8f8f'
-    ],
-    exchanges: ['Binance (Deposit Tag: 90218)', 'Kraken']
+    confidence: 'Medium',
+    type: 'Multi-Input / Counterparty Graph Correlation',
+    size: 0,
+    wallets: [],
+    exchanges: []
   });
 
-  // Mixer exposure details
+  // Mixer exposure details (scanned against live transactions)
   const [mixerData, setMixerData] = useState<any>({
-    exposurePercentage: 85.5,
-    volumeUSD: 4971750.00,
-    rating: 'Critical',
-    involvedPools: ['Tornado.Cash: Proxy Router', 'Tornado.Cash: 10 ETH Pool'],
-    interactions: [
-      { hash: '0xfe3b5928d11c439e05c5b3259aec9be5fbfe3e9af3971dd833d26ba9b5c936f', time: '2026-06-20T10:00:00Z', action: 'DEPOSIT', amount: 10.0, pool: 'Tornado.Cash 10 ETH' },
-      { hash: '0x53d2b273e5a3f5ce5fbfe3e9af3971dd833d26ba9b5c936f0be1a4cf13e8f8f', time: '2026-06-18T14:32:10Z', action: 'WITHDRAWAL', amount: 10.0, pool: 'Tornado.Cash 10 ETH' },
-      { hash: '0xfa7b9c0d1e2f3a4b5b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b568a8e4e9b', time: '2026-06-15T09:12:05Z', action: 'DEPOSIT', amount: 1.0, pool: 'Tornado.Cash 1.0 ETH' },
-      { hash: '0xbc1d3a4b5b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b568a8e4e9bcda9d9e4', time: '2026-06-12T11:00:30Z', action: 'WITHDRAWAL', amount: 1.0, pool: 'Tornado.Cash 1.0 ETH' }
-    ]
+    exposurePercentage: 0,
+    volumeUSD: 0,
+    rating: 'Clean',
+    involvedPools: [],
+    interactions: []
   });
 
   // Token approvals, DeFi, Threat Intel and Fraud Score states
   const [tokenApprovals, setTokenApprovals] = useState<any[]>([]);
   const [defiInteractions, setDefiInteractions] = useState<any[]>([]);
-  const [threatIntel, setThreatIntel] = useState<any>({ is_sanctioned: false, details: { entity: 'Clean Retail Wallet', list: 'None', risk: 'None', actor: 'None' } });
+  const [threatIntel, setThreatIntel] = useState<any>({ is_sanctioned: false, details: { entity: 'Clean On-Chain Entity', list: 'None', risk: 'None', actor: 'None' } });
   const [fraudScore, setFraudScore] = useState<any>(null);
 
   // Cross-Chain Bridges Trace details
-  const [crossChainHops, setCrossChainHops] = useState<any[]>([
-    {
-      step: 1,
-      chain: 'Ethereum Mainnet',
-      action: 'Lock Assets inside Bridge Contract',
-      hash: '0xfe3b5928d11c439e05c5b3259aec9be5fbfe3e9af3971dd833d26ba9b5c936f',
-      amount: 25.5,
-      token: 'ETH',
-      contract: 'Hop Protocol: Bridge Router',
-      time: '2026-06-20T10:00:00Z'
-    },
-    {
-      step: 2,
-      chain: 'Binance Smart Chain (BSC)',
-      action: 'Mint / Release Synthetic Assets',
-      hash: '0x53d2b273e5a3f5ce5fbfe3e9af3971dd833d26ba9b5c936f0be1a4cf13e8f8f',
-      amount: 25.48,
-      token: 'WETH',
-      contract: 'Hop Protocol: BSC Bridge Release',
-      time: '2026-06-20T10:04:12Z'
-    },
-    {
-      step: 3,
-      chain: 'Binance Smart Chain (BSC)',
-      action: 'Execute Swapping inside PancakeSwap Pool',
-      hash: '0xfa7b9c0d1e2f3a4b5b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b568a8e4e9b',
-      amount: 89200.0,
-      token: 'USDT',
-      contract: 'PancakeSwap: WETH/USDT Pool',
-      time: '2026-06-20T10:12:30Z'
-    },
-    {
-      step: 4,
-      chain: 'Polygon PoS',
-      action: 'Transfer Cross-Chain Swap release',
-      hash: '0xbc1d3a4b5b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b568a8e4e9bcda9d9e4',
-      amount: 89185.0,
-      token: 'USDT',
-      contract: 'AnySwap: Polygon Bridge Inbound',
-      time: '2026-06-20T10:18:45Z'
-    }
-  ]);
+  const [crossChainHops, setCrossChainHops] = useState<any[]>([]);
 
-  // Sync address input with store searchAddress
+  // Sync address input and wallet forensics with live store data
   useEffect(() => {
-    if (searchAddress) {
-      setAddress(searchAddress);
+    const currentAddr = searchAddress || activeTargetAddress || address;
+    if (currentAddr) {
+      setAddress(currentAddr);
 
-      const detected = detectBlockchainFromAddress(searchAddress);
+      const detected = detectBlockchainFromAddress(currentAddr);
+      const isEvm = summary?.coinSymbol === 'ETH' || detected.chain === 'ethereum' || currentAddr.startsWith('0x');
+      const currentCoin = summary?.coinSymbol || (isEvm ? 'ETH' : detected.coin || 'BTC');
+      const price = isEvm ? 3200 : (currentCoin === 'BTC' ? 65000 : 1);
 
-      // Set minimal wallet info — real data comes from API fetch below
+      const bal = summary?.formattedBalance ?? 0;
+      const txCount = summary?.txCount ?? liveTxs.length;
+
       setWallet({
-        address: searchAddress,
-        chain: detected.chain,
-        balance: 0,
-        balanceUSD: 0,
-        totalTransactions: 0,
-        incomingTxns: 0,
-        outgoingTxns: 0,
-        firstActivity: '',
-        lastActivity: '',
-        totalVolumeIn: 0,
-        totalVolumeOut: 0,
-        riskScore: 0,
-        riskIndicators: [],
-        tags: [],
-        isContract: false,
-        label: 'Target Wallet',
-        decentralizationLevel: 0
+        address: currentAddr,
+        chain: summary?.chain || detected.chain,
+        balance: bal,
+        balanceUSD: bal * price,
+        totalTransactions: txCount,
+        incomingTxns: liveTxs.filter(tx => tx.vout.some(o => o.scriptpubkey_address?.toLowerCase() === currentAddr.toLowerCase())).length,
+        outgoingTxns: liveTxs.filter(tx => tx.vin.some(i => i.prevout?.scriptpubkey_address?.toLowerCase() === currentAddr.toLowerCase())).length,
+        firstActivity: summary?.firstSeen || '',
+        lastActivity: summary?.lastSeen || '',
+        totalVolumeIn: summary?.formattedReceived ?? 0,
+        totalVolumeOut: summary?.formattedSent ?? 0,
+        riskScore: useInvestigationStore.getState().riskScore,
+        riskIndicators: [
+          { description: 'Live On-Chain Transaction Activity Analysis', score: 15 },
+          ...(bal > 10 ? [{ description: `Significant Wallet Holding (${bal} ${currentCoin})`, score: 25 }] : []),
+          ...(liveTxs.some(tx => !tx.status.confirmed) ? [{ description: 'Unconfirmed / Pending Transactions', score: 15 }] : []),
+        ],
+        tags: [summary?.chain || 'Mainnet', summary?.scriptType || 'Wallet'],
+        isContract: summary?.scriptType?.toLowerCase().includes('contract') || false,
+        label: isEvm ? 'Ethereum Live Target' : 'Bitcoin Live Target',
+        decentralizationLevel: 94
       });
 
-      // Clear analysis panels until real data loads
-      setClusterData({ confidence: '—', type: '—', size: 0, wallets: [], exchanges: [] });
-      setMixerData({ exposurePercentage: 0, volumeUSD: 0, rating: '—', involvedPools: [], interactions: [] });
-      setTokenApprovals([]);
-      setDefiInteractions([]);
-      setThreatIntel({ is_sanctioned: false, details: { entity: '—', list: 'None', risk: 'None', actor: 'None' } });
-      setFraudScore({
-        address: searchAddress,
-        fraud_probability_percent: 0,
-        risk_classification: 'Pending Analysis',
-        behavioral_anomalies: [],
-        assessment_timestamp: new Date().toISOString()
+      // Derive cluster data dynamically from real counterparties
+      const cpWallets = counterparties.map(c => c.address);
+      setClusterData({
+        confidence: counterparties.length >= 4 ? 'High' : (counterparties.length > 0 ? 'Medium' : 'No Cluster'),
+        type: 'Multi-Input / Counterparty Graph Correlation',
+        size: counterparties.length,
+        wallets: cpWallets.length > 0 ? cpWallets.slice(0, 10) : [currentAddr],
+        exchanges: counterparties.filter(c => c.txCount >= 3).map(c => `High-Volume Gateway (${formatAddress(c.address, 6)})`)
       });
 
+      // Scan live transactions for known mixer contracts
+      const KNOWN_MIXERS = new Set([
+        '0xd90e2f925da726b50c4ed8d0fb90ad053324f31b',
+        '0x12d66f87a04a9e220743712ce6d9bb1b5616b8fc',
+        '0x47ce0c6ed5b0ce3d3a51fdb1c52dc66a7c3c2936',
+        '0x910cbd523d972eb0a6f4cae4618ad62622b39dbf',
+        '0xa160cdab224e95d6638174753a0724176454523b'
+      ]);
+      const mixerInteractions: any[] = [];
+      liveTxs.forEach(tx => {
+        const toAddr = tx.vout[0]?.scriptpubkey_address?.toLowerCase();
+        const fromAddr = tx.vin[0]?.prevout?.scriptpubkey_address?.toLowerCase();
+        if (toAddr && KNOWN_MIXERS.has(toAddr)) {
+          mixerInteractions.push({
+            hash: tx.txid,
+            time: tx.status.block_time ? new Date(tx.status.block_time * 1000).toISOString() : new Date().toISOString(),
+            action: 'DEPOSIT',
+            amount: (tx.vout[0]?.value || 0) / 1e8,
+            pool: 'Tornado Cash Pool'
+          });
+        } else if (fromAddr && KNOWN_MIXERS.has(fromAddr)) {
+          mixerInteractions.push({
+            hash: tx.txid,
+            time: tx.status.block_time ? new Date(tx.status.block_time * 1000).toISOString() : new Date().toISOString(),
+            action: 'WITHDRAWAL',
+            amount: (tx.vout[0]?.value || 0) / 1e8,
+            pool: 'Tornado Cash Pool'
+          });
+        }
+      });
+      const mixerExposurePercent = mixerInteractions.length > 0 && liveTxs.length > 0 
+        ? Math.round((mixerInteractions.length / liveTxs.length) * 100) 
+        : 0;
+      setMixerData({
+        exposurePercentage: mixerExposurePercent,
+        volumeUSD: mixerInteractions.reduce((s, m) => s + m.amount * price, 0),
+        rating: mixerExposurePercent > 50 ? 'Critical' : (mixerExposurePercent > 0 ? 'Elevated' : 'Clean'),
+        involvedPools: mixerInteractions.length > 0 ? ['Tornado.Cash Pool'] : [],
+        interactions: mixerInteractions
+      });
+
+      // Scan live transactions for known bridge routers
+      const KNOWN_BRIDGES: Record<string, string> = {
+        '0x3666f603cc164936c1b87e207f36beba4ac5f18a': 'Hop Protocol: Bridge Router',
+        '0xb8901acb933100775e54b6c310486a4bb2f54a88': 'Hop Protocol: ETH Bridge',
+        '0xdf0770df86a8034b3efef0a1bb3c889b8332ff56': 'Stargate Finance: Router',
+        '0x4d9079bb4165aeb4084c526a32695dcfd2f77381': 'Across Protocol: SpokePool',
+        '0x40ec5b33f54e083771497cebe7f91040849baef8': 'Polygon Bridge: ERC20',
+      };
+      const hops: any[] = [];
+      liveTxs.forEach(tx => {
+        const toAddr = tx.vout[0]?.scriptpubkey_address?.toLowerCase();
+        if (toAddr && KNOWN_BRIDGES[toAddr]) {
+          hops.push({
+            step: hops.length + 1,
+            chain: 'Ethereum Mainnet',
+            action: 'Bridge Contract Transfer',
+            hash: tx.txid,
+            amount: (tx.vout[0]?.value || 0) / 1e8,
+            token: currentCoin,
+            contract: KNOWN_BRIDGES[toAddr],
+            time: tx.status.block_time ? new Date(tx.status.block_time * 1000).toISOString() : new Date().toISOString()
+          });
+        }
+      });
+      setCrossChainHops(hops);
+
+      // Optional backend forensics enrichment
       const fetchForensics = async () => {
         try {
           const authHeader = { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` };
-
-          const clusterRes = await fetch(`${API_BASE}/api/wallets/cluster/${searchAddress}`, { headers: authHeader });
-          if (clusterRes.ok) {
-            const data = await clusterRes.json();
-            setClusterData({
-              confidence: data.confidence_level,
-              type: data.heuristics_used,
-              size: data.total_size,
-              wallets: data.associated_wallets,
-              exchanges: data.common_deposit_tags
-            });
+          const [threatRes, fraudRes] = await Promise.allSettled([
+            fetch(`${API_BASE}/api/wallets/threats/${currentAddr}`, { headers: authHeader }),
+            fetch(`${API_BASE}/api/wallets/fraud/${currentAddr}`, { headers: authHeader }),
+          ]);
+          if (threatRes.status === 'fulfilled' && threatRes.value.ok) {
+            setThreatIntel(await threatRes.value.json());
           }
-
-          const mixerRes = await fetch(`${API_BASE}/api/wallets/mixer-check/${searchAddress}`, { headers: authHeader });
-          if (mixerRes.ok) {
-            const data = await mixerRes.json();
-            setMixerData({
-              exposurePercentage: data.mixer_exposure_percent,
-              volumeUSD: data.total_mixed_usd,
-              rating: data.exposure_rating || (data.mixer_exposure_percent > 50 ? 'Critical' : 'Low'),
-              involvedPools: data.mixer_contracts_involved || [],
-              interactions: data.tornado_temporal_correlations ? data.tornado_temporal_correlations.map((tx: any) => ({
-                hash: tx.deposit_tx,
-                time: tx.deposit_time,
-                action: 'DEPOSIT',
-                amount: tx.amount,
-                pool: 'Tornado.Cash Pool'
-              })) : []
-            });
+          if (fraudRes.status === 'fulfilled' && fraudRes.value.ok) {
+            setFraudScore(await fraudRes.value.json());
           }
-
-          const crossRes = await fetch(`${API_BASE}/api/wallets/cross-chain-trace/${searchAddress}`, { headers: authHeader });
-          if (crossRes.ok) {
-            const data = await crossRes.json();
-            if (data.hops_timeline) {
-              setCrossChainHops(data.hops_timeline.map((hop: any) => ({
-                step: hop.step,
-                chain: hop.destination_chain,
-                action: `${hop.source_chain} -> ${hop.destination_chain} via ${hop.bridge_contract}`,
-                hash: hop.tx_hash,
-                amount: hop.amount_sent,
-                token: hop.token,
-                contract: hop.bridge_contract,
-                time: hop.timestamp
-              })));
-            }
-          }
-
-          const defiRes = await fetch(`${API_BASE}/api/wallets/defi/${searchAddress}`, { headers: authHeader });
-          if (defiRes.ok) {
-            const data = await defiRes.json();
-            setDefiInteractions(data);
-          }
-
-          const appRes = await fetch(`${API_BASE}/api/wallets/approvals/${searchAddress}`, { headers: authHeader });
-          if (appRes.ok) {
-            const data = await appRes.json();
-            setTokenApprovals(data);
-          }
-
-          const threatRes = await fetch(`${API_BASE}/api/wallets/threats/${searchAddress}`, { headers: authHeader });
-          if (threatRes.ok) {
-            const data = await threatRes.json();
-            setThreatIntel(data);
-          }
-
-          const fraudRes = await fetch(`${API_BASE}/api/wallets/fraud/${searchAddress}`, { headers: authHeader });
-          if (fraudRes.ok) {
-            const data = await fraudRes.json();
-            setFraudScore(data);
-          }
-        } catch (e) {
-          console.log("Forensic API endpoints offline. Falling back to local simulator outputs:", e);
-        }
+        } catch { /* offline enrichment fallback */ }
       };
 
       fetchForensics();
       setShowProfile(true);
     }
-  }, [searchAddress]);
+  }, [searchAddress, activeTargetAddress, summary, liveTxs, counterparties]);
 
   const isValidBlockchainAddress = (addr: string): boolean => {
     if (!addr || addr.length < 10) return false;
@@ -664,7 +633,7 @@ export const BlockchainPage: React.FC = () => {
                         <code className="text-[10px] font-mono text-dark-400">
                           {isOut ? `→ ${formatAddress(tx.to, 5)}` : `← ${formatAddress(tx.from, 5)}`}
                         </code>
-                        <span className="text-xs font-semibold text-white">{formatETH(tx.value)}</span>
+                        <span className="text-xs font-semibold text-white">{formatCrypto(tx.value, coinSymbol)}</span>
                       </div>
                       <div className="flex items-center justify-between mt-1">
                         <span className="text-[9px] text-dark-500">{timeAgo(tx.timestamp)}</span>
@@ -715,7 +684,7 @@ export const BlockchainPage: React.FC = () => {
                           </td>
                           <td>
                             <div>
-                              <span className="font-semibold text-white">{formatETH(tx.value)}</span>
+                              <span className="font-semibold text-white">{formatCrypto(tx.value, coinSymbol)}</span>
                               <span className="text-[9px] text-dark-500 block">{formatUSD(tx.valueUSD)}</span>
                             </div>
                           </td>

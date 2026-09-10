@@ -71,7 +71,6 @@ const moduleIcons: Record<string, any> = {
   alerts: IconBell,
   reports: IconReport,
   workspace: IconBolt,
-  entities: IconEntity,
   incident: IconIncident,
   soc: IconSoc,
 }
