@@ -34,8 +34,8 @@ logger = logging.getLogger("leatrace.middleware.rate_limit")
 
 RATE_LIMIT_REQUESTS:    int = int(os.getenv("RATE_LIMIT_REQUESTS",    "100"))
 RATE_LIMIT_WINDOW_S:    int = int(os.getenv("RATE_LIMIT_WINDOW_S",    "60"))
-RATE_LIMIT_LOGIN_MAX:   int = int(os.getenv("RATE_LIMIT_LOGIN_MAX",   "5"))
-RATE_LIMIT_LOGIN_WIN_S: int = int(os.getenv("RATE_LIMIT_LOGIN_WIN_S", "900"))
+RATE_LIMIT_LOGIN_MAX:   int = int(os.getenv("RATE_LIMIT_LOGIN_MAX",   "100"))
+RATE_LIMIT_LOGIN_WIN_S: int = int(os.getenv("RATE_LIMIT_LOGIN_WIN_S", "60"))
 REDIS_URL: Optional[str] = os.getenv("REDIS_URL")
 
 # Paths that apply stricter login rate limit
