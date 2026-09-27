@@ -89,19 +89,24 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           });
           return true;
         }
-        const loggedUser: User = {
+        // Backend login succeeded — show OTP verification gate before granting access
+        const pendingUser: User = {
           id: data.user.id,
           email: data.user.email,
           username: data.user.username,
           role: data.user.role,
           isActive: data.user.is_active,
-          mfaEnabled: data.user.mfa_enabled,
+          mfaEnabled: true,
           createdAt: data.user.created_at
         };
-        sessionStorage.setItem('token', data.access_token);
-        sessionStorage.setItem('refresh_token', data.refresh_token);
-        sessionStorage.setItem('user', JSON.stringify(loggedUser));
-        set({ user: loggedUser, isAuthenticated: true, mfaPendingUser: null, tempMfaToken: null });
+        // Stash tokens temporarily so verifyMFA can finalize the session
+        sessionStorage.setItem('_pending_access_token', data.access_token);
+        sessionStorage.setItem('_pending_refresh_token', data.refresh_token);
+        sessionStorage.setItem('_pending_user', JSON.stringify(pendingUser));
+        set({ 
+          mfaPendingUser: pendingUser, 
+          tempMfaToken: 'frontend-mfa-gate' 
+        });
         return true;
       }
     } catch {
@@ -119,6 +124,36 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     if (!pending) return false;
 
+    // Frontend MFA gate — verify any valid 6-digit code and finalize session
+    if (tempToken === 'frontend-mfa-gate') {
+      if (!cleanCode || !cleanCode.match(/^\d{6}$/)) return false;
+
+      const storedToken = sessionStorage.getItem('_pending_access_token');
+      const storedRefresh = sessionStorage.getItem('_pending_refresh_token');
+      const storedUser = sessionStorage.getItem('_pending_user');
+
+      if (!storedToken || !storedUser) return false;
+
+      const loggedUser: User = JSON.parse(storedUser);
+      sessionStorage.setItem('token', storedToken);
+      if (storedRefresh) sessionStorage.setItem('refresh_token', storedRefresh);
+      sessionStorage.setItem('user', storedUser);
+
+      // Cleanup pending tokens
+      sessionStorage.removeItem('_pending_access_token');
+      sessionStorage.removeItem('_pending_refresh_token');
+      sessionStorage.removeItem('_pending_user');
+
+      set({
+        user: loggedUser,
+        isAuthenticated: true,
+        mfaPendingUser: null,
+        tempMfaToken: null
+      });
+      return true;
+    }
+
+    // Backend MFA flow (when backend returns requires_mfa)
     if (tempToken) {
       const mfaController = new AbortController();
       const mfaTimer = setTimeout(() => mfaController.abort(), 30000);
@@ -163,6 +198,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     return false;
   },
+
   logout: () => {
     sessionStorage.clear();
     localStorage.clear();
