@@ -9,15 +9,18 @@
  * - Retry on network failures (up to 2 retries)
  */
 
-// Reads VITE_API_URL from environment, falls back to localhost for local dev
+// Reads VITE_API_URL from environment, falls back to relative paths in production (Vercel rewrites)
 const envUrl = import.meta.env.VITE_API_URL;
-export const API_BASE = envUrl !== undefined && envUrl !== "" ? envUrl : 'http://localhost:8000';
+const isLocalDev = typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+export const API_BASE = envUrl !== undefined && envUrl !== "" ? envUrl : (isLocalDev ? 'http://localhost:8000' : '');
 
 // WebSocket URL derived from API_BASE (http→ws, https→wss)
-export const WS_BASE = API_BASE.replace(/^http/, 'ws');
+export const WS_BASE = API_BASE ? API_BASE.replace(/^http/, 'ws') : `wss://${typeof window !== 'undefined' ? window.location.host : 'localhost'}`;
 
-const DEFAULT_TIMEOUT_MS = 3000;
+const DEFAULT_TIMEOUT_MS = 15000;
 const MAX_RETRIES = 1;
+
 
 export class ApiError extends Error {
   constructor(

@@ -56,7 +56,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6000);
+    const timer = setTimeout(() => controller.abort(), 30000);
 
     try {
       const formData = new URLSearchParams();
@@ -121,7 +121,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     if (tempToken) {
       const mfaController = new AbortController();
-      const mfaTimer = setTimeout(() => mfaController.abort(), 6000);
+      const mfaTimer = setTimeout(() => mfaController.abort(), 30000);
 
       try {
         const response = await fetch(`${API_BASE}/api/auth/mfa/verify?temp_token=${tempToken}`, {
