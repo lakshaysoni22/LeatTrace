@@ -39,7 +39,8 @@ def ensure_default_dev_user(db):
             hashed_password=security.get_password_hash("SecurePass@2026"),
             role="admin",
             is_active=True,
-            mfa_enabled=False,
+            mfa_enabled=True,
+            mfa_secret=security.generate_totp_secret(),
             department="Cyber Crime Cell",
         )
         db.add(user)
@@ -55,6 +56,11 @@ def ensure_default_dev_user(db):
         user.department = "Cyber Crime Cell"
     if not user.hashed_password or not security.verify_password("SecurePass@2026", user.hashed_password):
         user.hashed_password = security.get_password_hash("SecurePass@2026")
+    # Ensure MFA is enabled and a TOTP secret exists
+    if not user.mfa_enabled:
+        user.mfa_enabled = True
+    if not user.mfa_secret:
+        user.mfa_secret = security.generate_totp_secret()
     db.commit()
     return user
 
@@ -121,6 +127,10 @@ def ensure_admin_staff_users(db):
         user.role = "admin"
         user.is_active = True
         user.department = item["department"]
+        # Ensure MFA is enabled with a TOTP secret for all staff
+        user.mfa_enabled = True
+        if not user.mfa_secret:
+            user.mfa_secret = security.generate_totp_secret()
     db.commit()
 
 
